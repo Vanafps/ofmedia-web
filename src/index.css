@@ -1,0 +1,217 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Dela+Gothic+One&family=Kelly+Slab&family=Marck+Script&family=Ruslan+Display&family=Russo+One&family=Unbounded:ital,wght@1,800;1,900&display=swap');
+@import "tailwindcss";
+
+html {
+  scroll-behavior: smooth;
+}
+
+@font-face {
+  font-family: 'Graphik Kinopoisk LC Web';
+  src: url('/fonts/GraphikKinopoisk-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Graphik Kinopoisk LC Web';
+  src: url('/fonts/GraphikKinopoisk-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Graphik Kinopoisk LC Web';
+  src: url('/fonts/GraphikKinopoisk-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Graphik Kinopoisk LC Web';
+  src: url('/fonts/GraphikKinopoisk-Semibold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Graphik Kinopoisk LC Web';
+  src: url('/fonts/GraphikKinopoisk-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  *, *::before, *::after {
+    font-family: 'Graphik Kinopoisk LC Web', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: 'Graphik Kinopoisk LC Web', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    background-color: #070709;
+    color: #f4f4f5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: 'Graphik Kinopoisk LC Web', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-synthesis: none;
+    letter-spacing: -0.015em;
+  }
+}
+
+/* Real Frosted Glass Classes with Hardware Acceleration */
+.glass-header {
+  background: rgba(7, 7, 9, 0.85) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+.glass-dropdown {
+  background: rgba(14, 14, 20, 0.96) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(190%) !important;
+  backdrop-filter: blur(40px) saturate(190%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 1px 1px rgba(255, 255, 255, 0.12) !important;
+  isolation: isolate;
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.08) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.04) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37) !important;
+}
+
+.glass-modal {
+  background: rgba(10, 10, 16, 0.96) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(200%) !important;
+  backdrop-filter: blur(32px) saturate(200%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+}
+
+/* Specific Stylized Genre Typography */
+.font-genre-new {
+  font-family: 'Unbounded', sans-serif !important;
+  font-style: italic;
+  font-weight: 900;
+}
+
+.font-genre-comedy {
+  font-family: 'Dela Gothic One', cursive, sans-serif !important;
+}
+
+.font-genre-music {
+  font-family: 'Marck Script', cursive !important;
+}
+
+.font-genre-shows {
+  font-family: 'Russo One', sans-serif !important;
+}
+
+.font-genre-adventure {
+  font-family: 'Ruslan Display', 'Kelly Slab', serif !important;
+}
+
+/* Custom modern scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #09090c;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+/* Custom scrollbar for containers */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 92, 0, 0.5);
+}
+
+/* Range input styling for player */
+input[type=range].slider-orange {
+  -webkit-appearance: none;
+  background: transparent;
+}
+input[type=range].slider-orange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 12px;
+  width: 12px;
+  border-radius: 50%;
+  background: #ff5c00;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(255, 92, 0, 0.8);
+}
+
+/* Cinema Player Center Flash Pop Animation */
+@keyframes centerPop {
+  0% {
+    transform: scale(0.65);
+    opacity: 0;
+  }
+  30% {
+    transform: scale(1.18);
+    opacity: 0.95;
+  }
+  65% {
+    transform: scale(1.0);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+.animate-center-pop {
+  animation: centerPop 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Paused Play Button Ambient Glow */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 35px rgba(255, 92, 0, 0.3), inset 0 0 15px rgba(255, 255, 255, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 55px rgba(255, 92, 0, 0.6), inset 0 0 25px rgba(255, 255, 255, 0.2);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}

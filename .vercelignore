@@ -1,0 +1,5 @@
+node_modules
+media_local_videos
+public/videos
+dist/videos
+.git
