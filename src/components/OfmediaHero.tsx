@@ -30,6 +30,10 @@ export const OfmediaHero: React.FC<OfmediaHeroProps> = ({
       <div className="absolute inset-0 bg-gradient-to-t from-[#070709] via-[#070709]/40 to-transparent" />
       <div className="absolute inset-0 bg-gradient-to-r from-[#070709]/95 via-[#070709]/50 to-transparent" />
 
+      {/* Dynamic Ambient Breathing Glow Blobs */}
+      <div className="absolute top-1/4 -left-20 w-[500px] h-[500px] rounded-full bg-[#ff5c00]/20 blur-[140px] pointer-events-none animate-ambient-float" />
+      <div className="absolute bottom-10 right-10 w-[450px] h-[450px] rounded-full bg-orange-600/10 blur-[120px] pointer-events-none animate-ambient-float" style={{ animationDelay: '-3.5s' }} />
+
       {/* Content Container */}
       <div className="relative z-10 max-w-[1440px] mx-auto h-full flex flex-col justify-end px-4 sm:px-6 lg:px-8 pb-16 sm:pb-20">
         <div className="max-w-2xl space-y-4 sm:space-y-5 animate-in fade-in slide-from-bottom duration-700">
@@ -52,7 +56,7 @@ export const OfmediaHero: React.FC<OfmediaHeroProps> = ({
               <img
                 src={project.titleLogo}
                 alt={project.title}
-                className="max-h-20 sm:max-h-28 max-w-full w-auto object-contain filter drop-shadow-[0_8px_24px_rgba(0,0,0,0.9)]"
+                className="max-h-20 sm:max-h-28 max-w-full w-auto object-contain filter drop-shadow-[0_8px_24px_rgba(0,0,0,0.9)] hover:scale-102 transition-transform duration-500"
               />
               <h1 className="sr-only">{project.title}</h1>
             </div>
@@ -94,7 +98,7 @@ export const OfmediaHero: React.FC<OfmediaHeroProps> = ({
             {/* Primary Orange Play Button with Centered PlayIcon */}
             <button
               onClick={() => onPlay(project)}
-              className="group px-7 py-3.5 rounded-full font-medium text-sm bg-[#ff5c00] hover:bg-[#e05200] text-white shadow-[0_0_25px_rgba(255,92,0,0.4)] hover:shadow-[0_0_35px_rgba(255,92,0,0.65)] hover:scale-104 active:scale-95 transition-all duration-300 flex items-center gap-2.5 border border-white/20"
+              className="group px-7 py-3.5 rounded-full font-medium text-sm bg-[#ff5c00] hover:bg-[#e05200] text-white shadow-[0_0_25px_rgba(255,92,0,0.45)] hover:shadow-[0_0_40px_rgba(255,92,0,0.75)] hover:scale-105 active:scale-95 transition-all duration-300 flex items-center gap-2.5 border border-white/20"
             >
               <PlayIcon className="w-4 h-4 fill-white group-hover:scale-110 transition-transform" />
               <span>Смотреть онлайн</span>
@@ -103,7 +107,7 @@ export const OfmediaHero: React.FC<OfmediaHeroProps> = ({
             {/* Details Button */}
             <button
               onClick={() => onOpenDetails(project)}
-              className="px-6 py-3.5 rounded-full font-medium text-sm glass-pill text-white hover:bg-white/20 hover:scale-104 active:scale-95 transition-all duration-200 flex items-center gap-2 shadow-lg"
+              className="px-6 py-3.5 rounded-full font-medium text-sm glass-pill text-white hover:bg-white/20 hover:scale-105 active:scale-95 transition-all duration-200 flex items-center gap-2 shadow-lg"
             >
               <svg className="w-4 h-4 fill-current text-zinc-300" viewBox="0 0 24 24">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
@@ -114,8 +118,10 @@ export const OfmediaHero: React.FC<OfmediaHeroProps> = ({
             {/* Favorite Button */}
             <button
               onClick={() => onToggleFavorite(project.id)}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 glass-pill hover:scale-110 active:scale-90 ${
-                isFavorite ? 'text-[#ff5c00] border-[#ff5c00]/50' : 'text-zinc-300 hover:text-white'
+              className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 glass-pill hover:scale-110 active:scale-90 shadow-lg ${
+                isFavorite
+                  ? 'text-[#ff5c00] border-[#ff5c00]/60 shadow-[0_0_15px_rgba(255,92,0,0.5)] animate-pop-bounce'
+                  : 'text-zinc-300 hover:text-white border-white/15'
               }`}
               title={isFavorite ? 'Удалить из избранного' : 'Добавить в избранное'}
             >

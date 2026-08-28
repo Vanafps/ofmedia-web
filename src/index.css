@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&family=Dela+Gothic+One&family=Kelly+Slab&family=Marck+Script&family=Ruslan+Display&family=Russo+One&family=Unbounded:ital,wght@1,800;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Caveat:wght@700&family=Dela+Gothic+One&family=Kelly+Slab&family=Marck+Script&family=Neucha&family=Ruslan+Display&family=Russo+One&family=Unbounded:ital,wght@1,800;1,900&display=swap');
 @import "tailwindcss";
 
 html {
@@ -41,6 +41,14 @@ html {
   font-family: 'Graphik Kinopoisk LC Web';
   src: url('/fonts/GraphikKinopoisk-Bold.woff2') format('woff2');
   font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Bebas Neue Cyrillic';
+  src: url('/fonts/bebasneuecyrillic.ttf') format('truetype');
+  font-weight: normal;
   font-style: normal;
   font-display: swap;
 }
@@ -110,13 +118,13 @@ html {
 
 /* Specific Stylized Genre Typography */
 .font-genre-new {
-  font-family: 'Unbounded', sans-serif !important;
-  font-style: italic;
-  font-weight: 900;
+  font-family: 'Bebas Neue Cyrillic', 'Bebas Neue', sans-serif !important;
+  letter-spacing: 0.08em;
 }
 
 .font-genre-comedy {
-  font-family: 'Dela Gothic One', cursive, sans-serif !important;
+  font-family: 'Neucha', cursive, sans-serif !important;
+  letter-spacing: 0.02em;
 }
 
 .font-genre-music {
@@ -161,6 +169,23 @@ html {
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 92, 0, 0.5);
+}
+
+/* Lenis Smooth Scroll Engine Styles */
+html.lenis, html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
 }
 
 /* Range input styling for player */
@@ -215,3 +240,93 @@ input[type=range].slider-orange::-webkit-slider-thumb {
 .animate-pulse-glow {
   animation: pulseGlow 2.5s infinite ease-in-out;
 }
+
+/* Specular Shimmer Light Sweep on Card Hover */
+@keyframes shimmerSweep {
+  0% {
+    transform: translateX(-120%) rotate(25deg);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateX(220%) rotate(25deg);
+    opacity: 0;
+  }
+}
+
+.shimmer-effect {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  pointer-events: none;
+  transform: rotate(25deg) translateX(-120%);
+}
+
+.group:hover .shimmer-effect {
+  animation: shimmerSweep 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Cinema Card Smooth Lift & Glow */
+.cinema-card {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
+  will-change: transform;
+}
+.cinema-card:hover {
+  transform: translateY(-5px) scale(1.022);
+  box-shadow: 0 16px 36px -10px rgba(255, 92, 0, 0.28), 0 0 25px rgba(0, 0, 0, 0.85);
+}
+
+/* Micro-Interaction: Pop / Bounce on Action */
+@keyframes popBounce {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35) rotate(-8deg); }
+  65% { transform: scale(0.9) rotate(4deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+.animate-pop-bounce {
+  animation: popBounce 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Hero Ambient Breathing Glow */
+@keyframes ambientFloat {
+  0%, 100% {
+    transform: scale(1) translateY(0);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.1) translateY(-8px);
+    opacity: 0.65;
+  }
+}
+
+.animate-ambient-float {
+  animation: ambientFloat 7s ease-in-out infinite;
+}
+
+/* Elastic Modal Reveal Animation */
+@keyframes modalElasticIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.94) translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-modal-in {
+  animation: modalElasticIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+

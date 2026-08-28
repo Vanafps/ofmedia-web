@@ -11,14 +11,15 @@ interface OfmediaPlayerProps {
   onSelectNext?: () => void;
 }
 
-export type VideoQuality = '144p' | '240p' | '540p' | '720p' | '1080p' | 'auto';
+export type VideoQuality = '144p' | '240p' | '360p' | '480p' | '720p' | '1080p' | 'auto';
 
 const SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
 const QUALITY_STEPS: { id: VideoQuality; label: string }[] = [
   { id: '144p', label: '144p' },
   { id: '240p', label: '240p' },
-  { id: '540p', label: '540p' },
+  { id: '360p', label: '360p' },
+  { id: '480p', label: '480p' },
   { id: '720p', label: '720p' },
   { id: '1080p', label: '1080p' },
   { id: 'auto', label: 'Авто' },
@@ -194,6 +195,30 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     };
   }, [isPlaying, effectiveDuration]);
 
+  // Sync volume with video element reactively
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.volume = isMuted ? 0 : volume;
+      videoRef.current.muted = isMuted;
+    }
+  }, [volume, isMuted]);
+
+  // Auto-play next episode when video ends
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !isOpen) return;
+
+    const onEnded = () => {
+      setIsPlaying(false);
+      if (onSelectNext) {
+        onSelectNext();
+      }
+    };
+
+    video.addEventListener('ended', onEnded);
+    return () => video.removeEventListener('ended', onEnded);
+  }, [isOpen, onSelectNext]);
+
   // Robust 3-Second Idle Auto-Hide on User Activity
   useEffect(() => {
     if (!isOpen) return;
@@ -277,72 +302,23 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  // Direct High-Speed CDN & HLS Streaming Engine
+  // Direct GitHub CDN MP4 Streaming Engine (Zero Rutube, Zero Ads)
   useEffect(() => {
     if (!isOpen || !videoRef.current) return;
     const video = videoRef.current;
 
-    // 1. Direct CDN MP4 Stream (Fastly / GitHub Releases CDN)
-    if (currentEpisode.videoUrl && currentEpisode.videoUrl.startsWith('http')) {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-      video.src = currentEpisode.videoUrl;
-      if (isPlaying) {
-        video.play().catch(() => {});
-      }
-      return;
+    // Clean up any previous HLS instance
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
     }
 
-    // 2. HLS Video Stream fallback
-    const hlsStreamUrl = `/api/hls?id=${project.id}`;
-    if (Hls.isSupported()) {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-      }
-
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-        backBufferLength: 90,
-      });
-      hlsRef.current = hls;
-
-      hls.loadSource(hlsStreamUrl);
-      hls.attachMedia(video);
-
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        if (isPlaying) {
-          video.play().catch(() => {});
-        }
-      });
-
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              hls.startLoad();
-              break;
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              hls.recoverMediaError();
-              break;
-            default:
-              hls.destroy();
-              hlsRef.current = null;
-              if (currentEpisode.videoUrl) {
-                video.src = currentEpisode.videoUrl;
-                if (isPlaying) video.play().catch(() => {});
-              }
-              break;
-          }
-        }
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = hlsStreamUrl;
-      if (isPlaying) video.play().catch(() => {});
-    } else if (currentEpisode.videoUrl) {
-      video.src = currentEpisode.videoUrl;
+    // Direct MP4 stream from GitHub Releases Fastly CDN
+    const videoSrc = currentEpisode.videoUrl || project.videoUrl;
+    if (videoSrc) {
+      video.src = videoSrc;
+      video.preload = 'auto';
+      video.play().catch(() => {});
     }
 
     return () => {
@@ -531,13 +507,37 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     if (hls && hls.levels && hls.levels.length > 0) {
       if (newQuality === 'auto') {
         hls.currentLevel = -1;
+        hls.loadLevel = -1;
+        hls.nextLoadLevel = -1;
       } else {
         const targetHeight = parseInt(newQuality, 10);
-        const levelIdx = hls.levels.findIndex(
-          (l) => l.height === targetHeight || Math.abs(l.height - targetHeight) < 60
-        );
-        if (levelIdx !== -1) {
-          hls.currentLevel = levelIdx;
+        const matchingIndices: number[] = [];
+        hls.levels.forEach((l, idx) => {
+          if (l.height === targetHeight || Math.abs(l.height - targetHeight) <= 60) {
+            matchingIndices.push(idx);
+          }
+        });
+
+        let chosenIdx = -1;
+        if (matchingIndices.length > 0) {
+          chosenIdx = matchingIndices.reduce((best, cur) =>
+            hls.levels[cur].bitrate > hls.levels[best].bitrate ? cur : best, matchingIndices[0]
+          );
+        } else {
+          let minDiff = Infinity;
+          hls.levels.forEach((l, idx) => {
+            const diff = Math.abs(l.height - targetHeight);
+            if (diff < minDiff) {
+              minDiff = diff;
+              chosenIdx = idx;
+            }
+          });
+        }
+
+        if (chosenIdx !== -1) {
+          hls.currentLevel = chosenIdx;
+          hls.loadLevel = chosenIdx;
+          hls.nextLoadLevel = chosenIdx;
         }
       }
     }

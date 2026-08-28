@@ -52,7 +52,7 @@ export const OfmediaGenreCards: React.FC<OfmediaGenreCardsProps> = ({
           <div className="absolute inset-0 bg-gradient-to-t from-[#00d2ff]/15 via-transparent to-transparent opacity-40 group-hover:opacity-100 transition-opacity" />
 
           <div className="relative z-10 flex flex-col items-center">
-            <span className="font-genre-new text-lg sm:text-xl text-white tracking-wide group-hover:text-[#00d2ff] transition-colors drop-shadow-[0_0_10px_rgba(0,210,255,0.4)]">
+            <span className="font-genre-new text-2xl sm:text-3xl text-white tracking-widest uppercase group-hover:text-[#00d2ff] transition-colors drop-shadow-[0_0_12px_rgba(0,210,255,0.4)] leading-none">
               Новое
             </span>
             <div className="w-10 h-0.5 bg-gradient-to-r from-transparent via-[#00d2ff] to-transparent mt-1" />
@@ -75,7 +75,7 @@ export const OfmediaGenreCards: React.FC<OfmediaGenreCardsProps> = ({
           <div className="absolute inset-0 bg-gradient-to-t from-[#ff9900]/15 via-transparent to-transparent opacity-40 group-hover:opacity-100 transition-opacity" />
 
           <div className="relative z-10 flex flex-col items-center">
-            <span className="font-genre-comedy text-base sm:text-lg text-white group-hover:text-[#ff9900] transition-colors drop-shadow-[0_0_10px_rgba(255,153,0,0.4)]">
+            <span className="font-genre-comedy text-xl sm:text-2xl text-white group-hover:text-[#ff9900] transition-colors drop-shadow-[0_0_10px_rgba(255,153,0,0.4)] leading-tight">
               Комедии
             </span>
             <div className="w-10 h-0.5 bg-gradient-to-r from-transparent via-[#ff9900] to-transparent mt-1" />

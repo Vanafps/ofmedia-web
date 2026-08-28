@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Lenis from 'lenis';
 import { PROJECTS_DATA } from './data/projects';
 import type { Project, Episode } from './data/projects';
 import type { Actor } from './data/actors';
@@ -58,6 +59,31 @@ export function App() {
     return () => {
       window.removeEventListener('ofmedia_ratings_updated', refreshUserData);
       window.removeEventListener('ofmedia_reviews_updated', refreshUserData);
+    };
+  }, []);
+
+  // Butter-Smooth Kinetic Inertia Scrolling via Lenis
+  useEffect(() => {
+    const lenis = new Lenis({
+      duration: 1.25,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
+      smoothWheel: true,
+      wheelMultiplier: 1.0,
+      touchMultiplier: 1.2,
+    });
+
+    let rafId: number;
+    function raf(time: number) {
+      lenis.raf(time);
+      rafId = requestAnimationFrame(raf);
+    }
+    rafId = requestAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      lenis.destroy();
     };
   }, []);
 

@@ -7,6 +7,25 @@ const VIDEO_IDS = {
   hor: '9fac4cd44df38440aa6da88154188721'
 };
 
+const ALLOWED_DOMAINS = [
+  'rutube.ru',
+  'vhls-by.rutube.ru',
+  'vhls.rutube.ru',
+  'vh-cache.rutube.ru',
+  'akamaized.net',
+  'cdn.rutube.ru',
+];
+
+function isUrlAllowed(urlStr) {
+  try {
+    const parsed = new URL(urlStr);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+    return ALLOWED_DOMAINS.some(d => parsed.hostname === d || parsed.hostname.endsWith('.' + d));
+  } catch {
+    return false;
+  }
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
@@ -22,6 +41,12 @@ export default async function handler(req, res) {
   const id = urlObj.searchParams.get('id') || 'clip';
   const type = urlObj.searchParams.get('type') || 'master';
   const targetUrl = urlObj.searchParams.get('url');
+
+  // Validate targetUrl against whitelist to prevent SSRF
+  if (targetUrl && !isUrlAllowed(targetUrl)) {
+    res.statusCode = 403;
+    return res.end('Forbidden: URL domain not allowed');
+  }
 
   try {
     // 1. MASTER PLAYLIST
