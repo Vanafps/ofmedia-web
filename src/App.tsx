@@ -62,16 +62,19 @@ export function App() {
     };
   }, []);
 
+  const isAnyModalOpen = isDetailModalOpen || isActorModalOpen || isPlayerOpen || isAuthModalOpen || isProfileModalOpen;
+
   // Butter-Smooth Kinetic Inertia Scrolling via Lenis
   useEffect(() => {
     const lenis = new Lenis({
-      duration: 1.25,
+      duration: 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: 'vertical',
       gestureOrientation: 'vertical',
       smoothWheel: true,
       wheelMultiplier: 1.0,
       touchMultiplier: 1.2,
+      autoRaf: false,
     });
 
     let rafId: number;
@@ -81,11 +84,17 @@ export function App() {
     }
     rafId = requestAnimationFrame(raf);
 
+    if (isAnyModalOpen) {
+      lenis.stop();
+    } else {
+      lenis.start();
+    }
+
     return () => {
       cancelAnimationFrame(rafId);
       lenis.destroy();
     };
-  }, []);
+  }, [isAnyModalOpen]);
 
   useEffect(() => {
     localStorage.setItem('ofmedia_favs', JSON.stringify(favorites));

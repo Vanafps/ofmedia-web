@@ -224,7 +224,7 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
   const relatedProjects = PROJECTS_DATA.filter((p) => p.id !== project.id).slice(0, 5);
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#070709] overflow-y-auto custom-scrollbar animate-in fade-in duration-200">
+    <div data-lenis-prevent="true" className="fixed inset-0 z-50 bg-[#070709] overflow-y-auto custom-scrollbar animate-in fade-in duration-200">
       {/* Toast Notification with Glassmorphism */}
       {toastMessage && (
         <div className="fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 z-[130] px-5 py-3 rounded-full glass-modal text-white text-xs font-medium shadow-2xl animate-in fade-in slide-in-from-top-4 duration-200 flex items-center gap-2.5">

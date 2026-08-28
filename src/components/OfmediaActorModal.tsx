@@ -32,11 +32,11 @@ export const OfmediaActorModal: React.FC<OfmediaActorModalProps> = ({
   if (!isOpen || !actor) return null;
 
   return (
-    <div className="fixed inset-0 z-[115] flex items-center justify-center p-4 sm:p-6 overflow-y-auto custom-scrollbar animate-in fade-in duration-200">
+    <div data-lenis-prevent="true" className="fixed inset-0 z-[115] flex items-center justify-center p-4 sm:p-6 overflow-y-auto custom-scrollbar animate-in fade-in duration-200">
       {/* Frosted Backdrop */}
       <div className="fixed inset-0 bg-black/75 backdrop-blur-2xl" onClick={onClose} />
 
-      <div className="relative w-full max-w-3xl bg-[#0c0c14]/85 backdrop-blur-3xl border border-white/15 rounded-3xl p-6 sm:p-8 shadow-[0_16px_50px_rgba(0,0,0,0.8)] z-10 space-y-6 max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div data-lenis-prevent="true" className="relative w-full max-w-3xl bg-[#0c0c14]/85 backdrop-blur-3xl border border-white/15 rounded-3xl p-6 sm:p-8 shadow-[0_16px_50px_rgba(0,0,0,0.8)] z-10 space-y-6 max-h-[90vh] overflow-y-auto custom-scrollbar">
         {/* Close Button with Glassmorphism */}
         <button
           onClick={onClose}
