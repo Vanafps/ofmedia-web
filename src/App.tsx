@@ -38,8 +38,12 @@ export function App() {
   const [recommendationRows, setRecommendationRows] = useState<RecommendedRow[]>([]);
 
   const [favorites, setFavorites] = useState<string[]>(() => {
-    const saved = localStorage.getItem('ofmedia_favs');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('ofmedia_favs');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
 
   const refreshUserData = () => {
@@ -625,6 +629,33 @@ export function App() {
             <button onClick={() => { setActiveTab('main'); setSelectedCategory('adventure'); }} className="hover:text-white transition-colors">
               Приключения
             </button>
+
+            {/* Mirror / Primary Switch Button with Clean SVGs */}
+            {typeof window !== 'undefined' && window.location.hostname.includes('vercel.app') ? (
+              <a
+                href="https://ofmedia.pages.dev"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/10 text-[11px] group"
+                title="Перейти на основной домен Cloudflare Pages"
+              >
+                <svg className="w-3.5 h-3.5 fill-none stroke-current text-[#ff5c00] group-hover:scale-110 transition-transform" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  <path d="M2 12h20" />
+                </svg>
+                <span>Основной сайт</span>
+              </a>
+            ) : (
+              <a
+                href="https://ofmedia.vercel.app"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/10 text-[11px] group"
+                title="Перейти на резервное зеркало (Vercel)"
+              >
+                <svg className="w-3.5 h-3.5 fill-none stroke-current text-[#ff5c00] group-hover:scale-110 transition-transform" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+                <span>Зеркало</span>
+              </a>
+            )}
           </div>
         </div>
       </footer>
