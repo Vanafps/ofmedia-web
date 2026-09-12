@@ -313,12 +313,31 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
       hlsRef.current = null;
     }
 
-    // Direct MP4 stream from GitHub Releases Fastly CDN
+    // Direct HLS Adaptive Streaming via GitHub CDN (Fallback to direct MP4)
     const videoSrc = currentEpisode.videoUrl || project.videoUrl;
     if (videoSrc) {
-      video.src = videoSrc;
-      video.preload = 'auto';
-      video.play().catch(() => {});
+      if (videoSrc.includes('.m3u8')) {
+        if (Hls.isSupported()) {
+          const hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: false,
+            backBufferLength: 90,
+          });
+          hls.loadSource(videoSrc);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            video.play().catch(() => {});
+          });
+          hlsRef.current = hls;
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          video.src = videoSrc;
+          video.play().catch(() => {});
+        }
+      } else {
+        video.src = videoSrc;
+        video.preload = 'auto';
+        video.play().catch(() => {});
+      }
     }
 
     return () => {
