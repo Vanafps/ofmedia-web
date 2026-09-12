@@ -42,6 +42,7 @@ export interface Project {
   fullSynopsis?: string;
   stills?: string[];
   storyboard?: string;
+  isOriginal?: boolean;
 }
 
 export const PROJECTS_DATA: Project[] = [
@@ -61,6 +62,7 @@ export const PROJECTS_DATA: Project[] = [
     backdrop: '/backdrops/clip_tilda_bg.png',
     videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/clip/master.m3u8',
     storyboard: '/storyboards/clip.webp',
+    isOriginal: true,
     isSeries: false,
     episodes: [
       {
@@ -114,6 +116,7 @@ export const PROJECTS_DATA: Project[] = [
     backdrop: '/backdrops/park_tilda_bg.png',
     videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/park/master.m3u8',
     storyboard: '/storyboards/park.webp',
+    isOriginal: true,
     isSeries: false,
     episodes: [
       {
@@ -154,6 +157,7 @@ export const PROJECTS_DATA: Project[] = [
     backdrop: '/backdrops/nalim_tilda_bg.png',
     videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/nalim/master.m3u8',
     storyboard: '/storyboards/nalim.webp',
+    isOriginal: true,
     isSeries: false,
     episodes: [
       {
@@ -197,6 +201,7 @@ export const PROJECTS_DATA: Project[] = [
     backdrop: '/backdrops/ng_tilda_bg.png',
     videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/ng/master.m3u8',
     storyboard: '/storyboards/ng.webp',
+    isOriginal: true,
     isSeries: false,
     episodes: [
       {
@@ -244,6 +249,7 @@ export const PROJECTS_DATA: Project[] = [
     backdrop: '/backdrops/vdnh_tilda_bg.png',
     videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/vdnh/master.m3u8',
     storyboard: '/storyboards/vdnh.webp',
+    isOriginal: true,
     isSeries: false,
     episodes: [
       {
@@ -284,6 +290,7 @@ export const PROJECTS_DATA: Project[] = [
     backdrop: '/backdrops/hor_tilda_bg.jpg',
     videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/hor/master.m3u8',
     storyboard: '/storyboards/hor.webp',
+    isOriginal: true,
     isSeries: false,
     episodes: [
       {

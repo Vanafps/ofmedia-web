@@ -264,14 +264,16 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
         <div className="absolute inset-0 bg-gradient-to-r from-[#070709]/90 via-[#070709]/45 to-transparent" />
 
         <div className="relative z-10 max-w-3xl space-y-3 sm:space-y-4 pt-16 sm:pt-20">
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-lg text-[10px] sm:text-[11px] font-semibold tracking-wide bg-[#ff5c00] text-white shadow-md">
-              OFMEDIA Originals
-            </span>
-            <span className="px-3 py-1 rounded-lg text-[10px] sm:text-[11px] font-medium tracking-wide glass-pill text-zinc-100 shadow-md">
-              {project.duration && parseInt(project.duration) >= 20 ? 'Полнометражный фильм' : 'Короткометражный фильм'}
-            </span>
-          </div>
+          {/* OFMEDIA Originals Official Brand Logo */}
+          {project.isOriginal && (
+            <div className="flex items-center pb-0.5">
+              <img
+                src="/logos/ofmediaoriginalswhite_clean.png"
+                alt="OFMEDIA Originals"
+                className="h-6 sm:h-7 w-auto object-contain filter drop-shadow-[0_2px_10px_rgba(255,255,255,0.35)]"
+              />
+            </div>
+          )}
 
           {/* Title / Title Logo */}
           {project.titleLogo ? (
