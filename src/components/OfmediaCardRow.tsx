@@ -1,7 +1,6 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import type { Project } from '../data/projects';
-import { getMovieRating } from '../services/ratingService';
-import { PlayIcon } from './PlayIcon';
+import { OfmediaMovieCard } from './OfmediaMovieCard';
 
 interface OfmediaCardRowProps {
   title: string;
@@ -28,13 +27,6 @@ export const OfmediaCardRow: React.FC<OfmediaCardRowProps> = ({
   const scrollLeftRef = useRef(0);
   const hasMovedRef = useRef(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [, setRatingsTick] = useState(0);
-
-  useEffect(() => {
-    const handleUpdate = () => setRatingsTick((t) => t + 1);
-    window.addEventListener('ofmedia_ratings_updated', handleUpdate);
-    return () => window.removeEventListener('ofmedia_ratings_updated', handleUpdate);
-  }, []);
 
   if (projects.length === 0) return null;
 
@@ -63,7 +55,7 @@ export const OfmediaCardRow: React.FC<OfmediaCardRowProps> = ({
     setIsDragging(false);
   };
 
-  const handleCardClick = (project: Project) => {
+  const handleHeaderClick = (project: Project) => {
     if (hasMovedRef.current) return;
     onOpenDetails(project);
   };
@@ -75,12 +67,12 @@ export const OfmediaCardRow: React.FC<OfmediaCardRowProps> = ({
   };
 
   return (
-    <section className="space-y-2.5 py-2 relative group/section">
+    <section className="space-y-1 py-1 relative group/section">
       {/* Row Header */}
       <div className="flex items-end justify-between px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto">
         <div>
           <button
-            onClick={() => handleCardClick(projects[0])}
+            onClick={() => handleHeaderClick(projects[0])}
             className="flex items-center gap-2 group text-left focus:outline-none"
           >
             <h2 className="font-heading font-bold text-xl sm:text-2xl text-white tracking-tight group-hover:text-[#ff5c00] transition-colors duration-200">
@@ -131,101 +123,34 @@ export const OfmediaCardRow: React.FC<OfmediaCardRowProps> = ({
         </div>
       </div>
 
-      {/* Swipe / Drag Cards Track */}
+      {/* Swipe / Drag Cards Track (with vertical breathing room for floating hover expansion) */}
       <div
         ref={rowRef}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUpOrLeave}
         onMouseLeave={handleMouseUpOrLeave}
-        className={`flex items-start gap-4 sm:gap-5 overflow-x-auto px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto pb-4 pt-1 select-none transition-cursor duration-150 scroll-smooth ${
+        className={`flex items-start gap-4 sm:gap-5 overflow-x-auto px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto pt-5 pb-28 -mt-2 -mb-24 select-none transition-cursor duration-150 scroll-smooth ${
           isDragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {projects.map((project) => {
           const isFav = favorites.includes(project.id);
-          const ratingStats = getMovieRating(project.id);
 
           return (
             <div
               key={project.id}
-              onClick={() => handleCardClick(project)}
-              className="flex-none w-[260px] sm:w-[300px] group cursor-pointer space-y-2 relative cinema-card"
+              className="flex-none w-[260px] sm:w-[300px] md:w-[320px] aspect-video relative"
             >
-              {/* Card Thumbnail Box with Glass Hover Glow & Specular Sweep */}
-              <div className="relative aspect-video rounded-2xl overflow-hidden bg-[#101014] border border-white/10 group-hover:border-[#ff5c00]/60 transition-all duration-400 shadow-md">
-                <img
-                  src={project.poster}
-                  alt={project.title}
-                  draggable={false}
-                  className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-106 select-none"
-                />
-
-                {/* Light Reflection Sweep */}
-                <div className="shimmer-effect" />
-
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent opacity-40 group-hover:opacity-70 transition-opacity duration-300" />
-
-                {/* Top Badges with Frosted Glass */}
-                <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                  <span className="px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-xl border border-white/15 text-[10px] font-medium text-white shadow">
-                    {project.year}
-                  </span>
-                  {ratingStats.count > 0 && (
-                    <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold backdrop-blur-xl shadow ${ratingStats.colorClass}`}>
-                      ★ {ratingStats.scoreFormatted}
-                    </span>
-                  )}
-                </div>
-
-                <div className="absolute top-2.5 right-2.5">
-                  <span className="px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-xl border border-white/15 text-[10px] font-medium text-zinc-300 shadow">
-                    {project.ageRating}
-                  </span>
-                </div>
-
-                {/* Bottom Badges with Frosted Glass & Micro-Interactions */}
-                <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between pointer-events-none">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleFavorite(project.id);
-                    }}
-                    className={`pointer-events-auto p-2 rounded-xl backdrop-blur-2xl transition-all shadow-lg border active:scale-90 ${
-                      isFav
-                        ? 'bg-[#ff5c00] text-white border-[#ff5c00] shadow-[0_0_15px_rgba(255,92,0,0.6)] animate-pop-bounce'
-                        : 'bg-black/60 hover:bg-black/85 text-zinc-200 hover:text-white border-white/20 hover:scale-110'
-                    }`}
-                    title={isFav ? 'В закладках' : 'Добавить в закладки'}
-                  >
-                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                      <path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z" />
-                    </svg>
-                  </button>
-
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPlay(project);
-                    }}
-                    className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#ff5c00] hover:bg-[#e05200] text-white text-[11px] font-medium shadow-lg hover:shadow-[0_0_16px_rgba(255,92,0,0.6)] hover:scale-106 active:scale-95 transition-all duration-200 border border-white/20"
-                  >
-                    <PlayIcon className="w-3 h-3 fill-white" />
-                    <span>{project.duration}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Card Meta Description */}
-              <div className="space-y-0.5 px-0.5">
-                <h3 className="font-heading font-medium text-sm text-white group-hover:text-[#ff5c00] transition-colors duration-200 truncate">
-                  {project.title}
-                </h3>
-                <p className="text-[11px] text-zinc-400 font-normal truncate">
-                  {project.genres.join(' • ')} • {project.year}
-                </p>
-              </div>
+              <OfmediaMovieCard
+                project={project}
+                onPlay={onPlay}
+                onOpenDetails={onOpenDetails}
+                isFavorite={isFav}
+                onToggleFavorite={onToggleFavorite}
+                isDragging={isDragging}
+              />
             </div>
           );
         })}

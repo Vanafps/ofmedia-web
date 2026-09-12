@@ -7,6 +7,7 @@ import { ACTORS_DATA } from './data/actors';
 import { OfmediaHeader } from './components/OfmediaHeader';
 import { OfmediaHero } from './components/OfmediaHero';
 import { OfmediaCardRow } from './components/OfmediaCardRow';
+import { OfmediaMovieCard } from './components/OfmediaMovieCard';
 import { OfmediaDetailModal } from './components/OfmediaDetailModal';
 import { OfmediaPlayer } from './components/OfmediaPlayer';
 import { OfmediaGenreCards, type GenreCategoryId } from './components/OfmediaGenreCards';
@@ -442,57 +443,18 @@ export function App() {
             {favoritesSubTab === 'favorites' && (
               <>
                 {favoriteProjects.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-6">
-                    {favoriteProjects.map((project) => {
-                      const ratingStats = getMovieRating(project.id);
-                      return (
-                        <div
-                          key={project.id}
-                          onClick={() => handleOpenDetails(project)}
-                          className="group space-y-2 cursor-pointer"
-                        >
-                          <div className="relative aspect-video rounded-2xl overflow-hidden bg-zinc-800 border border-white/5 group-hover:border-[#ff5c00]/50 transition-all shadow-md">
-                            <img
-                              src={project.poster}
-                              alt={project.title}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            />
-                            <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors" />
-
-                            {ratingStats.count > 0 && (
-                              <div className="absolute top-2 left-2">
-                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${ratingStats.colorClass}`}>
-                                  ★ {ratingStats.scoreFormatted}
-                                </span>
-                              </div>
-                            )}
-
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleFavorite(project.id);
-                              }}
-                              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 hover:bg-red-500/80 text-white flex items-center justify-center transition-colors"
-                              title="Удалить из закладок"
-                            >
-                              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                                <path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z" />
-                              </svg>
-                            </button>
-                          </div>
-                          <div className="space-y-0.5 px-1">
-                            <h3 className="font-heading font-medium text-xs sm:text-sm text-white group-hover:text-[#ff5c00] transition-colors truncate">
-                              {project.title}
-                            </h3>
-                            <div className="text-[11px] text-zinc-400 font-normal truncate">
-                              <span>{project.year}</span>
-                              <span className="mx-1">•</span>
-                              <span>{project.genres.join(', ')}</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-6 pt-4 pb-24">
+                    {favoriteProjects.map((project) => (
+                      <div key={project.id} className="relative aspect-video w-full">
+                        <OfmediaMovieCard
+                          project={project}
+                          onPlay={(p) => handlePlayProject(p)}
+                          onOpenDetails={(p) => handleOpenDetails(p)}
+                          isFavorite={favorites.includes(project.id)}
+                          onToggleFavorite={toggleFavorite}
+                        />
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <div className="py-16 sm:py-20 text-center bg-[#101014] rounded-3xl border border-white/10 space-y-4 max-w-lg mx-auto p-6">
