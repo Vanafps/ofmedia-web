@@ -12,6 +12,7 @@ export interface Episode {
   duration: string;
   thumbnail: string;
   videoUrl: string;
+  storyboard?: string;
 }
 
 export interface Project {
@@ -40,6 +41,7 @@ export interface Project {
   subtitles?: string[];
   fullSynopsis?: string;
   stills?: string[];
+  storyboard?: string;
 }
 
 export const PROJECTS_DATA: Project[] = [
@@ -58,6 +60,7 @@ export const PROJECTS_DATA: Project[] = [
     poster: '/posters/poster_clip.png',
     backdrop: '/backdrops/clip_tilda_bg.png',
     videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/clip/master.m3u8',
+    storyboard: '/storyboards/clip.webp',
     isSeries: false,
     episodes: [
       {
@@ -66,7 +69,8 @@ export const PROJECTS_DATA: Project[] = [
         title: 'Клип — Школа 2070 (Официальное видео)',
         duration: '03:15',
         thumbnail: '/posters/poster_clip.png',
-        videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/clip/master.m3u8'
+        videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/clip/master.m3u8',
+        storyboard: '/storyboards/clip.webp'
       }
     ],
     directors: ['Екатерина Морозова', 'Дарья Ш.'],
@@ -109,6 +113,7 @@ export const PROJECTS_DATA: Project[] = [
     poster: '/posters/poster_park.png',
     backdrop: '/backdrops/park_tilda_bg.png',
     videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/park/master.m3u8',
+    storyboard: '/storyboards/park.webp',
     isSeries: false,
     episodes: [
       {
@@ -117,7 +122,8 @@ export const PROJECTS_DATA: Project[] = [
         title: 'Поездка в парк — Полная версия',
         duration: '27:14',
         thumbnail: '/posters/poster_park.png',
-        videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/park/master.m3u8'
+        videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/park/master.m3u8',
+        storyboard: '/storyboards/park.webp'
       }
     ],
     directors: ['Екатерина М.', 'Иван Л.'],
@@ -147,6 +153,7 @@ export const PROJECTS_DATA: Project[] = [
     poster: '/posters/poster_nalim.png',
     backdrop: '/backdrops/nalim_tilda_bg.png',
     videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/nalim/master.m3u8',
+    storyboard: '/storyboards/nalim.webp',
     isSeries: false,
     episodes: [
       {
@@ -155,7 +162,8 @@ export const PROJECTS_DATA: Project[] = [
         title: 'Налим — Короткометражный фильм-спектакль',
         duration: '08:42',
         thumbnail: '/posters/poster_nalim.png',
-        videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/nalim/master.m3u8'
+        videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/nalim/master.m3u8',
+        storyboard: '/storyboards/nalim.webp'
       }
     ],
     directors: ['Екатерина Валерьевна', 'Иван Л.'],
@@ -188,6 +196,7 @@ export const PROJECTS_DATA: Project[] = [
     poster: '/posters/poster_ng.png',
     backdrop: '/backdrops/ng_tilda_bg.png',
     videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/ng/master.m3u8',
+    storyboard: '/storyboards/ng.webp',
     isSeries: false,
     episodes: [
       {
@@ -196,7 +205,8 @@ export const PROJECTS_DATA: Project[] = [
         title: 'Новогодний корпоратив 2024–2025',
         duration: '16:30',
         thumbnail: '/posters/poster_ng.png',
-        videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/ng/master.m3u8'
+        videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/ng/master.m3u8',
+        storyboard: '/storyboards/ng.webp'
       }
     ],
     directors: ['Екатерина Валерьевна', 'Иван Л.'],
@@ -233,6 +243,7 @@ export const PROJECTS_DATA: Project[] = [
     poster: '/posters/poster_vdnh.png',
     backdrop: '/backdrops/vdnh_tilda_bg.png',
     videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/vdnh/master.m3u8',
+    storyboard: '/storyboards/vdnh.webp',
     isSeries: false,
     episodes: [
       {
@@ -241,7 +252,8 @@ export const PROJECTS_DATA: Project[] = [
         title: 'Поездка на ВДНХ — Полный выпуск',
         duration: '08:15',
         thumbnail: '/posters/poster_vdnh.png',
-        videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/vdnh/master.m3u8'
+        videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/vdnh/master.m3u8',
+        storyboard: '/storyboards/vdnh.webp'
       }
     ],
     directors: ['Екатерина Валерьевна', 'Иван Л.'],
@@ -271,6 +283,7 @@ export const PROJECTS_DATA: Project[] = [
     poster: '/posters/poster_hor.png',
     backdrop: '/backdrops/hor_tilda_bg.jpg',
     videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/hor/master.m3u8',
+    storyboard: '/storyboards/hor.webp',
     isSeries: false,
     episodes: [
       {
@@ -279,7 +292,8 @@ export const PROJECTS_DATA: Project[] = [
         title: 'Каждый класс — Хор: Гала-концерт',
         duration: '22:45',
         thumbnail: '/posters/poster_hor.png',
-        videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/hor/master.m3u8'
+        videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/hor/master.m3u8',
+        storyboard: '/storyboards/hor.webp'
       }
     ],
     directors: ['Иван Лепо', 'Михаил Заздравных', 'Екатерина Валерьевна'],

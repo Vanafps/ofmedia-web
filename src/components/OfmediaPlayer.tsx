@@ -117,7 +117,6 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
   });
 
   const videoRef = useRef<HTMLVideoElement>(null);
-  const previewVideoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const scrubberTrackRef = useRef<HTMLDivElement>(null);
@@ -136,6 +135,21 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [hoverPos, setHoverPos] = useState<number>(0);
   const [trackWidth, setTrackWidth] = useState<number>(800);
+
+  // Storyboard Sprite Sheet Hover Frame Preview (Instant 60FPS scrubber thumbnails)
+  const storyboardUrl = (currentEpisode as any).storyboard || project.storyboard || `/storyboards/${project.id}.webp`;
+  const [isStoryboardLoaded, setIsStoryboardLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!storyboardUrl) {
+      setIsStoryboardLoaded(false);
+      return;
+    }
+    const img = new Image();
+    img.src = storyboardUrl;
+    img.onload = () => setIsStoryboardLoaded(true);
+    img.onerror = () => setIsStoryboardLoaded(false);
+  }, [storyboardUrl]);
 
   // Toggle remaining time mode (-00:09 vs 00:25)
   const [showRemainingTime, setShowRemainingTime] = useState(false);
@@ -467,10 +481,6 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
       setCurrentTime(newTime);
       setHoverPos(moveEvent.clientX - trackRect.left);
       setHoverTime(newTime);
-
-      if (previewVideoRef.current) {
-        previewVideoRef.current.currentTime = newTime;
-      }
     };
 
     const onMouseUp = () => {
@@ -492,10 +502,6 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     const targetTime = pos * totalDuration;
     setHoverPos(e.clientX - rect.left);
     setHoverTime(targetTime);
-
-    if (previewVideoRef.current) {
-      previewVideoRef.current.currentTime = targetTime;
-    }
   };
 
   const toggleFullscreen = () => {
@@ -831,29 +837,46 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
           className="relative w-full h-7 flex items-center cursor-pointer group/scrub mb-2 sm:mb-3"
         >
           {/* Rich Floating Video Frame Preview Card with Timecode */}
-          {hoverTime !== null && (
-            <div
-              className="absolute -top-[128px] -translate-x-1/2 w-44 rounded-xl overflow-hidden bg-[#0c0c12]/92 backdrop-blur-2xl border border-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.2)] pointer-events-none p-1 flex flex-col items-center animate-in fade-in zoom-in-95 duration-150 z-30"
-              style={{
-                left: `${Math.max(90, Math.min(trackWidth - 90, hoverPos))}px`,
-              }}
-            >
-              <div className="w-full h-24 rounded-lg overflow-hidden bg-black/90 relative flex items-center justify-center border border-white/10">
-                <video
-                  ref={previewVideoRef}
-                  src={currentEpisode.videoUrl}
-                  poster={currentEpisode.thumbnail}
-                  muted
-                  playsInline
-                  preload="auto"
-                  className="w-full h-full object-cover"
-                />
+          {hoverTime !== null && (() => {
+            const hoverFrac = effectiveDuration > 0 ? Math.max(0, Math.min(0.999, hoverTime / effectiveDuration)) : 0;
+            const frameIdx = Math.floor(hoverFrac * 100);
+            const col = frameIdx % 10;
+            const row = Math.floor(frameIdx / 10);
+            const bgPosX = (col / 9) * 100;
+            const bgPosY = (row / 9) * 100;
+
+            return (
+              <div
+                className="absolute -top-[128px] -translate-x-1/2 w-44 rounded-xl overflow-hidden bg-[#0c0c12]/92 backdrop-blur-2xl border border-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.2)] pointer-events-none p-1 flex flex-col items-center animate-in fade-in zoom-in-95 duration-150 z-30"
+                style={{
+                  left: `${Math.max(90, Math.min(trackWidth - 90, hoverPos))}px`,
+                }}
+              >
+                <div className="w-full h-24 rounded-lg overflow-hidden bg-black/90 relative flex items-center justify-center border border-white/10">
+                  {isStoryboardLoaded ? (
+                    <div
+                      className="w-full h-full"
+                      style={{
+                        backgroundImage: `url(${storyboardUrl})`,
+                        backgroundPosition: `${bgPosX}% ${bgPosY}%`,
+                        backgroundSize: '1000% 1000%',
+                        backgroundRepeat: 'no-repeat',
+                      }}
+                    />
+                  ) : (
+                    <img
+                      src={currentEpisode.thumbnail || project.poster}
+                      alt="Превью кадра"
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
+                <div className="mt-1 text-[11px] font-bold text-white tracking-wider px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md border border-white/15">
+                  {formatTime(hoverTime)}
+                </div>
               </div>
-              <div className="mt-1 text-[11px] font-bold text-white tracking-wider px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md border border-white/15">
-                {formatTime(hoverTime)}
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Background Track with overflow-hidden for crisp pill contour */}
           <div className="relative w-full h-1.5 group-hover/scrub:h-2 rounded-full bg-white/15 overflow-hidden transition-[height] duration-150">
