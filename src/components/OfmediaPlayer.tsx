@@ -336,9 +336,9 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
           const hls = new Hls({
             enableWorker: true,
             lowLatencyMode: false,
-            backBufferLength: 60,
-            maxBufferLength: 20,
-            maxMaxBufferLength: 40,
+            backBufferLength: 30,
+            maxBufferLength: 60,
+            maxMaxBufferLength: 90,
             maxBufferSize: 60 * 1000 * 1000,
             maxBufferHole: 0.5,
             nudgeOffset: 0.1,
