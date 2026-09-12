@@ -159,6 +159,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
 
   // Quality & Speed Menus
   const [quality, setQuality] = useState<VideoQuality>('1080p');
+  const [currentAutoHeight, setCurrentAutoHeight] = useState<number | null>(null);
   const [speed, setSpeed] = useState<number>(1);
   const [showQualityMenu, setShowQualityMenu] = useState(false);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
@@ -335,13 +336,53 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
           const hls = new Hls({
             enableWorker: true,
             lowLatencyMode: false,
-            backBufferLength: 90,
+            backBufferLength: 60,
+            maxBufferLength: 20,
+            maxMaxBufferLength: 40,
+            maxBufferSize: 60 * 1000 * 1000,
+            maxBufferHole: 0.5,
+            nudgeOffset: 0.1,
+            nudgeMaxRetry: 10,
           });
           hls.loadSource(videoSrc);
           hls.attachMedia(video);
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
             video.play().catch(() => {});
           });
+
+          // Level Switch Tracking for live resolution UI badge
+          hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
+            if (hls.levels && hls.levels[data.level]) {
+              setCurrentAutoHeight(hls.levels[data.level].height);
+            }
+          });
+
+          // Self-Healing Network & Media Error Recovery
+          hls.on(Hls.Events.ERROR, (_event, data) => {
+            if (data.fatal) {
+              switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  console.warn('HLS Network Error, restarting load...', data.details);
+                  hls.startLoad();
+                  break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  console.warn('HLS Media Error, recovering media...', data.details);
+                  hls.recoverMediaError();
+                  break;
+                default:
+                  console.error('Fatal unrecoverable HLS error:', data.details);
+                  hls.destroy();
+                  break;
+              }
+            } else if (data.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR) {
+              // Automatically jump over micro-discontinuities between different resolutions
+              if (video && !video.paused) {
+                video.currentTime += 0.05;
+                video.play().catch(() => {});
+              }
+            }
+          });
+
           hlsRef.current = hls;
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
           video.src = videoSrc;
@@ -531,24 +572,21 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     const hls = hlsRef.current;
     if (hls && hls.levels && hls.levels.length > 0) {
       if (newQuality === 'auto') {
-        hls.currentLevel = -1;
-        hls.loadLevel = -1;
-        hls.nextLoadLevel = -1;
+        // Seamless ABR auto-selection without buffer flush or player stall
+        hls.nextLevel = -1;
       } else {
         const targetHeight = parseInt(newQuality, 10);
-        const matchingIndices: number[] = [];
+        let chosenIdx = -1;
+
+        // Try exact match first
         hls.levels.forEach((l, idx) => {
-          if (l.height === targetHeight || Math.abs(l.height - targetHeight) <= 60) {
-            matchingIndices.push(idx);
+          if (l.height === targetHeight) {
+            chosenIdx = idx;
           }
         });
 
-        let chosenIdx = -1;
-        if (matchingIndices.length > 0) {
-          chosenIdx = matchingIndices.reduce((best, cur) =>
-            hls.levels[cur].bitrate > hls.levels[best].bitrate ? cur : best, matchingIndices[0]
-          );
-        } else {
+        // Fallback to closest match
+        if (chosenIdx === -1) {
           let minDiff = Infinity;
           hls.levels.forEach((l, idx) => {
             const diff = Math.abs(l.height - targetHeight);
@@ -560,11 +598,15 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
         }
 
         if (chosenIdx !== -1) {
-          hls.currentLevel = chosenIdx;
-          hls.loadLevel = chosenIdx;
-          hls.nextLoadLevel = chosenIdx;
+          // nextLevel loads the next fragment at the target resolution without evicting current buffer
+          hls.nextLevel = chosenIdx;
         }
       }
+    }
+
+    // Proactively prevent video freeze on level change
+    if (videoRef.current && !videoRef.current.paused) {
+      videoRef.current.play().catch(() => {});
     }
   };
 
@@ -579,7 +621,11 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
   const hoverPercent = effectiveDuration > 0 && hoverTime !== null ? (hoverTime / effectiveDuration) * 100 : null;
 
   const currentQualityLabel =
-    QUALITY_STEPS.find((q) => q.id === quality)?.label || '1080p';
+    quality === 'auto'
+      ? currentAutoHeight
+        ? `Авто (${currentAutoHeight}p)`
+        : 'Авто'
+      : QUALITY_STEPS.find((q) => q.id === quality)?.label || '1080p';
 
   // Glassmorphism button base class
   const glassBtnClass =
