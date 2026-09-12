@@ -18,7 +18,7 @@ export const PlayIcon: React.FC<PlayIconProps> = ({ className = 'w-4 h-4 fill-cu
       fill="currentColor"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <path d="M8.5 5.5v13l10.5-6.5L8.5 5.5z" />
+      <path d="M7 5.5v13l11-6.5L7 5.5z" />
     </svg>
   );
 };

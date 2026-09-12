@@ -147,7 +147,7 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
           Line 1: [Rating (green badge)]  [Year]  [Primary Genre]  [Duration]
           Line 2: (Play) (Bookmark) (Watched) (Dislike)
         */}
-        <div className="max-h-0 opacity-0 group-hover:max-h-36 group-hover:opacity-100 transition-all duration-300 ease-out overflow-hidden bg-[#191922] px-3.5 py-3 space-y-2.5">
+        <div className="max-h-0 opacity-0 py-0 px-3.5 group-hover:max-h-36 group-hover:py-3 group-hover:opacity-100 transition-all duration-300 ease-out overflow-hidden bg-[#191922] space-y-2.5 pointer-events-none group-hover:pointer-events-auto">
           {/* Metadata Row */}
           <div className="flex items-center gap-2.5 text-xs text-zinc-300 font-medium whitespace-nowrap overflow-hidden">
             {/* Emerald Green Rating Badge */}
@@ -167,16 +167,16 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
 
           {/* Action Buttons Row */}
           <div className="flex items-center gap-2 pt-0.5">
-            {/* 1. Large Circular Play Button (Okko Purple) */}
+            {/* 1. Large Circular Play Button (Site Brand Orange #ff5c00) */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onPlay(project);
               }}
-              className="w-9 h-9 rounded-full bg-[#5419f8] hover:bg-[#682eff] text-white flex items-center justify-center shadow-lg shadow-[#5419f8]/40 hover:scale-110 active:scale-95 transition-all duration-200 shrink-0"
+              className="w-9 h-9 rounded-full bg-[#ff5c00] hover:bg-[#e05200] text-white flex items-center justify-center shadow-lg shadow-[#ff5c00]/40 hover:scale-110 active:scale-95 transition-all duration-200 shrink-0"
               title="Смотреть"
             >
-              <PlayIcon className="w-3.5 h-3.5 fill-white ml-0.5" />
+              <PlayIcon className="w-3.5 h-3.5 fill-white" />
             </button>
 
             {/* 2. Bookmark / Favorite Button */}
