@@ -42,7 +42,9 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
     }
   });
 
-  // Re-sync with other card updates via custom storage events
+  const [, setRatingsTick] = useState(0);
+
+  // Re-sync with other card updates and ratings changes
   useEffect(() => {
     const handleSync = () => {
       try {
@@ -56,24 +58,21 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
       }
     };
 
+    const handleRatingUpdate = () => {
+      setRatingsTick((t) => t + 1);
+    };
+
     window.addEventListener('ofmedia_card_actions_sync', handleSync);
-    return () => window.removeEventListener('ofmedia_card_actions_sync', handleSync);
+    window.addEventListener('ofmedia_ratings_updated', handleRatingUpdate);
+    return () => {
+      window.removeEventListener('ofmedia_card_actions_sync', handleSync);
+      window.removeEventListener('ofmedia_ratings_updated', handleRatingUpdate);
+    };
   }, [project.id]);
 
+  // Strictly real rating stats computed from actual user reviews
   const ratingStats = getMovieRating(project.id);
-  // Realistic fallback score if project has no community votes yet
-  const defaultFallbackScores: Record<string, string> = {
-    clip: '8.4',
-    park: '8.1',
-    nalim: '7.9',
-    ng: '8.3',
-    vdnh: '8.0',
-    hor: '8.2',
-  };
-  const scoreDisplay =
-    ratingStats.score !== null
-      ? ratingStats.scoreFormatted
-      : defaultFallbackScores[project.id] || '8.1';
+  const hasRealRating = ratingStats.count > 0 && ratingStats.score !== null;
 
   const primaryGenre = project.genres?.[0] || 'Фильм';
 
@@ -150,10 +149,19 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
         <div className="max-h-0 opacity-0 py-0 px-3.5 group-hover:max-h-36 group-hover:py-3 group-hover:opacity-100 transition-all duration-300 ease-out overflow-hidden bg-[#191922] space-y-2.5 pointer-events-none group-hover:pointer-events-auto">
           {/* Metadata Row */}
           <div className="flex items-center gap-2.5 text-xs text-zinc-300 font-medium whitespace-nowrap overflow-hidden">
-            {/* Emerald Green Rating Badge */}
-            <span className="bg-[#00a859] text-white font-bold text-[11px] sm:text-xs px-1.5 py-0.5 rounded-[4px] leading-none shrink-0 shadow-sm">
-              {scoreDisplay}
-            </span>
+            {/* Real Rating Badge with dynamic 6-Tier color scale (only when rated by real users) */}
+            {hasRealRating && (
+              <span
+                style={{
+                  backgroundColor: ratingStats.colorHex,
+                  color: ratingStats.colorInfo.tier === 'yellow' ? '#000000' : '#ffffff',
+                  boxShadow: `0 0 10px ${ratingStats.colorHex}55`,
+                }}
+                className="font-bold text-[11px] sm:text-xs px-1.5 py-0.5 rounded-[4px] leading-none shrink-0 transition-colors duration-200"
+              >
+                {ratingStats.scoreFormatted}
+              </span>
+            )}
 
             {/* Release Year */}
             <span className="text-zinc-200">{project.year}</span>
