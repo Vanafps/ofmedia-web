@@ -5,12 +5,23 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Yandex 360 / YS Text Web Variable Font (Headings) */
+/* Yandex 360 / YS Text Web Variable Font (Headings: width 110, weight 500-900) */
 @font-face {
   font-family: 'YS Text Web';
-  src: url('/fonts/YSText-Web-VF.ttf') format('truetype');
+  src: url('/fonts/YSText-Web-VF.ttf') format('truetype-variations'),
+       url('/fonts/YSText-Web-VF.ttf') format('truetype');
   font-weight: 100 900;
-  font-stretch: 75% 125%;
+  font-stretch: 70% 150%;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'YS Text Web Wide';
+  src: url('/fonts/YSText-Web-VF.ttf') format('truetype-variations'),
+       url('/fonts/YSText-Web-VF.ttf') format('truetype');
+  font-weight: 100 900;
+  font-stretch: 110%;
   font-style: normal;
   font-display: swap;
 }
@@ -130,10 +141,53 @@ html {
     letter-spacing: 0;
   }
 
-  h1, h2, h3, h4, h5, h6, .font-heading {
-    font-family: 'YS Text Web', 'YS Text', 'Graphik Kinopoisk LC Web', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  h1, h2, h3, h4, h5, h6, .font-heading, .font-web-wide {
+    font-family: 'YS Text Web', 'YS Text Web Wide', 'YS Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-stretch: 110%;
+    font-variation-settings: 'wdth' 110;
     font-synthesis: none;
     letter-spacing: -0.01em; /* Трекинг: -1% по брендбуку Яндекс 360 */
+    line-height: 0.98;       /* Интерлиньяж: 90-100% по брендбуку Яндекс 360 */
+  }
+
+  /* Базовый вес для заголовков по гайду Яндекс 360: weight 500 */
+  h1:not(.font-bold):not(.font-extrabold):not(.font-black):not(.font-semibold),
+  h2:not(.font-bold):not(.font-extrabold):not(.font-black):not(.font-semibold),
+  h3:not(.font-bold):not(.font-extrabold):not(.font-black):not(.font-semibold),
+  h4:not(.font-bold):not(.font-extrabold):not(.font-black):not(.font-semibold),
+  .font-heading:not(.font-bold):not(.font-extrabold):not(.font-black):not(.font-semibold) {
+    font-weight: 500;
+    font-variation-settings: 'wdth' 110, 'wght' 500;
+  }
+
+  /* Для заголовков с font-bold сохраняем ширину 110 и вес 700 */
+  h1.font-bold, h2.font-bold, h3.font-bold, h4.font-bold, .font-heading.font-bold, .font-web-wide.font-bold {
+    font-stretch: 110%;
+    font-variation-settings: 'wdth' 110, 'wght' 700;
+    font-weight: 700;
+  }
+
+  /* Для заголовков с font-extrabold / font-black сохраняем ширину 110 и вес 800 */
+  h1.font-extrabold, h2.font-extrabold, h3.font-extrabold, .font-heading.font-extrabold,
+  h1.font-black, h2.font-black, h3.font-black, .font-heading.font-black {
+    font-stretch: 110%;
+    font-variation-settings: 'wdth' 110, 'wght' 800;
+    font-weight: 800;
+  }
+
+  /* Подзаголовки и важные сообщения: YS Text Medium (500), интерлиньяж 100-110%, трекинг 0% */
+  .font-subheading {
+    font-family: 'YS Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1.05;
+  }
+
+  /* Текстовые блоки: YS Text Regular (400), интерлиньяж 100-110%, трекинг 0% */
+  p, .font-body {
+    font-family: 'YS Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    letter-spacing: 0;
+    line-height: 1.1;
   }
 }
 
