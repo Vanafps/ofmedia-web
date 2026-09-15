@@ -319,7 +319,7 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
                   color: ratingStats.colorInfo.tier === 'yellow' ? '#000000' : '#ffffff',
                   boxShadow: `0 0 10px ${ratingStats.colorHex}55`,
                 }}
-                className="font-bold text-[11px] sm:text-xs px-1.5 py-0.5 rounded-[4px] leading-none shrink-0 transition-colors duration-200"
+                className="font-semibold text-xs px-1.5 py-0.5 rounded-[4px] leading-none shrink-0 transition-colors duration-200"
               >
                 {ratingStats.scoreFormatted}
               </span>

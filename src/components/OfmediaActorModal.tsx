@@ -69,7 +69,7 @@ export const OfmediaActorModal: React.FC<OfmediaActorModalProps> = ({
               <h2 className="font-heading font-bold text-2xl sm:text-3xl text-white tracking-tight">
                 {actor.name}
               </h2>
-              <span className="px-3 py-0.5 rounded-full bg-[#ff5c00]/20 border border-[#ff5c00]/30 text-[#ff5c00] text-xs font-bold backdrop-blur-xl">
+              <span className="px-3 py-0.5 rounded-full bg-[#ff5c00]/20 border border-[#ff5c00]/30 text-[#ff5c00] text-xs font-semibold backdrop-blur-xl">
                 {actor.filmsCount} {actor.filmsCount === 1 ? 'релиз' : actor.filmsCount < 5 ? 'релиза' : 'релизов'}
               </span>
             </div>

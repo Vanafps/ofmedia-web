@@ -121,7 +121,7 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
             >
               Моё
               {favoritesCount > 0 && (
-                <span className="px-1.5 py-0.2 text-[10px] bg-white/25 text-white rounded-full font-bold shadow-sm border border-white/20">
+                <span className="px-2 py-0.5 text-[11px] bg-white/20 text-white rounded-full font-semibold shadow-sm border border-white/20">
                   {favoritesCount}
                 </span>
               )}
@@ -174,7 +174,7 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
               <div className="absolute right-0 mt-3 w-80 sm:w-96 glass-dropdown rounded-3xl p-3.5 z-50 space-y-3 max-h-[80vh] overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95">
                 {actorResults.length > 0 && (
                   <div className="space-y-1.5">
-                    <div className="px-2.5 py-1 text-[10px] font-bold text-[#ff5c00] uppercase tracking-wider flex items-center justify-between">
+                    <div className="px-2.5 py-1 text-[11px] font-semibold text-[#ff5c00] uppercase tracking-wide flex items-center justify-between">
                       <span>Актёры и создатели</span>
                       <span>({actorResults.length})</span>
                     </div>
@@ -188,7 +188,7 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
                         }}
                         className="p-2 rounded-2xl hover:bg-white/10 flex items-center gap-3 cursor-pointer transition-all group border border-transparent hover:border-white/10"
                       >
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-900 border border-white/15 group-hover:border-[#ff5c00]/50 flex items-center justify-center text-white font-bold text-xs shadow shrink-0">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-900 border border-white/15 group-hover:border-[#ff5c00]/50 flex items-center justify-center text-white font-semibold text-xs shadow shrink-0">
                           {actor.initials}
                         </div>
                         <div className="min-w-0 flex-1">
@@ -209,7 +209,7 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
 
                 {projectResults.length > 0 && (
                   <div className="space-y-1.5">
-                    <div className="px-2.5 py-1 text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center justify-between">
+                    <div className="px-2.5 py-1 text-[11px] font-semibold text-zinc-400 uppercase tracking-wide flex items-center justify-between">
                       <span>Фильмы и релизы</span>
                       <span>({projectResults.length})</span>
                     </div>
@@ -263,7 +263,7 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
                 {user.photoURL ? (
                   <img src={user.photoURL} alt={user.displayName || ''} className="w-7 h-7 rounded-full object-cover border border-white/20" />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-[#ff5c00] text-white font-bold text-xs flex items-center justify-center shadow">
+                  <div className="w-7 h-7 rounded-full bg-[#ff5c00] text-white font-semibold text-xs flex items-center justify-center shadow">
                     {(user.displayName || user.email || 'U')[0].toUpperCase()}
                   </div>
                 )}
@@ -279,7 +279,7 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
               {isProfileDropdownOpen && (
                 <div className="absolute right-0 mt-3 w-64 glass-dropdown rounded-3xl p-4 z-50 space-y-3 animate-in fade-in zoom-in-95">
                   <div className="flex items-center gap-3 pb-3 border-b border-white/10">
-                    <div className="w-10 h-10 rounded-2xl bg-[#ff5c00] text-white font-bold text-sm flex items-center justify-center shadow shrink-0">
+                    <div className="w-10 h-10 rounded-2xl bg-[#ff5c00] text-white font-semibold text-sm flex items-center justify-center shadow shrink-0">
                       {(user.displayName || user.email || 'U')[0].toUpperCase()}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -305,11 +305,11 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
                     </button>
                     <div className="flex items-center justify-between px-3 py-1.5 text-zinc-400 text-[11px] font-normal">
                       <span>Мои оценки:</span>
-                      <span className="font-bold text-[#ff5c00]">{userRatingsCount}</span>
+                      <span className="font-semibold text-[#ff5c00]">{userRatingsCount}</span>
                     </div>
                     <div className="flex items-center justify-between px-3 py-1.5 text-zinc-400 text-[11px] font-normal">
                       <span>В закладках:</span>
-                      <span className="font-bold text-[#ff5c00]">{favoritesCount}</span>
+                      <span className="font-semibold text-[#ff5c00]">{favoritesCount}</span>
                     </div>
                   </div>
 

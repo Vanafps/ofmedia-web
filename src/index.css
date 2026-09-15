@@ -84,7 +84,23 @@ html {
 }
 
 @font-face {
+  font-family: 'Graphik Kinopoisk';
+  src: url('/fonts/GraphikKinopoisk-Light.woff2') format('woff2');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: 'Graphik Kinopoisk LC Web';
+  src: url('/fonts/GraphikKinopoisk-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Graphik Kinopoisk';
   src: url('/fonts/GraphikKinopoisk-Regular.woff2') format('woff2');
   font-weight: 400;
   font-style: normal;
@@ -100,6 +116,14 @@ html {
 }
 
 @font-face {
+  font-family: 'Graphik Kinopoisk';
+  src: url('/fonts/GraphikKinopoisk-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: 'Graphik Kinopoisk LC Web';
   src: url('/fonts/GraphikKinopoisk-Semibold.woff2') format('woff2');
   font-weight: 600;
@@ -108,7 +132,23 @@ html {
 }
 
 @font-face {
+  font-family: 'Graphik Kinopoisk';
+  src: url('/fonts/GraphikKinopoisk-Semibold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: 'Graphik Kinopoisk LC Web';
+  src: url('/fonts/GraphikKinopoisk-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Graphik Kinopoisk';
   src: url('/fonts/GraphikKinopoisk-Bold.woff2') format('woff2');
   font-weight: 700;
   font-style: normal;
@@ -125,14 +165,14 @@ html {
 
 @layer base {
   *, *::before, *::after {
-    font-family: 'YS Text', 'Graphik Kinopoisk LC Web', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-synthesis: none;
+    font-family: 'Graphik Kinopoisk LC Web', 'Graphik Kinopoisk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-synthesis: none !important;
     text-rendering: optimizeLegibility;
   }
 
   body {
-    font-family: 'YS Text', 'Graphik Kinopoisk LC Web', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-synthesis: none;
+    font-family: 'Graphik Kinopoisk LC Web', 'Graphik Kinopoisk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-synthesis: none !important;
     text-rendering: optimizeLegibility;
     background-color: #070709;
     color: #f4f4f5;
@@ -142,10 +182,10 @@ html {
   }
 
   h1, h2, h3, h4, h5, h6, .font-heading, .font-web-wide {
-    font-family: 'YS Text Web', 'YS Text Web Wide', 'YS Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'YS Text Web', 'YS Text Web Wide', 'Graphik Kinopoisk LC Web', sans-serif;
     font-stretch: 110%;
     font-variation-settings: 'wdth' 110;
-    font-synthesis: none;
+    font-synthesis: none !important;
     letter-spacing: -0.01em; /* Трекинг: -1% по брендбуку Яндекс 360 */
     line-height: 0.98;       /* Интерлиньяж: 90-100% по брендбуку Яндекс 360 */
   }
@@ -175,19 +215,21 @@ html {
     font-weight: 800;
   }
 
-  /* Подзаголовки и важные сообщения: YS Text Medium (500), интерлиньяж 100-110%, трекинг 0% */
+  /* Подзаголовки и важные сообщения: Graphik Kinopoisk Medium (500) */
   .font-subheading {
-    font-family: 'YS Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Graphik Kinopoisk LC Web', 'Graphik Kinopoisk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-weight: 500;
     letter-spacing: 0;
-    line-height: 1.05;
+    line-height: 1.2;
+    font-synthesis: none !important;
   }
 
-  /* Текстовые блоки: YS Text Regular (400), интерлиньяж 100-110%, трекинг 0% */
+  /* Текстовые блоки и описания: Graphik Kinopoisk Regular (400) */
   p, .font-body {
-    font-family: 'YS Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Graphik Kinopoisk LC Web', 'Graphik Kinopoisk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     letter-spacing: 0;
-    line-height: 1.1;
+    line-height: 1.45;
+    font-synthesis: none !important;
   }
 }
 

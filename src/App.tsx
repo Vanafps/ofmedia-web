@@ -407,7 +407,7 @@ export function App() {
             {/* 6-Color Rating Scale Legend */}
             {favoritesSubTab === 'ratings' && ratedProjects.length > 0 && (
               <div className="flex flex-wrap items-center gap-3 sm:gap-4 px-4 py-2.5 rounded-2xl bg-[#121218]/60 backdrop-blur-xl border border-white/10 text-[11px] text-zinc-300 shadow-md">
-                <span className="font-bold text-white uppercase text-[10px] tracking-wider">Шкала цветов:</span>
+                <span className="font-semibold text-white uppercase text-[11px] tracking-wide">Шкала цветов:</span>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#00b050] shadow-[0_0_6px_#00b050]" />
                   <span>Зелёный (9.0–10)</span>
@@ -501,7 +501,7 @@ export function App() {
                             </div>
                             <div className="flex items-center gap-1.5 pt-0.5">
                               <span className="text-[10px] text-zinc-400">Ваша оценка:</span>
-                              <span className="px-2 py-0.5 rounded text-xs font-bold bg-[#ff5c00]/20 text-[#ff5c00]">
+                              <span className="px-2 py-0.5 rounded text-xs font-semibold bg-[#ff5c00]/20 text-[#ff5c00]">
                                 ★ {userScore} / 10
                               </span>
                             </div>

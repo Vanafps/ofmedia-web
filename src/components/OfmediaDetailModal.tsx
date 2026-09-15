@@ -504,13 +504,13 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
         <div className="lg:col-span-6 p-5 sm:p-7 rounded-3xl glass-card flex flex-col justify-between space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+              <div className="text-sm sm:text-base font-semibold text-white flex items-center gap-2">
                 <span>
                   {ratingData.userRating ? `Ваша оценка — ${ratingData.userRating} / 10` : 'Оцените фильм'}
                 </span>
                 {ratingData.userRating && (
                   <span
-                    className={`text-[10px] sm:text-xs px-2.5 py-0.5 rounded font-bold shadow ${
+                    className={`text-xs px-2.5 py-0.5 rounded font-semibold shadow ${
                       getStarColorInfo(ratingData.userRating).bgClass
                     }`}
                   >
@@ -560,7 +560,7 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
                   key={star}
                   onMouseEnter={() => setHoverRating(star)}
                   onClick={() => handleRate(star)}
-                  className={`flex-1 py-2 sm:py-2.5 rounded-xl text-center text-xs font-bold transition-all ${
+                  className={`flex-1 py-2 sm:py-2.5 rounded-xl text-center text-xs font-semibold transition-all ${
                     isFilled
                       ? `${starColor.bgClass} scale-105 ${starColor.glowClass}`
                       : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/10'
@@ -585,7 +585,7 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
 
                 return (
                   <div key={star} className="flex items-center gap-2.5 text-[11px]">
-                    <span className="w-5 text-right font-bold" style={{ color: starColor.colorHex }}>
+                    <span className="w-5 text-right font-semibold" style={{ color: starColor.colorHex }}>
                       {star}★
                     </span>
                     <div className="flex-1 h-2 rounded-full bg-zinc-800/80 overflow-hidden relative border border-white/5">
@@ -616,7 +616,7 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
               <h2 className="font-bold text-lg sm:text-2xl text-white">
                 Рецензии и мнения зрителей
               </h2>
-              <span className="px-3 py-0.5 rounded-full bg-[#ff5c00]/20 border border-[#ff5c00]/30 text-[#ff5c00] text-xs font-bold">
+              <span className="px-3 py-0.5 rounded-full bg-[#ff5c00]/20 border border-[#ff5c00]/30 text-[#ff5c00] text-xs font-semibold">
                 {reviewsData.total} {reviewsData.total === 1 ? 'рецензия' : reviewsData.total < 5 ? 'рецензии' : 'рецензий'}
               </span>
             </div>
@@ -758,7 +758,7 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
                     {/* Review Header */}
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-zinc-700 to-zinc-900 border border-white/20 flex items-center justify-center text-white font-bold text-xs shadow">
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-zinc-700 to-zinc-900 border border-white/20 flex items-center justify-center text-white font-semibold text-xs shadow">
                           {rev.authorInitials}
                         </div>
 
@@ -766,7 +766,7 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
                           <div className="text-xs font-medium text-white flex items-center gap-2">
                             <span>{rev.authorName}</span>
                             {isMyReview && (
-                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-[#ff5c00]/20 text-[#ff5c00] font-bold">
+                              <span className="text-[11px] px-2 py-0.5 rounded bg-[#ff5c00]/20 text-[#ff5c00] font-medium">
                                 Вы
                               </span>
                             )}
@@ -783,7 +783,7 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
 
                       <div className="flex items-center gap-2">
                         <span
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                          className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-wide ${
                             rev.type === 'positive'
                               ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                               : rev.type === 'negative'
@@ -798,7 +798,7 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
                             : 'Нейтральная'}
                         </span>
                         {rev.ratingScore && (
-                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${getStarColorInfo(rev.ratingScore).bgClass}`}>
+                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getStarColorInfo(rev.ratingScore).bgClass}`}>
                             ★ {rev.ratingScore}
                           </span>
                         )}
