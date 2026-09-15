@@ -330,3 +330,71 @@ input[type=range].slider-orange::-webkit-slider-thumb {
   animation: modalElasticIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Okko Settings Menu Animations */
+@keyframes settingsPopIn {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.93);
+  }
+  60% {
+    transform: translateY(-2px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-settings-pop {
+  animation: settingsPopIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes settingsSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-settings-slide-in {
+  animation: settingsSlideIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes settingsSlideBack {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-settings-slide-back {
+  animation: settingsSlideBack 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes checkPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) rotate(-20deg);
+  }
+  60% {
+    transform: scale(1.3) rotate(3deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+.animate-check-pop {
+  animation: checkPopIn 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+

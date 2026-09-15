@@ -37,10 +37,10 @@ const parseDurationToSeconds = (durStr?: string): number => {
   return Number(durStr) || 0;
 };
 
-// Modern Geometric Play SVG Icon
+// Modern Geometric Play SVG Icon - Optically & Mathematically Centered at (12, 12)
 export const ModernPlayIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M7 4.5v15c0 .85.92 1.38 1.66.95l12-7.5a1.1 1.1 0 0 0 0-1.9l-12-7.5C7.92 3.12 7 3.65 7 4.5z" />
+    <path d="M8.8 5.85C8.8 4.95 9.8 4.4 10.55 4.9l9.3 6.15c.7.46.7 1.54 0 2L10.55 19.2c-.75.5-1.75-.05-1.75-.85V5.85z" />
   </svg>
 );
 
@@ -52,65 +52,77 @@ export const PauseIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h
   </svg>
 );
 
-// Circular 10s Rewind SVG Icon
+// Pure Vector Circular 10s Rewind SVG Icon (High contrast, no system text dependency)
 export const Rewind10Icon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none">
+    {/* High-visibility counter-clockwise circular arc */}
     <path
-      d="M12 4.5 A 7.5 7.5 0 1 0 19.5 12"
+      d="M12.5 4.5A7.5 7.5 0 1 0 20 12"
       stroke="currentColor"
-      strokeWidth="1.9"
+      strokeWidth="2.1"
       strokeLinecap="round"
     />
-    <polyline
-      points="12 2 12 5 8.5 5"
-      fill="none"
+    {/* Directional arrowhead */}
+    <path
+      d="M13 1.8L8.5 4.5l4.5 2.7V1.8z"
+      fill="currentColor"
+    />
+    {/* Vector '1' */}
+    <path
+      d="M9.6 11.2L11 10.3v5.5"
       stroke="currentColor"
-      strokeWidth="1.9"
+      strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
-    <text
-      x="12"
-      y="14.4"
-      textAnchor="middle"
-      fontSize="6.8"
-      fontWeight="800"
-      fill="currentColor"
-      fontFamily="system-ui, -apple-system, sans-serif"
-    >
-      10
-    </text>
+    {/* Vector '0' */}
+    <rect
+      x="12.8"
+      y="10.3"
+      width="3.4"
+      height="5.5"
+      rx="1.7"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      fill="none"
+    />
   </svg>
 );
 
-// Circular 10s Forward SVG Icon
+// Pure Vector Circular 10s Forward SVG Icon (High contrast, no system text dependency)
 export const Forward10Icon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none">
+    {/* High-visibility clockwise circular arc */}
     <path
-      d="M12 4.5 A 7.5 7.5 0 1 1 4.5 12"
+      d="M11.5 4.5A7.5 7.5 0 1 1 4 12"
       stroke="currentColor"
-      strokeWidth="1.9"
+      strokeWidth="2.1"
       strokeLinecap="round"
     />
-    <polyline
-      points="12 2 12 5 15.5 5"
-      fill="none"
+    {/* Directional arrowhead */}
+    <path
+      d="M11 1.8l4.5 2.7-4.5 2.7V1.8z"
+      fill="currentColor"
+    />
+    {/* Vector '1' */}
+    <path
+      d="M8.6 11.2L10 10.3v5.5"
       stroke="currentColor"
-      strokeWidth="1.9"
+      strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
     />
-    <text
-      x="12"
-      y="14.4"
-      textAnchor="middle"
-      fontSize="6.8"
-      fontWeight="800"
-      fill="currentColor"
-      fontFamily="system-ui, -apple-system, sans-serif"
-    >
-      10
-    </text>
+    {/* Vector '0' */}
+    <rect
+      x="11.8"
+      y="10.3"
+      width="3.4"
+      height="5.5"
+      rx="1.7"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      fill="none"
+    />
   </svg>
 );
 
@@ -161,25 +173,34 @@ export const SpeedometerIcon: React.FC<{ className?: string }> = ({ className = 
   </svg>
 );
 
-// Speaker Volume SVG Icon
-export const SpeakerVolumeIcon: React.FC<{ isMuted: boolean; volume: number; className?: string }> = ({ isMuted, volume, className = 'w-4 h-4' }) => {
+// Modern Okko / Apple Style Speaker Volume SVG Icon
+export const SpeakerVolumeIcon: React.FC<{ isMuted: boolean; volume: number; className?: string }> = ({
+  isMuted,
+  volume,
+  className = 'w-4 h-4',
+}) => {
   if (isMuted || volume === 0) {
     return (
-      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 5L6 9H2v6h4l5 4V5z" fill="currentColor" stroke="none" />
+        <line x1="16" y1="9" x2="22" y2="15" />
+        <line x1="22" y1="9" x2="16" y2="15" />
       </svg>
     );
   }
   if (volume > 0.5) {
     return (
-      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 5L6 9H2v6h4l5 4V5z" fill="currentColor" stroke="none" />
+        <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+        <path d="M18.8 5.5a9.5 9.5 0 0 1 0 13" />
       </svg>
     );
   }
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z" />
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 5L6 9H2v6h4l5 4V5z" fill="currentColor" stroke="none" />
+      <path d="M15.5 8.5a5 5 0 0 1 0 7" />
     </svg>
   );
 };
@@ -205,9 +226,9 @@ export const ModernFullscreenIcon: React.FC<{ isFullscreen: boolean; className?:
   </svg>
 );
 
-// Active Checkmark Icon
+// Elastic Active Checkmark Icon with Bounce Pop Animation
 const CheckIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4 text-[#ff5c00]' }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+  <svg className={`${className} animate-check-pop`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="20 6 9 17 4 12" />
   </svg>
 );
@@ -857,23 +878,23 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
         {/* OKKO SETTINGS POPOVER (Positioned directly above the Settings button) */}
         {showSettingsMenu && (
           <div
-            className="absolute left-4 sm:left-6 bottom-20 sm:bottom-24 bg-[#14141a]/95 backdrop-blur-2xl border border-white/15 rounded-2xl sm:rounded-3xl p-3 sm:p-4 min-w-[280px] max-w-[320px] shadow-[0_24px_60px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.15)] z-30 animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-150 text-white"
+            className="absolute left-4 sm:left-6 bottom-20 sm:bottom-24 bg-[#14141a]/96 backdrop-blur-2xl border border-white/20 rounded-2xl sm:rounded-3xl p-3.5 sm:p-4 min-w-[290px] max-w-[330px] shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(255,92,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.2)] z-30 animate-settings-pop text-white transition-all overflow-hidden"
           >
             {settingsSubView === 'main' && (
-              <div className="flex flex-col py-1 space-y-1">
+              <div className="flex flex-col py-1 space-y-1 animate-settings-slide-back">
                 {/* 1. Качество */}
                 <button
                   type="button"
                   onClick={() => setSettingsSubView('quality')}
-                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-white/10 transition-colors text-left group/row cursor-pointer"
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-white/12 active:scale-[0.98] transition-all duration-150 text-left group/row cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <MonitorIcon className="w-4 h-4 text-zinc-300 group-hover/row:text-white" />
+                    <MonitorIcon className="w-4 h-4 text-zinc-300 group-hover/row:text-white transition-colors" />
                     <span className="text-xs sm:text-sm font-medium text-white">Качество</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 group-hover/row:text-white">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 group-hover/row:text-white transition-colors">
                     <span>{currentQualityLabel}</span>
-                    <span className="text-zinc-500 group-hover/row:text-zinc-300 font-bold">›</span>
+                    <span className="text-zinc-500 group-hover/row:text-zinc-300 font-bold transition-transform group-hover/row:translate-x-0.5 duration-150">›</span>
                   </div>
                 </button>
 
@@ -892,15 +913,15 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
                   <button
                     type="button"
                     onClick={() => setSettingsSubView('audio')}
-                    className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-white/10 transition-colors text-left group/row cursor-pointer"
+                    className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-white/12 active:scale-[0.98] transition-all duration-150 text-left group/row cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
-                      <MicIcon className="w-4 h-4 text-zinc-300 group-hover/row:text-white" />
+                      <MicIcon className="w-4 h-4 text-zinc-300 group-hover/row:text-white transition-colors" />
                       <span className="text-xs sm:text-sm font-medium text-white">Звук</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-300 group-hover/row:text-white">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-300 group-hover/row:text-white transition-colors">
                       <span>{selectedAudioTrack}</span>
-                      <span className="text-zinc-500 group-hover/row:text-zinc-300 font-bold">›</span>
+                      <span className="text-zinc-500 group-hover/row:text-zinc-300 font-bold transition-transform group-hover/row:translate-x-0.5 duration-150">›</span>
                     </div>
                   </button>
                 )}
@@ -920,15 +941,15 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
                   <button
                     type="button"
                     onClick={() => setSettingsSubView('subtitles')}
-                    className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-white/10 transition-colors text-left group/row cursor-pointer"
+                    className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-white/12 active:scale-[0.98] transition-all duration-150 text-left group/row cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
-                      <SubtitlesIcon className="w-4 h-4 text-zinc-300 group-hover/row:text-white" />
+                      <SubtitlesIcon className="w-4 h-4 text-zinc-300 group-hover/row:text-white transition-colors" />
                       <span className="text-xs sm:text-sm font-medium text-white">Субтитры</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-300 group-hover/row:text-white">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-300 group-hover/row:text-white transition-colors">
                       <span>{selectedSubtitle === 'off' ? 'Без субтитров' : selectedSubtitle}</span>
-                      <span className="text-zinc-500 group-hover/row:text-zinc-300 font-bold">›</span>
+                      <span className="text-zinc-500 group-hover/row:text-zinc-300 font-bold transition-transform group-hover/row:translate-x-0.5 duration-150">›</span>
                     </div>
                   </button>
                 )}
@@ -937,28 +958,28 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
                 <button
                   type="button"
                   onClick={() => setSettingsSubView('speed')}
-                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-white/10 transition-colors text-left group/row cursor-pointer"
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-white/12 active:scale-[0.98] transition-all duration-150 text-left group/row cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <SpeedometerIcon className="w-4 h-4 text-zinc-300 group-hover/row:text-white" />
+                    <SpeedometerIcon className="w-4 h-4 text-zinc-300 group-hover/row:text-white transition-colors" />
                     <span className="text-xs sm:text-sm font-medium text-white">Скорость</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 group-hover/row:text-white">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 group-hover/row:text-white transition-colors">
                     <span>{speed === 1 ? '1x' : `${speed}x`}</span>
-                    <span className="text-zinc-500 group-hover/row:text-zinc-300 font-bold">›</span>
+                    <span className="text-zinc-500 group-hover/row:text-zinc-300 font-bold transition-transform group-hover/row:translate-x-0.5 duration-150">›</span>
                   </div>
                 </button>
               </div>
             )}
 
-            {/* Quality Submenu - Classic Vertical List (NO SLIDERS) */}
+            {/* Quality Submenu - Classic Vertical List with Sliding Transition */}
             {settingsSubView === 'quality' && (
-              <div className="flex flex-col">
+              <div className="flex flex-col animate-settings-slide-in">
                 <div className="flex items-center gap-2 pb-2 mb-1.5 border-b border-white/10">
                   <button
                     type="button"
                     onClick={() => setSettingsSubView('main')}
-                    className="p-1 -ml-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                    className="p-1 -ml-1 rounded-lg hover:bg-white/12 text-zinc-400 hover:text-white transition-all active:scale-90 cursor-pointer"
                     title="Назад"
                   >
                     <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -978,10 +999,10 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
                           handleQualityChange(q.id);
                           setSettingsSubView('main');
                         }}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 cursor-pointer ${
                           isSelected
-                            ? 'bg-[#ff5c00]/20 text-white font-semibold'
-                            : 'text-zinc-300 hover:text-white hover:bg-white/10'
+                            ? 'bg-[#ff5c00]/25 text-white font-semibold shadow-[0_0_18px_rgba(255,92,0,0.25)] border border-[#ff5c00]/30'
+                            : 'text-zinc-300 hover:text-white hover:bg-white/10 active:scale-[0.98]'
                         }`}
                       >
                         <div className="flex items-center gap-2">
@@ -998,14 +1019,14 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
               </div>
             )}
 
-            {/* Speed Submenu - Classic Vertical List (NO SLIDERS) */}
+            {/* Speed Submenu - Classic Vertical List with Sliding Transition */}
             {settingsSubView === 'speed' && (
-              <div className="flex flex-col">
+              <div className="flex flex-col animate-settings-slide-in">
                 <div className="flex items-center gap-2 pb-2 mb-1.5 border-b border-white/10">
                   <button
                     type="button"
                     onClick={() => setSettingsSubView('main')}
-                    className="p-1 -ml-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                    className="p-1 -ml-1 rounded-lg hover:bg-white/12 text-zinc-400 hover:text-white transition-all active:scale-90 cursor-pointer"
                     title="Назад"
                   >
                     <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -1025,10 +1046,10 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
                           handleSpeedChange(s);
                           setSettingsSubView('main');
                         }}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 cursor-pointer ${
                           isSelected
-                            ? 'bg-[#ff5c00]/20 text-white font-semibold'
-                            : 'text-zinc-300 hover:text-white hover:bg-white/10'
+                            ? 'bg-[#ff5c00]/25 text-white font-semibold shadow-[0_0_18px_rgba(255,92,0,0.25)] border border-[#ff5c00]/30'
+                            : 'text-zinc-300 hover:text-white hover:bg-white/10 active:scale-[0.98]'
                         }`}
                       >
                         <span>{s === 1 ? '1x (Обычная)' : `${s}x`}</span>
@@ -1042,12 +1063,12 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
 
             {/* Audio Submenu if multiple */}
             {settingsSubView === 'audio' && (
-              <div className="flex flex-col">
+              <div className="flex flex-col animate-settings-slide-in">
                 <div className="flex items-center gap-2 pb-2 mb-1.5 border-b border-white/10">
                   <button
                     type="button"
                     onClick={() => setSettingsSubView('main')}
-                    className="p-1 -ml-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                    className="p-1 -ml-1 rounded-lg hover:bg-white/12 text-zinc-400 hover:text-white transition-all active:scale-90 cursor-pointer"
                     title="Назад"
                   >
                     <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -1067,10 +1088,10 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
                           setSelectedAudioTrack(track);
                           setSettingsSubView('main');
                         }}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 cursor-pointer ${
                           isSelected
-                            ? 'bg-[#ff5c00]/20 text-white font-semibold'
-                            : 'text-zinc-300 hover:text-white hover:bg-white/10'
+                            ? 'bg-[#ff5c00]/25 text-white font-semibold shadow-[0_0_18px_rgba(255,92,0,0.25)] border border-[#ff5c00]/30'
+                            : 'text-zinc-300 hover:text-white hover:bg-white/10 active:scale-[0.98]'
                         }`}
                       >
                         <span>{track}</span>
@@ -1084,12 +1105,12 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
 
             {/* Subtitles Submenu */}
             {settingsSubView === 'subtitles' && (
-              <div className="flex flex-col">
+              <div className="flex flex-col animate-settings-slide-in">
                 <div className="flex items-center gap-2 pb-2 mb-1.5 border-b border-white/10">
                   <button
                     type="button"
                     onClick={() => setSettingsSubView('main')}
-                    className="p-1 -ml-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                    className="p-1 -ml-1 rounded-lg hover:bg-white/12 text-zinc-400 hover:text-white transition-all active:scale-90 cursor-pointer"
                     title="Назад"
                   >
                     <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -1105,10 +1126,10 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
                       setSelectedSubtitle('off');
                       setSettingsSubView('main');
                     }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 cursor-pointer ${
                       selectedSubtitle === 'off'
-                        ? 'bg-[#ff5c00]/20 text-white font-semibold'
-                        : 'text-zinc-300 hover:text-white hover:bg-white/10'
+                        ? 'bg-[#ff5c00]/25 text-white font-semibold shadow-[0_0_18px_rgba(255,92,0,0.25)] border border-[#ff5c00]/30'
+                        : 'text-zinc-300 hover:text-white hover:bg-white/10 active:scale-[0.98]'
                     }`}
                   >
                     <span>Отключены</span>
@@ -1124,10 +1145,10 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
                           setSelectedSubtitle(sub);
                           setSettingsSubView('main');
                         }}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 cursor-pointer ${
                           isSelected
-                            ? 'bg-[#ff5c00]/20 text-white font-semibold'
-                            : 'text-zinc-300 hover:text-white hover:bg-white/10'
+                            ? 'bg-[#ff5c00]/25 text-white font-semibold shadow-[0_0_18px_rgba(255,92,0,0.25)] border border-[#ff5c00]/30'
+                            : 'text-zinc-300 hover:text-white hover:bg-white/10 active:scale-[0.98]'
                         }`}
                       >
                         <span>{sub}</span>
@@ -1239,55 +1260,57 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
         <div className="flex items-center justify-between gap-2 sm:gap-4 text-zinc-100">
           {/* Left Controls: Play, Skip 10s SVGs, Okko Settings Button, Time */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Play/Pause Button */}
+            {/* Play/Pause Button - Optically Centered with Spring Scale Interaction */}
             <button
               onClick={togglePlay}
-              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer ${glassBtnClass}`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-90 hover:scale-105 transition-all duration-150 ${glassBtnClass}`}
               title={isPlaying ? 'Пауза (Пробел)' : 'Воспроизведение (Пробел)'}
             >
               {isPlaying ? (
                 <PauseIcon className="w-4 h-4 text-white" />
               ) : (
-                <ModernPlayIcon className="w-4 h-4 text-white ml-0.5" />
+                <ModernPlayIcon className="w-4 h-4 text-white" />
               )}
             </button>
 
-            {/* Skip -10s with SVG Circular Arrow */}
+            {/* Skip -10s with Interactive Rotation Micro-Animation */}
             <button
               onClick={() => skip(-10)}
-              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer ${glassBtnClass}`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-90 active:-rotate-20 hover:scale-105 transition-all duration-150 ${glassBtnClass} group/rewind`}
               title="Назад на 10 сек (←)"
             >
-              <Rewind10Icon className="w-5 h-5 text-zinc-100 hover:text-white" />
+              <Rewind10Icon className="w-5 h-5 text-zinc-100 group-hover/rewind:text-white transition-colors" />
             </button>
 
-            {/* Skip +10s with SVG Circular Arrow */}
+            {/* Skip +10s with Interactive Rotation Micro-Animation */}
             <button
               onClick={() => skip(10)}
-              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer ${glassBtnClass}`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-90 active:rotate-20 hover:scale-105 transition-all duration-150 ${glassBtnClass} group/forward`}
               title="Вперёд на 10 сек (→)"
             >
-              <Forward10Icon className="w-5 h-5 text-zinc-100 hover:text-white" />
+              <Forward10Icon className="w-5 h-5 text-zinc-100 group-hover/forward:text-white transition-colors" />
             </button>
 
-            {/* Unified Okko Settings Button [ ⚙ Настройки ] / [ ✕ Настройки ] */}
+            {/* Unified Okko Settings Button [ ⚙ Настройки ] / [ ✕ Настройки ] with 90deg Rotation Transition */}
             <button
               onClick={() => {
                 setShowSettingsMenu((prev) => !prev);
                 setSettingsSubView('main');
               }}
-              className={`h-10 px-3.5 rounded-full flex items-center gap-2 text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer ${
+              className={`h-10 px-3.5 rounded-full flex items-center gap-2 text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer active:scale-95 ${
                 showSettingsMenu
-                  ? 'bg-white/25 border border-white/40 text-white shadow-[0_0_15px_rgba(255,255,255,0.2)]'
+                  ? 'bg-white/25 border border-white/40 text-white shadow-[0_0_20px_rgba(255,255,255,0.25)] ring-2 ring-white/20'
                   : glassBtnClass
               }`}
               title="Настройки плеера"
             >
-              {showSettingsMenu ? (
-                <span className="text-sm font-bold leading-none">✕</span>
-              ) : (
-                <OkkoSettingsIcon className="w-4 h-4 text-zinc-200" />
-              )}
+              <span className={`inline-flex transition-transform duration-300 ${showSettingsMenu ? 'rotate-90' : 'rotate-0'}`}>
+                {showSettingsMenu ? (
+                  <span className="text-sm font-bold leading-none">✕</span>
+                ) : (
+                  <OkkoSettingsIcon className="w-4 h-4 text-zinc-200" />
+                )}
+              </span>
               <span>Настройки</span>
             </button>
 
@@ -1318,7 +1341,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
             <div className="flex items-center h-10 px-3 rounded-full backdrop-blur-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/20 transition-all duration-200 gap-2.5 shadow-lg shadow-black/20 group/volume">
               <button
                 onClick={() => setIsMuted((m) => !m)}
-                className="w-5 h-5 flex items-center justify-center text-zinc-100 hover:text-white transition-transform active:scale-90 cursor-pointer"
+                className="w-5 h-5 flex items-center justify-center text-zinc-100 hover:text-white transition-transform active:scale-85 cursor-pointer"
                 title={isMuted ? 'Включить звук (M)' : 'Выключить звук (M)'}
               >
                 <SpeakerVolumeIcon isMuted={isMuted} volume={volume} className="w-4 h-4 text-white" />
@@ -1359,7 +1382,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
             {/* Modern Fullscreen Button */}
             <button
               onClick={toggleFullscreen}
-              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer ${glassBtnClass}`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-90 hover:scale-105 transition-all duration-150 ${glassBtnClass}`}
               title={isFullscreen ? 'Выйти из полноэкранного режима (F)' : 'Полноэкранный режим (F)'}
             >
               <ModernFullscreenIcon isFullscreen={isFullscreen} className="w-4 h-4 text-white" />
