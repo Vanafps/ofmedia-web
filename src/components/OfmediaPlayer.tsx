@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Hls from 'hls.js';
 import type { Project, Episode } from '../data/projects';
-import { PlayIcon } from './PlayIcon';
 
 interface OfmediaPlayerProps {
   project: Project;
@@ -16,12 +15,12 @@ export type VideoQuality = '144p' | '240p' | '360p' | '480p' | '720p' | '1080p' 
 const SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
 const QUALITY_STEPS: { id: VideoQuality; label: string }[] = [
-  { id: '144p', label: '144p' },
-  { id: '240p', label: '240p' },
-  { id: '360p', label: '360p' },
-  { id: '480p', label: '480p' },
-  { id: '720p', label: '720p' },
-  { id: '1080p', label: '1080p' },
+  { id: '144p', label: 'Эко' },
+  { id: '240p', label: 'LD' },
+  { id: '360p', label: 'LQ' },
+  { id: '480p', label: 'SD' },
+  { id: '720p', label: 'HD' },
+  { id: '1080p', label: 'FHD' },
   { id: 'auto', label: 'Авто' },
 ];
 
@@ -37,6 +36,21 @@ const parseDurationToSeconds = (durStr?: string): number => {
   if (parts.length === 2) return parts[0] * 60 + parts[1];
   return Number(durStr) || 0;
 };
+
+// Modern Geometric Play SVG Icon
+export const ModernPlayIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M7 4.5v15c0 .85.92 1.38 1.66.95l12-7.5a1.1 1.1 0 0 0 0-1.9l-12-7.5C7.92 3.12 7 3.65 7 4.5z" />
+  </svg>
+);
+
+// Modern Geometric Pause SVG Icon
+export const PauseIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <rect x="6" y="4" width="4" height="16" rx="1.5" />
+    <rect x="14" y="4" width="4" height="16" rx="1.5" />
+  </svg>
+);
 
 // Circular 10s Rewind SVG Icon
 export const Rewind10Icon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
@@ -100,6 +114,104 @@ export const Forward10Icon: React.FC<{ className?: string }> = ({ className = 'w
   </svg>
 );
 
+// Okko Hexagon Settings Nut Icon
+export const OkkoSettingsIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path fillRule="evenodd" clipRule="evenodd" d="M12 2.5l8 4.62v9.24L12 21L4 16.36V7.12L12 2.5zm0 6.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6z" />
+  </svg>
+);
+
+// Monitor / Display SVG Icon for Video Quality
+export const MonitorIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="3" width="20" height="14" rx="2" />
+    <line x1="8" y1="21" x2="16" y2="21" />
+    <line x1="12" y1="17" x2="12" y2="21" />
+  </svg>
+);
+
+// Microphone SVG Icon for Audio
+export const MicIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+    <line x1="12" y1="19" x2="12" y2="23" />
+    <line x1="8" y1="23" x2="16" y2="23" />
+  </svg>
+);
+
+// Subtitles Rectangular SVG Icon
+export const SubtitlesIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="5" width="20" height="14" rx="3" />
+    <line x1="6" y1="10" x2="11" y2="10" />
+    <line x1="13" y1="10" x2="18" y2="10" />
+    <line x1="6" y1="14" x2="14" y2="14" />
+    <line x1="16" y1="14" x2="18" y2="14" />
+  </svg>
+);
+
+// Speedometer Gauge SVG Icon
+export const SpeedometerIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 4a8 8 0 0 0-8 8c0 2.2.9 4.2 2.3 5.7" />
+    <path d="M12 4a8 8 0 0 1 8 8c0 2.2-.9 4.2-2.3 5.7" />
+    <circle cx="12" cy="14" r="2" fill="currentColor" />
+    <line x1="12" y1="14" x2="16" y2="9" />
+  </svg>
+);
+
+// Speaker Volume SVG Icon
+export const SpeakerVolumeIcon: React.FC<{ isMuted: boolean; volume: number; className?: string }> = ({ isMuted, volume, className = 'w-4 h-4' }) => {
+  if (isMuted || volume === 0) {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
+      </svg>
+    );
+  }
+  if (volume > 0.5) {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+      </svg>
+    );
+  }
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z" />
+    </svg>
+  );
+};
+
+// Fullscreen Expand / Compress SVG Icon
+export const ModernFullscreenIcon: React.FC<{ isFullscreen: boolean; className?: string }> = ({ isFullscreen, className = 'w-4 h-4' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    {isFullscreen ? (
+      <>
+        <polyline points="4 14 10 14 10 20" />
+        <polyline points="20 10 14 10 14 4" />
+        <line x1="14" y1="10" x2="21" y2="3" />
+        <line x1="3" y1="21" x2="10" y2="14" />
+      </>
+    ) : (
+      <>
+        <polyline points="15 3 21 3 21 9" />
+        <polyline points="9 21 3 21 3 15" />
+        <line x1="21" y1="3" x2="14" y2="10" />
+        <line x1="3" y1="21" x2="10" y2="14" />
+      </>
+    )}
+  </svg>
+);
+
+// Active Checkmark Icon
+const CheckIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4 text-[#ff5c00]' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+
 export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
   project,
   initialEpisode,
@@ -157,12 +269,16 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
   // Transient Pop Feedback on Toggle (Center Pop Animation)
   const [flashFeedback, setFlashFeedback] = useState<{ type: 'play' | 'pause'; id: number } | null>(null);
 
-  // Quality & Speed Menus
+  // Quality & Speed & Settings Menus (Okko style)
   const [quality, setQuality] = useState<VideoQuality>('1080p');
   const [currentAutoHeight, setCurrentAutoHeight] = useState<number | null>(null);
   const [speed, setSpeed] = useState<number>(1);
-  const [showQualityMenu, setShowQualityMenu] = useState(false);
-  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [settingsSubView, setSettingsSubView] = useState<'main' | 'quality' | 'speed' | 'audio' | 'subtitles'>('main');
+  const [selectedAudioTrack, setSelectedAudioTrack] = useState<string>(
+    project.audioTracks?.[0] || '1. Русский'
+  );
+  const [selectedSubtitle, setSelectedSubtitle] = useState<string>('off');
   const [isBuffering, setIsBuffering] = useState(false);
   const [qualityToast, setQualityToast] = useState<string | null>(null);
 
@@ -244,8 +360,8 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
       if (timerId) clearTimeout(timerId);
       timerId = window.setTimeout(() => {
         setShowControls(false);
-        setShowQualityMenu(false);
-        setShowSpeedMenu(false);
+        setShowSettingsMenu(false);
+        setSettingsSubView('main');
       }, 3000);
     };
 
@@ -620,26 +736,24 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
   const progressPercent = effectiveDuration > 0 ? (currentTime / effectiveDuration) * 100 : 0;
   const hoverPercent = effectiveDuration > 0 && hoverTime !== null ? (hoverTime / effectiveDuration) * 100 : null;
 
+  const getQualityBadge = (h: number): string => {
+    if (h >= 1080) return 'FHD';
+    if (h >= 720) return 'HD';
+    if (h >= 480) return 'SD';
+    if (h >= 360) return 'LQ';
+    return 'LD';
+  };
+
   const currentQualityLabel =
     quality === 'auto'
       ? currentAutoHeight
-        ? `Авто (${currentAutoHeight}p)`
+        ? `Авто (${getQualityBadge(currentAutoHeight)})`
         : 'Авто'
-      : QUALITY_STEPS.find((q) => q.id === quality)?.label || '1080p';
+      : QUALITY_STEPS.find((q) => q.id === quality)?.label || 'FHD';
 
   // Glassmorphism button base class
   const glassBtnClass =
     'backdrop-blur-xl bg-white/10 hover:bg-white/20 border border-white/10 hover:border-white/25 text-zinc-100 hover:text-white transition-all duration-200 ease-out hover:scale-105 active:scale-95 shadow-lg shadow-black/20';
-
-  // Speed index for slider
-  const speedIndex = SPEED_STEPS.indexOf(speed) !== -1 ? SPEED_STEPS.indexOf(speed) : 2;
-  const speedPercent = (speedIndex / (SPEED_STEPS.length - 1)) * 100;
-
-  // Quality index for slider
-  const qualityIndex = QUALITY_STEPS.findIndex((q) => q.id === quality) !== -1
-    ? QUALITY_STEPS.findIndex((q) => q.id === quality)
-    : 4;
-  const qualityPercent = (qualityIndex / (QUALITY_STEPS.length - 1)) * 100;
 
   return (
     <div
@@ -679,11 +793,9 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
         >
           <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#0c0c12]/85 backdrop-blur-2xl border-2 border-white/30 flex items-center justify-center text-white shadow-[0_0_45px_rgba(255,92,0,0.5)] animate-center-pop">
             {flashFeedback.type === 'play' ? (
-              <PlayIcon className="w-9 h-9 fill-white" />
+              <ModernPlayIcon className="w-10 h-10 text-white ml-1" />
             ) : (
-              <svg className="w-9 h-9 fill-white" viewBox="0 0 24 24">
-                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-              </svg>
+              <PauseIcon className="w-10 h-10 text-white" />
             )}
           </div>
         </div>
@@ -742,135 +854,290 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
           showControls ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
         }`}
       >
-        {/* SPEED POPOVER - FLOATING CLEANLY ABOVE TIMELINE */}
-        {showSpeedMenu && (
+        {/* OKKO SETTINGS POPOVER (Positioned directly above the Settings button) */}
+        {showSettingsMenu && (
           <div
-            className="absolute right-4 sm:right-6 bottom-20 sm:bottom-24 bg-[#0e0e14]/90 backdrop-blur-2xl border border-white/20 rounded-2xl p-4 min-w-[280px] shadow-[0_20px_50px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.2)] z-30 animate-in fade-in zoom-in-95 slide-in-from-bottom-3 duration-200"
+            className="absolute left-4 sm:left-6 bottom-20 sm:bottom-24 bg-[#14141a]/95 backdrop-blur-2xl border border-white/15 rounded-2xl sm:rounded-3xl p-3 sm:p-4 min-w-[280px] max-w-[320px] shadow-[0_24px_60px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.15)] z-30 animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-150 text-white"
           >
-            {/* Title & Badge */}
-            <div className="flex items-center justify-between mb-3.5">
-              <span className="text-xs font-semibold text-zinc-200">
-                Скорость
-              </span>
-              <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#ff5c00]/25 text-[#ff5c00] border border-[#ff5c00]/40">
-                {speed === 1 ? '1x' : `${speed}x`}
-              </span>
-            </div>
+            {settingsSubView === 'main' && (
+              <div className="flex flex-col py-1 space-y-1">
+                {/* 1. Качество */}
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubView('quality')}
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-white/10 transition-colors text-left group/row cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <MonitorIcon className="w-4 h-4 text-zinc-300 group-hover/row:text-white" />
+                    <span className="text-xs sm:text-sm font-medium text-white">Качество</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 group-hover/row:text-white">
+                    <span>{currentQualityLabel}</span>
+                    <span className="text-zinc-500 group-hover/row:text-zinc-300 font-bold">›</span>
+                  </div>
+                </button>
 
-            {/* Interactive Stepped Slider Track with Full Native Swipe & Drag Support */}
-            <div className="relative w-full py-1 mb-1">
-              <div className="relative w-full h-2 bg-white/15 rounded-full">
-                {/* Active Progress Fill */}
-                <div
-                  className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-[#ff5c00] to-[#ff7a29] rounded-full shadow-[0_0_10px_rgba(255,92,0,0.8)] pointer-events-none"
-                  style={{ width: `${speedPercent}%` }}
-                />
+                {/* 2. Звук (низкоконтрастный текст если нет вариаций как в Okko) */}
+                {(!project.audioTracks || project.audioTracks.length <= 1) ? (
+                  <div className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl cursor-default opacity-80 select-none">
+                    <div className="flex items-center gap-3">
+                      <MicIcon className="w-4 h-4 text-zinc-500" />
+                      <span className="text-xs sm:text-sm font-medium text-zinc-300">Звук</span>
+                    </div>
+                    <div className="text-xs font-normal text-zinc-500">
+                      {project.audioTracks?.[0] || '1. Русский'}
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setSettingsSubView('audio')}
+                    className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-white/10 transition-colors text-left group/row cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <MicIcon className="w-4 h-4 text-zinc-300 group-hover/row:text-white" />
+                      <span className="text-xs sm:text-sm font-medium text-white">Звук</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-300 group-hover/row:text-white">
+                      <span>{selectedAudioTrack}</span>
+                      <span className="text-zinc-500 group-hover/row:text-zinc-300 font-bold">›</span>
+                    </div>
+                  </button>
+                )}
 
-                {/* Range Input for 100% native smooth swipe & drag */}
-                <input
-                  type="range"
-                  min={0}
-                  max={SPEED_STEPS.length - 1}
-                  step={1}
-                  value={speedIndex}
-                  onChange={(e) => handleSpeedChange(SPEED_STEPS[parseInt(e.target.value)])}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                />
+                {/* 3. Субтитры (низкоконтрастный текст если нет вариаций как в Okko) */}
+                {(!project.subtitles || project.subtitles.length === 0) ? (
+                  <div className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl cursor-default opacity-80 select-none">
+                    <div className="flex items-center gap-3">
+                      <SubtitlesIcon className="w-4 h-4 text-zinc-500" />
+                      <span className="text-xs sm:text-sm font-medium text-zinc-300">Субтитры</span>
+                    </div>
+                    <div className="text-xs font-normal text-zinc-500">
+                      Без субтитров
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setSettingsSubView('subtitles')}
+                    className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-white/10 transition-colors text-left group/row cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <SubtitlesIcon className="w-4 h-4 text-zinc-300 group-hover/row:text-white" />
+                      <span className="text-xs sm:text-sm font-medium text-white">Субтитры</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-zinc-300 group-hover/row:text-white">
+                      <span>{selectedSubtitle === 'off' ? 'Без субтитров' : selectedSubtitle}</span>
+                      <span className="text-zinc-500 group-hover/row:text-zinc-300 font-bold">›</span>
+                    </div>
+                  </button>
+                )}
 
-                {/* Stepped Knob */}
-                <div
-                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4.5 h-4.5 rounded-full bg-white border-2 border-[#ff5c00] shadow-[0_0_12px_rgba(255,92,0,1)] pointer-events-none transition-transform duration-100"
-                  style={{ left: `${speedPercent}%` }}
-                />
+                {/* 4. Скорость */}
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubView('speed')}
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-white/10 transition-colors text-left group/row cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <SpeedometerIcon className="w-4 h-4 text-zinc-300 group-hover/row:text-white" />
+                    <span className="text-xs sm:text-sm font-medium text-white">Скорость</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-300 group-hover/row:text-white">
+                    <span>{speed === 1 ? '1x' : `${speed}x`}</span>
+                    <span className="text-zinc-500 group-hover/row:text-zinc-300 font-bold">›</span>
+                  </div>
+                </button>
               </div>
+            )}
 
-              {/* Step Marks & Labels - Absolute Centered under each exact tick */}
-              <div className="relative w-full h-5 mt-3">
-                {SPEED_STEPS.map((s, i) => {
-                  const pct = (i / (SPEED_STEPS.length - 1)) * 100;
-                  return (
-                    <button
-                      key={s}
-                      onClick={() => handleSpeedChange(s)}
-                      style={{ left: `${pct}%` }}
-                      className={`absolute top-0 -translate-x-1/2 text-[11px] font-medium transition-all duration-150 hover:scale-110 ${
-                        speed === s
-                          ? 'text-[#ff5c00] font-bold drop-shadow'
-                          : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      {s === 1 ? '1x' : `${s}`}
-                    </button>
-                  );
-                })}
+            {/* Quality Submenu - Classic Vertical List (NO SLIDERS) */}
+            {settingsSubView === 'quality' && (
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 pb-2 mb-1.5 border-b border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setSettingsSubView('main')}
+                    className="p-1 -ml-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                    title="Назад"
+                  >
+                    <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+                      <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  <span className="text-xs sm:text-sm font-semibold text-white">Качество</span>
+                </div>
+                <div className="flex flex-col space-y-0.5 max-h-60 overflow-y-auto pr-1">
+                  {QUALITY_STEPS.map((q) => {
+                    const isSelected = quality === q.id;
+                    return (
+                      <button
+                        key={q.id}
+                        type="button"
+                        onClick={() => {
+                          handleQualityChange(q.id);
+                          setSettingsSubView('main');
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#ff5c00]/20 text-white font-semibold'
+                            : 'text-zinc-300 hover:text-white hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>{q.label}</span>
+                          <span className="text-[10px] text-zinc-400">
+                            {q.id === '1080p' ? '(1080p)' : q.id === '720p' ? '(720p)' : q.id === '480p' ? '(480p)' : q.id === '360p' ? '(360p)' : q.id === '240p' ? '(240p)' : q.id === '144p' ? '(144p)' : ''}
+                          </span>
+                        </div>
+                        {isSelected && <CheckIcon className="w-4 h-4 text-[#ff5c00]" />}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+            )}
 
-        {/* QUALITY POPOVER - FLOATING CLEANLY ABOVE TIMELINE */}
-        {showQualityMenu && (
-          <div
-            className="absolute right-4 sm:right-6 bottom-20 sm:bottom-24 bg-[#0e0e14]/90 backdrop-blur-2xl border border-white/20 rounded-2xl p-4 min-w-[280px] shadow-[0_20px_50px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.2)] z-30 animate-in fade-in zoom-in-95 slide-in-from-bottom-3 duration-200"
-          >
-            {/* Title & Badge */}
-            <div className="flex items-center justify-between mb-3.5">
-              <span className="text-xs font-semibold text-zinc-200">
-                Качество
-              </span>
-              <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-[#ff5c00]/25 text-[#ff5c00] border border-[#ff5c00]/40">
-                {currentQualityLabel}
-              </span>
-            </div>
-
-            {/* Interactive Stepped Slider Track with Full Native Swipe & Drag Support */}
-            <div className="relative w-full py-1 mb-1">
-              <div className="relative w-full h-2 bg-white/15 rounded-full">
-                {/* Active Progress Fill */}
-                <div
-                  className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-[#ff5c00] to-[#ff7a29] rounded-full shadow-[0_0_10px_rgba(255,92,0,0.8)] pointer-events-none"
-                  style={{ width: `${qualityPercent}%` }}
-                />
-
-                {/* Range Input for 100% native smooth swipe & drag */}
-                <input
-                  type="range"
-                  min={0}
-                  max={QUALITY_STEPS.length - 1}
-                  step={1}
-                  value={qualityIndex}
-                  onChange={(e) => handleQualityChange(QUALITY_STEPS[parseInt(e.target.value)].id)}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                />
-
-                {/* Stepped Knob */}
-                <div
-                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4.5 h-4.5 rounded-full bg-white border-2 border-[#ff5c00] shadow-[0_0_12px_rgba(255,92,0,1)] pointer-events-none transition-transform duration-100"
-                  style={{ left: `${qualityPercent}%` }}
-                />
+            {/* Speed Submenu - Classic Vertical List (NO SLIDERS) */}
+            {settingsSubView === 'speed' && (
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 pb-2 mb-1.5 border-b border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setSettingsSubView('main')}
+                    className="p-1 -ml-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                    title="Назад"
+                  >
+                    <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+                      <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  <span className="text-xs sm:text-sm font-semibold text-white">Скорость</span>
+                </div>
+                <div className="flex flex-col space-y-0.5">
+                  {SPEED_STEPS.map((s) => {
+                    const isSelected = speed === s;
+                    return (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => {
+                          handleSpeedChange(s);
+                          setSettingsSubView('main');
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#ff5c00]/20 text-white font-semibold'
+                            : 'text-zinc-300 hover:text-white hover:bg-white/10'
+                        }`}
+                      >
+                        <span>{s === 1 ? '1x (Обычная)' : `${s}x`}</span>
+                        {isSelected && <CheckIcon className="w-4 h-4 text-[#ff5c00]" />}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
+            )}
 
-              {/* Step Marks & Labels - Absolute Centered under each exact tick */}
-              <div className="relative w-full h-5 mt-3">
-                {QUALITY_STEPS.map((q, i) => {
-                  const pct = (i / (QUALITY_STEPS.length - 1)) * 100;
-                  return (
-                    <button
-                      key={q.id}
-                      onClick={() => handleQualityChange(q.id)}
-                      style={{ left: `${pct}%` }}
-                      className={`absolute top-0 -translate-x-1/2 text-[10px] font-medium transition-all duration-150 hover:scale-110 ${
-                        quality === q.id
-                          ? 'text-[#ff5c00] font-bold drop-shadow'
-                          : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      {q.label}
-                    </button>
-                  );
-                })}
+            {/* Audio Submenu if multiple */}
+            {settingsSubView === 'audio' && (
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 pb-2 mb-1.5 border-b border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setSettingsSubView('main')}
+                    className="p-1 -ml-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                    title="Назад"
+                  >
+                    <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+                      <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  <span className="text-xs sm:text-sm font-semibold text-white">Звук</span>
+                </div>
+                <div className="flex flex-col space-y-0.5">
+                  {(project.audioTracks || ['1. Русский']).map((track) => {
+                    const isSelected = selectedAudioTrack === track;
+                    return (
+                      <button
+                        key={track}
+                        type="button"
+                        onClick={() => {
+                          setSelectedAudioTrack(track);
+                          setSettingsSubView('main');
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#ff5c00]/20 text-white font-semibold'
+                            : 'text-zinc-300 hover:text-white hover:bg-white/10'
+                        }`}
+                      >
+                        <span>{track}</span>
+                        {isSelected && <CheckIcon className="w-4 h-4 text-[#ff5c00]" />}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Subtitles Submenu */}
+            {settingsSubView === 'subtitles' && (
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 pb-2 mb-1.5 border-b border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setSettingsSubView('main')}
+                    className="p-1 -ml-1 rounded-lg hover:bg-white/10 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                    title="Назад"
+                  >
+                    <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+                      <path d="M15 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+                  <span className="text-xs sm:text-sm font-semibold text-white">Субтитры</span>
+                </div>
+                <div className="flex flex-col space-y-0.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedSubtitle('off');
+                      setSettingsSubView('main');
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
+                      selectedSubtitle === 'off'
+                        ? 'bg-[#ff5c00]/20 text-white font-semibold'
+                        : 'text-zinc-300 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <span>Отключены</span>
+                    {selectedSubtitle === 'off' && <CheckIcon className="w-4 h-4 text-[#ff5c00]" />}
+                  </button>
+                  {(project.subtitles || []).map((sub: string) => {
+                    const isSelected = selectedSubtitle === sub;
+                    return (
+                      <button
+                        key={sub}
+                        type="button"
+                        onClick={() => {
+                          setSelectedSubtitle(sub);
+                          setSettingsSubView('main');
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#ff5c00]/20 text-white font-semibold'
+                            : 'text-zinc-300 hover:text-white hover:bg-white/10'
+                        }`}
+                      >
+                        <span>{sub}</span>
+                        {isSelected && <CheckIcon className="w-4 h-4 text-[#ff5c00]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -970,27 +1237,25 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
 
         {/* 2. CONTROLS BAR */}
         <div className="flex items-center justify-between gap-2 sm:gap-4 text-zinc-100">
-          {/* Left Controls: Play, Skip 10s SVGs, Unified Volume Capsule, Time */}
+          {/* Left Controls: Play, Skip 10s SVGs, Okko Settings Button, Time */}
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Play/Pause Button */}
             <button
               onClick={togglePlay}
-              className={`w-10 h-10 rounded-full flex items-center justify-center ${glassBtnClass}`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer ${glassBtnClass}`}
               title={isPlaying ? 'Пауза (Пробел)' : 'Воспроизведение (Пробел)'}
             >
               {isPlaying ? (
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                </svg>
+                <PauseIcon className="w-4 h-4 text-white" />
               ) : (
-                <PlayIcon className="w-4 h-4 fill-current" />
+                <ModernPlayIcon className="w-4 h-4 text-white ml-0.5" />
               )}
             </button>
 
             {/* Skip -10s with SVG Circular Arrow */}
             <button
               onClick={() => skip(-10)}
-              className={`w-10 h-10 rounded-full flex items-center justify-center ${glassBtnClass}`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer ${glassBtnClass}`}
               title="Назад на 10 сек (←)"
             >
               <Rewind10Icon className="w-5 h-5 text-zinc-100 hover:text-white" />
@@ -999,32 +1264,64 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
             {/* Skip +10s with SVG Circular Arrow */}
             <button
               onClick={() => skip(10)}
-              className={`w-10 h-10 rounded-full flex items-center justify-center ${glassBtnClass}`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer ${glassBtnClass}`}
               title="Вперёд на 10 сек (→)"
             >
               <Forward10Icon className="w-5 h-5 text-zinc-100 hover:text-white" />
             </button>
 
+            {/* Unified Okko Settings Button [ ⚙ Настройки ] / [ ✕ Настройки ] */}
+            <button
+              onClick={() => {
+                setShowSettingsMenu((prev) => !prev);
+                setSettingsSubView('main');
+              }}
+              className={`h-10 px-3.5 rounded-full flex items-center gap-2 text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer ${
+                showSettingsMenu
+                  ? 'bg-white/25 border border-white/40 text-white shadow-[0_0_15px_rgba(255,255,255,0.2)]'
+                  : glassBtnClass
+              }`}
+              title="Настройки плеера"
+            >
+              {showSettingsMenu ? (
+                <span className="text-sm font-bold leading-none">✕</span>
+              ) : (
+                <OkkoSettingsIcon className="w-4 h-4 text-zinc-200" />
+              )}
+              <span>Настройки</span>
+            </button>
+
+            {/* Time Stamp (Click to switch current / remaining time) */}
+            <button
+              onClick={() => setShowRemainingTime((r) => !r)}
+              className="text-xs font-medium text-zinc-300 hover:text-white px-2 py-1 rounded-md hover:bg-white/10 transition-colors ml-0.5 cursor-pointer"
+              title="Нажмите для переключения формата времени"
+            >
+              {showRemainingTime ? (
+                <span>
+                  -{formatTime(Math.max(0, effectiveDuration - currentTime))}
+                  <span className="text-zinc-500 ml-1">/ {formatTime(effectiveDuration)}</span>
+                </span>
+              ) : (
+                <span>
+                  {formatTime(currentTime)}
+                  <span className="text-zinc-500 mx-1">/</span>
+                  {formatTime(effectiveDuration)}
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Right Controls: Volume Capsule & Fullscreen Button */}
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Volume Control Unified Frosted Glass Capsule */}
             <div className="flex items-center h-10 px-3 rounded-full backdrop-blur-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/20 transition-all duration-200 gap-2.5 shadow-lg shadow-black/20 group/volume">
               <button
                 onClick={() => setIsMuted((m) => !m)}
-                className="w-5 h-5 flex items-center justify-center text-zinc-100 hover:text-white transition-transform active:scale-90"
+                className="w-5 h-5 flex items-center justify-center text-zinc-100 hover:text-white transition-transform active:scale-90 cursor-pointer"
                 title={isMuted ? 'Включить звук (M)' : 'Выключить звук (M)'}
               >
-                {isMuted || volume === 0 ? (
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                    <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z" />
-                  </svg>
-                ) : volume > 0.5 ? (
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                    <path d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z" />
-                  </svg>
-                )}
+                <SpeakerVolumeIcon isMuted={isMuted} volume={volume} className="w-4 h-4 text-white" />
               </button>
 
               {/* Volume Track inside Unified Capsule */}
@@ -1059,75 +1356,13 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
               </div>
             </div>
 
-            {/* Time Stamp (Click to switch current / remaining time) */}
-            <button
-              onClick={() => setShowRemainingTime((r) => !r)}
-              className="text-xs font-medium text-zinc-300 hover:text-white px-2 py-1 rounded-md hover:bg-white/10 transition-colors"
-              title="Нажмите для переключения формата времени"
-            >
-              {showRemainingTime ? (
-                <span>
-                  -{formatTime(Math.max(0, effectiveDuration - currentTime))}
-                  <span className="text-zinc-500 ml-1">/ {formatTime(effectiveDuration)}</span>
-                </span>
-              ) : (
-                <span>
-                  {formatTime(currentTime)}
-                  <span className="text-zinc-500 mx-1">/</span>
-                  {formatTime(effectiveDuration)}
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* Right Controls: Quality Slider, Speed Slider, Fullscreen */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Speed Button */}
-            <button
-              onClick={() => {
-                setShowSpeedMenu((s) => !s);
-                setShowQualityMenu(false);
-              }}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold ${glassBtnClass} ${
-                showSpeedMenu ? 'bg-white/25 border-white/40 text-white' : ''
-              }`}
-              title="Скорость воспроизведения"
-            >
-              {speed === 1 ? '1x' : `${speed}x`}
-            </button>
-
-            {/* Quality Button */}
-            <button
-              onClick={() => {
-                setShowQualityMenu((q) => !q);
-                setShowSpeedMenu(false);
-              }}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 ${glassBtnClass} ${
-                showQualityMenu ? 'bg-white/25 border-white/40 text-white' : ''
-              }`}
-              title="Качество видео"
-            >
-              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
-                <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
-              </svg>
-              <span>{currentQualityLabel}</span>
-            </button>
-
-            {/* Fullscreen Button */}
+            {/* Modern Fullscreen Button */}
             <button
               onClick={toggleFullscreen}
-              className={`w-10 h-10 rounded-full flex items-center justify-center ${glassBtnClass}`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer ${glassBtnClass}`}
               title={isFullscreen ? 'Выйти из полноэкранного режима (F)' : 'Полноэкранный режим (F)'}
             >
-              {isFullscreen ? (
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-14v3h3v2h-5V5h2z" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
-                </svg>
-              )}
+              <ModernFullscreenIcon isFullscreen={isFullscreen} className="w-4 h-4 text-white" />
             </button>
           </div>
         </div>

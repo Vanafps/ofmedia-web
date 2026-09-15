@@ -46,6 +46,11 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
 
   const [, setRatingsTick] = useState(0);
 
+  // Intro Hover Preview Toggle (persist across sessions)
+  const [isIntroEnabled, setIsIntroEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('ofmedia_intro_enabled') !== 'false';
+  });
+
   const [isHovered, setIsHovered] = useState<boolean>(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(false);
   const [previewProgress, setPreviewProgress] = useState<number>(0);
@@ -53,9 +58,27 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
 
+  // Sync intro state across cards
+  useEffect(() => {
+    const handleIntroToggle = () => {
+      setIsIntroEnabled(localStorage.getItem('ofmedia_intro_enabled') !== 'false');
+    };
+    window.addEventListener('ofmedia_intro_toggle', handleIntroToggle);
+    return () => window.removeEventListener('ofmedia_intro_toggle', handleIntroToggle);
+  }, []);
+
+  const toggleIntroEnabled = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const nextState = !isIntroEnabled;
+    setIsIntroEnabled(nextState);
+    localStorage.setItem('ofmedia_intro_enabled', nextState ? 'true' : 'false');
+    window.dispatchEvent(new Event('ofmedia_intro_toggle'));
+  };
+
   // Setup video playback on hover
   useEffect(() => {
-    if (!isHovered || !project.videoUrl) return;
+    if (!isHovered || !project.videoUrl || !isIntroEnabled) return;
 
     const video = videoRef.current;
     if (!video) return;
@@ -223,7 +246,7 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
           />
 
           {/* Hover Video Intro Preview */}
-          {isHovered && (
+          {isHovered && isIntroEnabled && (
             <div className="absolute inset-0 overflow-hidden bg-black z-10">
               <video
                 ref={videoRef}
@@ -244,14 +267,6 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
                 }`}
               />
 
-              {/* Teaser / Intro Badge when video is playing */}
-              {isVideoPlaying && (
-                <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[10px] font-semibold text-white tracking-wide uppercase shadow-lg animate-in fade-in duration-300 pointer-events-none">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#ff5c00] animate-pulse" />
-                  Интро
-                </div>
-              )}
-
               {/* Teaser loop progress bar */}
               {isVideoPlaying && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/20 z-20 pointer-events-none">
@@ -262,6 +277,23 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
                 </div>
               )}
             </div>
+          )}
+
+          {/* Interactive Intro On/Off Toggle Button on Hover */}
+          {isHovered && (
+            <button
+              type="button"
+              onClick={toggleIntroEnabled}
+              className="absolute top-2.5 right-2.5 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/85 hover:bg-black backdrop-blur-md border border-white/20 hover:border-white/40 text-[10px] font-semibold text-white tracking-wide shadow-xl transition-all duration-200 cursor-pointer active:scale-95 animate-in fade-in zoom-in-95"
+              title={isIntroEnabled ? 'Отключить автовоспроизведение интро' : 'Включить автовоспроизведение интро'}
+            >
+              <span
+                className={`w-2 h-2 rounded-full transition-colors ${
+                  isIntroEnabled ? 'bg-[#ff5c00] shadow-[0_0_8px_#ff5c00]' : 'bg-zinc-500'
+                }`}
+              />
+              <span>{isIntroEnabled ? 'Интро: ВКЛ' : 'Интро: ВЫКЛ'}</span>
+            </button>
           )}
 
           {/* Subtle Hover Specular Reflection Sweep */}
