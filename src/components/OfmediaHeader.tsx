@@ -4,6 +4,7 @@ import type { Actor } from '../data/actors';
 import { ACTORS_DATA } from '../data/actors';
 import type { UserProfile } from '../services/firebase';
 import { getUserRatings } from '../services/ratingService';
+import { Tooltip } from './ui/Tooltip';
 
 interface OfmediaHeaderProps {
   activeTab: 'main' | 'favorites';
@@ -90,7 +91,6 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
           <button
             onClick={() => setActiveTab('main')}
             className="flex items-center group text-left focus:outline-none"
-            title="OFMEDIA Главная"
           >
             <img
               src="/logos/ofmediawhite_clean.png"
@@ -157,15 +157,16 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => setIsSearchOpen(true)}
-                className="p-2.5 rounded-full glass-pill text-zinc-200 hover:text-white transition-all shadow-md"
-                title="Поиск фильмов и актёров"
-              >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z" />
-                </svg>
-              </button>
+              <Tooltip content="Поиск фильмов и актёров" position="bottom">
+                <button
+                  onClick={() => setIsSearchOpen(true)}
+                  className="p-2.5 rounded-full glass-pill text-zinc-200 hover:text-white transition-all shadow-md hover:scale-105 active:scale-95"
+                >
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z" />
+                  </svg>
+                </button>
+              </Tooltip>
             )}
 
             {/* Smart Search Dropdown with Real Frosted Glass */}

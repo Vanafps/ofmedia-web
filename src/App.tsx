@@ -15,6 +15,7 @@ import { OfmediaAuthModal } from './components/OfmediaAuthModal';
 import { OfmediaActorModal } from './components/OfmediaActorModal';
 import { OfmediaProfileModal } from './components/OfmediaProfileModal';
 import { OfmediaMobileNav } from './components/OfmediaMobileNav';
+import { CustomSelect } from './components/ui/CustomSelect';
 import { subscribeToAuth, logoutUser, type UserProfile } from './services/firebase';
 import { getUserRatings, getMovieRating } from './services/ratingService';
 import { getPersonalizedRecommendations, type RecommendedRow } from './services/recommendationService';
@@ -364,23 +365,18 @@ export function App() {
 
               {/* Controls */}
               <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-[#121218]/80 border border-white/10 text-xs shadow-md">
-                  <span className="text-zinc-400 hidden md:inline">Сортировка:</span>
-                  <select
+                <div className="flex items-center gap-2">
+                  <span className="text-zinc-400 text-xs hidden md:inline">Сортировка:</span>
+                  <CustomSelect
                     value={sortOrder}
-                    onChange={(e) => setSortOrder(e.target.value as any)}
-                    className="bg-transparent text-white focus:outline-none cursor-pointer font-medium"
-                  >
-                    <option value="rating_desc" className="bg-[#121218] text-white">
-                      По рейтингу (от Зелёного 🟢 к Алому 🩸)
-                    </option>
-                    <option value="year_desc" className="bg-[#121218] text-white">
-                      По году выпуска (новые сначала)
-                    </option>
-                    <option value="title_asc" className="bg-[#121218] text-white">
-                      По алфавиту (А–Я)
-                    </option>
-                  </select>
+                    onChange={(val) => setSortOrder(val as any)}
+                    options={[
+                      { value: 'rating_desc', label: 'По рейтингу' },
+                      { value: 'year_desc', label: 'По году выпуска' },
+                      { value: 'title_asc', label: 'По алфавиту' },
+                    ]}
+                    triggerClassName="rounded-2xl px-3.5 py-2 bg-[#121218]/90 border border-white/10 text-xs shadow-md"
+                  />
                 </div>
 
                 <div className="flex p-1 bg-zinc-900/90 rounded-2xl border border-white/10 w-fit">

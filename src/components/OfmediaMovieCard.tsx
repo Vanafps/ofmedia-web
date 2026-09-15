@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import Hls from 'hls.js';
 import type { Project } from '../data/projects';
 import { getMovieRating } from '../services/ratingService';
 import { PlayIcon } from './PlayIcon';
+import { Tooltip } from './ui/Tooltip';
 
 export interface OfmediaMovieCardProps {
   project: Project;
@@ -43,6 +45,88 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
   });
 
   const [, setRatingsTick] = useState(0);
+
+  const [isHovered, setIsHovered] = useState<boolean>(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(false);
+  const [previewProgress, setPreviewProgress] = useState<number>(0);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const hlsRef = useRef<Hls | null>(null);
+
+  // Setup video playback on hover
+  useEffect(() => {
+    if (!isHovered || !project.videoUrl) return;
+
+    const video = videoRef.current;
+    if (!video) return;
+
+    const src = project.videoUrl;
+    const isHls = src.includes('.m3u8');
+
+    if (isHls && Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: false,
+        lowLatencyMode: true,
+        maxBufferLength: 4,
+        maxMaxBufferLength: 8,
+        startLevel: 0,
+        capLevelToPlayerSize: true,
+      });
+      hlsRef.current = hls;
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.play().catch(() => {});
+      });
+    } else {
+      video.src = src;
+      video.play().catch(() => {});
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [isHovered, project.videoUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current);
+      }
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
+    };
+  }, []);
+
+  const handleMouseEnter = () => {
+    if (isDragging) return;
+    hoverTimerRef.current = setTimeout(() => {
+      setIsHovered(true);
+    }, 300);
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setIsHovered(false);
+    setIsVideoPlaying(false);
+    setPreviewProgress(0);
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.removeAttribute('src');
+      videoRef.current.load();
+    }
+  };
 
   // Re-sync with other card updates and ratings changes
   useEffect(() => {
@@ -114,12 +198,16 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
   };
 
   return (
-    <div className={`relative aspect-video w-full group select-none ${className}`}>
+    <div
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      className={`relative aspect-video w-full group select-none ${className}`}
+    >
       {/* 
         The floating Okko card:
         - Resting: fits slot exactly, shows purely the 16:9 poster artwork with rounded-2xl
         - Hover: scales up smoothly (scale-110), elevates z-50 with cinema shadow, reveals info drawer below image
-        - STRICT RULE: NO SOUND/MUTE BUTTON ON THE CARD
+        - Video Intro: plays muted on hover preview
       */}
       <div
         onClick={handleCardClick}
@@ -134,11 +222,53 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
             className="w-full h-full object-cover select-none transition-transform duration-500 ease-out group-hover:scale-104"
           />
 
+          {/* Hover Video Intro Preview */}
+          {isHovered && (
+            <div className="absolute inset-0 overflow-hidden bg-black z-10">
+              <video
+                ref={videoRef}
+                muted
+                loop
+                playsInline
+                autoPlay
+                onPlaying={() => setIsVideoPlaying(true)}
+                onTimeUpdate={(e) => {
+                  const v = e.currentTarget;
+                  if (v.duration) {
+                    const loopDuration = Math.min(v.duration, 30);
+                    setPreviewProgress(((v.currentTime % loopDuration) / loopDuration) * 100);
+                  }
+                }}
+                className={`w-full h-full object-cover transition-opacity duration-500 ${
+                  isVideoPlaying ? 'opacity-100' : 'opacity-0'
+                }`}
+              />
+
+              {/* Teaser / Intro Badge when video is playing */}
+              {isVideoPlaying && (
+                <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/75 backdrop-blur-md border border-white/20 text-[10px] font-semibold text-white tracking-wide uppercase shadow-lg animate-in fade-in duration-300 pointer-events-none">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#ff5c00] animate-pulse" />
+                  Интро
+                </div>
+              )}
+
+              {/* Teaser loop progress bar */}
+              {isVideoPlaying && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/20 z-20 pointer-events-none">
+                  <div
+                    className="h-full bg-[#ff5c00] transition-all duration-150 ease-linear"
+                    style={{ width: `${previewProgress}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Subtle Hover Specular Reflection Sweep */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20" />
 
           {/* Bottom subtle shadow transition to info drawer */}
-          <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-[#191922] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-[#191922] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20" />
         </div>
 
         {/* 
@@ -176,90 +306,94 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
           {/* Action Buttons Row */}
           <div className="flex items-center gap-2 pt-0.5">
             {/* 1. Large Circular Play Button (Site Brand Orange #ff5c00) */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onPlay(project);
-              }}
-              className="w-9 h-9 rounded-full bg-[#ff5c00] hover:bg-[#e05200] text-white flex items-center justify-center shadow-lg shadow-[#ff5c00]/40 hover:scale-110 active:scale-95 transition-all duration-200 shrink-0"
-              title="Смотреть"
-            >
-              <PlayIcon className="w-3.5 h-3.5 fill-white" />
-            </button>
+            <Tooltip content="Смотреть" position="top">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPlay(project);
+                }}
+                className="w-9 h-9 rounded-full bg-[#ff5c00] hover:bg-[#e05200] text-white flex items-center justify-center shadow-lg shadow-[#ff5c00]/40 hover:scale-110 active:scale-95 transition-all duration-200 shrink-0"
+              >
+                <PlayIcon className="w-3.5 h-3.5 fill-white" />
+              </button>
+            </Tooltip>
 
             {/* 2. Bookmark / Favorite Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleFavorite(project.id);
-              }}
-              className={`w-9 h-9 rounded-full border flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shrink-0 ${
-                isFavorite
-                  ? 'border-[#ff5c00] bg-[#ff5c00] text-white shadow-[0_0_12px_rgba(255,92,0,0.5)]'
-                  : 'border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10 text-zinc-200 hover:text-white'
-              }`}
-              title={isFavorite ? 'Удалить из закладок' : 'Добавить в закладки'}
-            >
-              <svg
-                className={`w-4 h-4 transition-transform ${isFavorite ? 'fill-current' : 'fill-none stroke-current stroke-2'}`}
-                viewBox="0 0 24 24"
+            <Tooltip content={isFavorite ? 'Удалить из закладок' : 'Добавить в закладки'} position="top">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleFavorite(project.id);
+                }}
+                className={`w-9 h-9 rounded-full border flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shrink-0 ${
+                  isFavorite
+                    ? 'border-[#ff5c00] bg-[#ff5c00] text-white shadow-[0_0_12px_rgba(255,92,0,0.5)]'
+                    : 'border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10 text-zinc-200 hover:text-white'
+                }`}
               >
-                <path
-                  d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
+                <svg
+                  className={`w-4 h-4 transition-transform ${isFavorite ? 'fill-current' : 'fill-none stroke-current stroke-2'}`}
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </Tooltip>
 
             {/* 3. Watched Button (Eye Icon) */}
-            <button
-              onClick={handleToggleWatched}
-              className={`w-9 h-9 rounded-full border flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shrink-0 ${
-                isWatched
-                  ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                  : 'border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10 text-zinc-200 hover:text-white'
-              }`}
-              title={isWatched ? 'Просмотрено (нажмите для отмены)' : 'Отметить как просмотренное'}
-            >
-              <svg
-                className="w-4 h-4 fill-none stroke-current stroke-2"
-                viewBox="0 0 24 24"
+            <Tooltip content={isWatched ? 'Просмотрено (отменить)' : 'Отметить как просмотренное'} position="top">
+              <button
+                onClick={handleToggleWatched}
+                className={`w-9 h-9 rounded-full border flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shrink-0 ${
+                  isWatched
+                    ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                    : 'border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10 text-zinc-200 hover:text-white'
+                }`}
               >
-                <path
-                  d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="3"
-                  className={isWatched ? 'fill-current' : ''}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
+                <svg
+                  className="w-4 h-4 fill-none stroke-current stroke-2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="3"
+                    className={isWatched ? 'fill-current' : ''}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </button>
+            </Tooltip>
 
             {/* 4. Dislike / Hide Button (Circle with Diagonal Slash) */}
-            <button
-              onClick={handleToggleDislike}
-              className={`w-9 h-9 rounded-full border flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shrink-0 ${
-                isDisliked
-                  ? 'border-red-500 bg-red-500/20 text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.3)]'
-                  : 'border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10 text-zinc-200 hover:text-white'
-              }`}
-              title={isDisliked ? 'Не нравится (нажмите для отмены)' : 'Не рекомендовать'}
-            >
-              <svg
-                className="w-4 h-4 fill-none stroke-current stroke-2"
-                viewBox="0 0 24 24"
+            <Tooltip content={isDisliked ? 'Не нравится (отменить)' : 'Не рекомендовать'} position="top">
+              <button
+                onClick={handleToggleDislike}
+                className={`w-9 h-9 rounded-full border flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shrink-0 ${
+                  isDisliked
+                    ? 'border-red-500 bg-red-500/20 text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.3)]'
+                    : 'border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10 text-zinc-200 hover:text-white'
+                }`}
               >
-                <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round" />
-                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </button>
+                <svg
+                  className="w-4 h-4 fill-none stroke-current stroke-2"
+                  viewBox="0 0 24 24"
+                >
+                  <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round" />
+                  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            </Tooltip>
           </div>
         </div>
       </div>

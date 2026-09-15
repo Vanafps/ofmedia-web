@@ -5,6 +5,7 @@ import { getUserRatings } from '../services/ratingService';
 import { getAllUserReviews, deleteMovieReview, type Review } from '../services/reviewService';
 import { PROJECTS_DATA, type Project } from '../data/projects';
 import { PlayIcon } from './PlayIcon';
+import { CustomSelect } from './ui/CustomSelect';
 
 interface OfmediaProfileModalProps {
   isOpen: boolean;
@@ -641,18 +642,19 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
                     Автоматически включать при запуске видео
                   </div>
                 </div>
-                <select
+                <CustomSelect
                   value={prefQuality}
-                  onChange={(e) => handleSaveSettings(e.target.value, autoNext)}
-                  className="px-4 py-2 rounded-2xl bg-black/60 border border-white/20 text-white text-xs focus:outline-none focus:border-[#ff5c00]"
-                >
-                  <option value="1080p">1080p</option>
-                  <option value="720p">720p</option>
-                  <option value="540p">540p</option>
-                  <option value="240p">240p</option>
-                  <option value="144p">144p</option>
-                  <option value="auto">Авто</option>
-                </select>
+                  onChange={(val) => handleSaveSettings(val, autoNext)}
+                  options={[
+                    { value: '1080p', label: '1080p' },
+                    { value: '720p', label: '720p' },
+                    { value: '540p', label: '540p' },
+                    { value: '240p', label: '240p' },
+                    { value: '144p', label: '144p' },
+                    { value: 'auto', label: 'Авто' },
+                  ]}
+                  triggerClassName="rounded-2xl px-4 py-2 bg-black/60 border-white/20 text-xs"
+                />
               </div>
 
               <div className="p-5 rounded-3xl glass-card flex items-center justify-between gap-4">

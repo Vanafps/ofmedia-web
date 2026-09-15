@@ -21,6 +21,7 @@ import {
   type ReviewType,
 } from '../services/reviewService';
 import { PlayIcon } from './PlayIcon';
+import { Tooltip } from './ui/Tooltip';
 
 interface OfmediaDetailModalProps {
   project: Project | null;
@@ -235,16 +236,17 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
 
       {/* Top Floating Navigation Header */}
       <div className="fixed top-0 left-0 right-0 z-40 px-4 sm:px-12 py-3.5 sm:py-5 glass-header flex items-center justify-between pointer-events-none">
-        <button
-          onClick={onClose}
-          className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-full glass-pill text-zinc-100 hover:text-white transition-all text-xs font-medium group shadow-xl hover:scale-105 active:scale-95"
-          title="Назад к каталогу (Esc)"
-        >
-          <svg className="w-4 h-4 fill-current group-hover:-translate-x-0.5 transition-transform" viewBox="0 0 24 24">
-            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
-          </svg>
-          <span>Назад</span>
-        </button>
+        <Tooltip content="Назад к каталогу (Esc)" position="bottom">
+          <button
+            onClick={onClose}
+            className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-full glass-pill text-zinc-100 hover:text-white transition-all text-xs font-medium group shadow-xl hover:scale-105 active:scale-95"
+          >
+            <svg className="w-4 h-4 fill-current group-hover:-translate-x-0.5 transition-transform" viewBox="0 0 24 24">
+              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+            </svg>
+            <span>Назад</span>
+          </button>
+        </Tooltip>
 
         <img
           src="/logos/ofmediawhite_clean.png"
@@ -337,45 +339,48 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
             </button>
 
             {/* Favorite Bookmark */}
-            <button
-              onClick={() => onToggleFavorite(project.id)}
-              className={`p-3.5 rounded-full border transition-all duration-200 glass-pill hover:scale-105 active:scale-95 shadow-lg ${
-                isFavorite
-                  ? 'bg-[#ff5c00]/25 border-[#ff5c00] text-[#ff5c00] shadow-[#ff5c00]/25'
-                  : 'text-zinc-200 hover:text-white'
-              }`}
-              title={isFavorite ? 'В избранном' : 'Добавить в избранное'}
-            >
-              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                <path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z" />
-              </svg>
-            </button>
+            <Tooltip content={isFavorite ? 'В избранном' : 'Добавить в избранное'} position="top">
+              <button
+                onClick={() => onToggleFavorite(project.id)}
+                className={`p-3.5 rounded-full border transition-all duration-200 glass-pill hover:scale-105 active:scale-95 shadow-lg ${
+                  isFavorite
+                    ? 'bg-[#ff5c00]/25 border-[#ff5c00] text-[#ff5c00] shadow-[#ff5c00]/25'
+                    : 'text-zinc-200 hover:text-white'
+                }`}
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z" />
+                </svg>
+              </button>
+            </Tooltip>
 
             {/* Watched Eye Icon */}
-            <button
-              onClick={handleToggleWatched}
-              className={`p-3.5 rounded-full border transition-all duration-200 glass-pill hover:scale-105 active:scale-95 shadow-lg ${
-                isWatched
-                  ? 'bg-[#ff5c00]/25 border-[#ff5c00] text-[#ff5c00] shadow-[#ff5c00]/25'
-                  : 'text-zinc-200 hover:text-white'
-              }`}
-              title={isWatched ? 'Просмотрено' : 'Отметить как просмотренное'}
-            >
-              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
-              </svg>
-            </button>
+            <Tooltip content={isWatched ? 'Просмотрено (отменить)' : 'Отметить как просмотренное'} position="top">
+              <button
+                onClick={handleToggleWatched}
+                className={`p-3.5 rounded-full border transition-all duration-200 glass-pill hover:scale-105 active:scale-95 shadow-lg ${
+                  isWatched
+                    ? 'bg-[#ff5c00]/25 border-[#ff5c00] text-[#ff5c00] shadow-[#ff5c00]/25'
+                    : 'text-zinc-200 hover:text-white'
+                }`}
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+                </svg>
+              </button>
+            </Tooltip>
 
             {/* Share Button */}
-            <button
-              onClick={handleShare}
-              className="p-3.5 rounded-full glass-pill text-zinc-200 hover:text-white transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg"
-              title="Поделиться ссылкой"
-            >
-              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z" />
-              </svg>
-            </button>
+            <Tooltip content="Поделиться ссылкой" position="top">
+              <button
+                onClick={handleShare}
+                className="p-3.5 rounded-full glass-pill text-zinc-200 hover:text-white transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z" />
+                </svg>
+              </button>
+            </Tooltip>
           </div>
         </div>
       </div>
