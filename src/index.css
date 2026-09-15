@@ -5,6 +5,65 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Yandex 360 / YS Text Web Variable Font (Headings) */
+@font-face {
+  font-family: 'YS Text Web';
+  src: url('/fonts/YSText-Web-VF.ttf') format('truetype');
+  font-weight: 100 900;
+  font-stretch: 75% 125%;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Yandex YS Text Fonts (Body & UI) */
+@font-face {
+  font-family: 'YS Text';
+  src: url('/fonts/YSText-Light.woff') format('woff');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'YS Text';
+  src: url('/fonts/YSText-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'YS Text';
+  src: url('/fonts/YSText-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'YS Text';
+  src: url('/fonts/YSText-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'YS Text';
+  src: url('/fonts/YSText-Heavy.woff') format('woff');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'YS Text';
+  src: url('/fonts/YSText-Black.woff') format('woff');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @font-face {
   font-family: 'Graphik Kinopoisk LC Web';
   src: url('/fonts/GraphikKinopoisk-Light.woff2') format('woff2');
@@ -55,25 +114,26 @@ html {
 
 @layer base {
   *, *::before, *::after {
-    font-family: 'Graphik Kinopoisk LC Web', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'YS Text', 'Graphik Kinopoisk LC Web', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
   }
 
   body {
-    font-family: 'Graphik Kinopoisk LC Web', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'YS Text', 'Graphik Kinopoisk LC Web', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     background-color: #070709;
     color: #f4f4f5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    letter-spacing: 0;
   }
 
   h1, h2, h3, h4, h5, h6, .font-heading {
-    font-family: 'Graphik Kinopoisk LC Web', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'YS Text Web', 'YS Text', 'Graphik Kinopoisk LC Web', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-synthesis: none;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.01em; /* Трекинг: -1% по брендбуку Яндекс 360 */
   }
 }
 
