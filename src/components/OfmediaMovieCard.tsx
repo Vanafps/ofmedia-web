@@ -3,6 +3,7 @@ import Hls from 'hls.js';
 import type { Project } from '../data/projects';
 import { getMovieRating } from '../services/ratingService';
 import { PlayIcon } from './PlayIcon';
+import { SpeakerVolumeIcon } from './OfmediaPlayer';
 import { Tooltip } from './ui/Tooltip';
 
 export interface OfmediaMovieCardProps {
@@ -46,9 +47,9 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
 
   const [, setRatingsTick] = useState(0);
 
-  // Intro Hover Preview Toggle (persist across sessions)
-  const [isIntroEnabled, setIsIntroEnabled] = useState<boolean>(() => {
-    return localStorage.getItem('ofmedia_intro_enabled') !== 'false';
+  // Hover Preview Sound Toggle (muted by default, user can toggle and persist across cards)
+  const [isMuted, setIsMuted] = useState<boolean>(() => {
+    return localStorage.getItem('ofmedia_preview_sound') !== 'unmuted';
   });
 
   const [isHovered, setIsHovered] = useState<boolean>(false);
@@ -58,30 +59,43 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
 
-  // Sync intro state across cards
+  // Sync sound preference across cards
   useEffect(() => {
-    const handleIntroToggle = () => {
-      setIsIntroEnabled(localStorage.getItem('ofmedia_intro_enabled') !== 'false');
+    const handleSoundToggle = () => {
+      const isUnmuted = localStorage.getItem('ofmedia_preview_sound') === 'unmuted';
+      setIsMuted(!isUnmuted);
+      if (videoRef.current) {
+        videoRef.current.muted = !isUnmuted;
+      }
     };
-    window.addEventListener('ofmedia_intro_toggle', handleIntroToggle);
-    return () => window.removeEventListener('ofmedia_intro_toggle', handleIntroToggle);
+    window.addEventListener('ofmedia_preview_sound_toggle', handleSoundToggle);
+    return () => window.removeEventListener('ofmedia_preview_sound_toggle', handleSoundToggle);
   }, []);
 
-  const toggleIntroEnabled = (e: React.MouseEvent) => {
+  const toggleSound = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    const nextState = !isIntroEnabled;
-    setIsIntroEnabled(nextState);
-    localStorage.setItem('ofmedia_intro_enabled', nextState ? 'true' : 'false');
-    window.dispatchEvent(new Event('ofmedia_intro_toggle'));
+    const nextMuted = !isMuted;
+    setIsMuted(nextMuted);
+    if (videoRef.current) {
+      videoRef.current.muted = nextMuted;
+      if (!nextMuted) {
+        videoRef.current.volume = 1;
+        videoRef.current.play().catch(() => {});
+      }
+    }
+    localStorage.setItem('ofmedia_preview_sound', nextMuted ? 'muted' : 'unmuted');
+    window.dispatchEvent(new Event('ofmedia_preview_sound_toggle'));
   };
 
   // Setup video playback on hover
   useEffect(() => {
-    if (!isHovered || !project.videoUrl || !isIntroEnabled) return;
+    if (!isHovered || !project.videoUrl) return;
 
     const video = videoRef.current;
     if (!video) return;
+
+    video.muted = isMuted;
 
     const src = project.videoUrl;
     const isHls = src.includes('.m3u8');
@@ -99,11 +113,24 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
       hls.loadSource(src);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().catch(() => {});
+        video.muted = isMuted;
+        video.play().catch(() => {
+          // Fallback to muted autoplay if browser policy blocked unmuted playback
+          if (!video.muted) {
+            video.muted = true;
+            video.play().catch(() => {});
+          }
+        });
       });
     } else {
       video.src = src;
-      video.play().catch(() => {});
+      video.muted = isMuted;
+      video.play().catch(() => {
+        if (!video.muted) {
+          video.muted = true;
+          video.play().catch(() => {});
+        }
+      });
     }
 
     return () => {
@@ -112,7 +139,7 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
         hlsRef.current = null;
       }
     };
-  }, [isHovered, project.videoUrl]);
+  }, [isHovered, project.videoUrl, isMuted]);
 
   useEffect(() => {
     return () => {
@@ -246,11 +273,11 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
           />
 
           {/* Hover Video Intro Preview */}
-          {isHovered && isIntroEnabled && (
+          {isHovered && (
             <div className="absolute inset-0 overflow-hidden bg-black z-10">
               <video
                 ref={videoRef}
-                muted
+                muted={isMuted}
                 loop
                 playsInline
                 autoPlay
@@ -279,20 +306,20 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
             </div>
           )}
 
-          {/* Interactive Intro On/Off Toggle Button on Hover */}
+          {/* Sound Mute / Unmute Button on Hover */}
           {isHovered && (
             <button
               type="button"
-              onClick={toggleIntroEnabled}
-              className="absolute top-2.5 right-2.5 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/85 hover:bg-black backdrop-blur-md border border-white/20 hover:border-white/40 text-[10px] font-semibold text-white tracking-wide shadow-xl transition-all duration-200 cursor-pointer active:scale-95 animate-in fade-in zoom-in-95"
-              title={isIntroEnabled ? 'Отключить автовоспроизведение интро' : 'Включить автовоспроизведение интро'}
+              onClick={toggleSound}
+              className="absolute top-2.5 right-2.5 z-30 w-8 h-8 rounded-full bg-black/75 hover:bg-black/95 backdrop-blur-md border border-white/20 hover:border-white/40 flex items-center justify-center text-white transition-all duration-200 cursor-pointer active:scale-90 shadow-xl group/sound animate-in fade-in zoom-in-95"
+              title={isMuted ? 'Включить звук' : 'Выключить звук'}
+              aria-label={isMuted ? 'Включить звук' : 'Выключить звук'}
             >
-              <span
-                className={`w-2 h-2 rounded-full transition-colors ${
-                  isIntroEnabled ? 'bg-[#ff5c00] shadow-[0_0_8px_#ff5c00]' : 'bg-zinc-500'
-                }`}
+              <SpeakerVolumeIcon
+                isMuted={isMuted}
+                volume={isMuted ? 0 : 1}
+                className="w-4 h-4 text-white group-hover/sound:scale-110 transition-transform duration-150"
               />
-              <span>{isIntroEnabled ? 'Интро: ВКЛ' : 'Интро: ВЫКЛ'}</span>
             </button>
           )}
 
