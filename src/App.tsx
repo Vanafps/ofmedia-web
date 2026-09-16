@@ -586,33 +586,23 @@ export function App() {
             {favoritesSubTab === 'ratings' && (
               <>
                 {ratedProjects.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                     {ratedProjects.map((project) => {
                       const userScore = userRatings[project.id];
                       return (
-                        <div
-                          key={project.id}
-                          onClick={() => handleOpenDetails(project)}
-                          className="p-3 sm:p-3.5 rounded-2xl bg-[#101014] border border-white/5 hover:border-[#ff5c00]/50 transition-all flex gap-3.5 items-center cursor-pointer group shadow-md hover:-translate-y-0.5"
-                        >
-                          <img
-                            src={project.poster}
-                            alt={project.title}
-                            className="w-20 sm:w-24 aspect-video rounded-xl object-cover bg-zinc-800 shrink-0 group-hover:scale-103 transition-transform"
+                        <div key={project.id} className="flex flex-col space-y-2.5">
+                          <OfmediaMovieCard
+                            project={project}
+                            onPlay={(p) => handlePlayProject(p)}
+                            onOpenDetails={(p) => handleOpenDetails(p)}
+                            isFavorite={favorites.includes(project.id)}
+                            onToggleFavorite={toggleFavorite}
                           />
-                          <div className="min-w-0 flex-1 space-y-1">
-                            <h3 className="font-heading font-medium text-xs sm:text-sm text-white group-hover:text-[#ff5c00] transition-colors truncate">
-                              {project.title}
-                            </h3>
-                            <div className="text-[10px] sm:text-[11px] text-zinc-400 font-normal truncate">
-                              {project.genres.slice(0, 2).join(', ')} • {project.year}
-                            </div>
-                            <div className="flex items-center gap-1.5 pt-0.5">
-                              <span className="text-[10px] text-zinc-400">Ваша оценка:</span>
-                              <span className="px-2 py-0.5 rounded text-xs font-semibold bg-[#ff5c00]/20 text-[#ff5c00]">
-                                ★ {userScore} / 10
-                              </span>
-                            </div>
+                          <div className="px-3.5 py-2 rounded-xl bg-[#121216] border border-white/10 flex items-center justify-between text-xs">
+                            <span className="text-zinc-400">Ваша оценка:</span>
+                            <span className="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-[#ff5c00]/20 text-[#ff5c00] border border-[#ff5c00]/30 shadow-[0_0_10px_rgba(255,92,0,0.2)]">
+                              ★ {userScore} / 10
+                            </span>
                           </div>
                         </div>
                       );
@@ -650,15 +640,19 @@ export function App() {
         onOpenActor={handleOpenActor}
         isFavorite={selectedProject ? favorites.includes(selectedProject.id) : false}
         onToggleFavorite={toggleFavorite}
+        onSelectProject={handleOpenDetails}
+        favorites={favorites}
       />
 
-      {/* Actor & Creator Profile Modal */}
+      {/* Actor & Creator Profile Fullscreen Page */}
       <OfmediaActorModal
         actor={selectedActor}
         isOpen={isActorModalOpen}
         onClose={handleCloseActor}
         onSelectProject={handleOpenDetails}
         onPlayProject={handlePlayProject}
+        favorites={favorites}
+        onToggleFavorite={toggleFavorite}
       />
 
       {/* User Profile & Dashboard Modal */}

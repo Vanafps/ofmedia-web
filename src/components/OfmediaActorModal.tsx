@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import type { Actor } from '../data/actors';
 import type { Project } from '../data/projects';
 import { PROJECTS_DATA } from '../data/projects';
-import { PlayIcon } from './PlayIcon';
+import { OfmediaMovieCard } from './OfmediaMovieCard';
 
 interface OfmediaActorModalProps {
   actor: Actor | null;
@@ -10,6 +10,8 @@ interface OfmediaActorModalProps {
   onClose: () => void;
   onSelectProject: (project: Project) => void;
   onPlayProject: (project: Project) => void;
+  favorites?: string[];
+  onToggleFavorite?: (projectId: string) => void;
 }
 
 export const OfmediaActorModal: React.FC<OfmediaActorModalProps> = ({
@@ -18,6 +20,8 @@ export const OfmediaActorModal: React.FC<OfmediaActorModalProps> = ({
   onClose,
   onSelectProject,
   onPlayProject,
+  favorites = [],
+  onToggleFavorite = () => {},
 }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -29,27 +33,62 @@ export const OfmediaActorModal: React.FC<OfmediaActorModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      window.scrollTo(0, 0);
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [isOpen]);
+
   if (!isOpen || !actor) return null;
 
   return (
-    <div data-lenis-prevent="true" className="fixed inset-0 z-[115] flex items-center justify-center p-4 sm:p-6 overflow-y-auto custom-scrollbar animate-in fade-in duration-200">
-      {/* Frosted Backdrop */}
-      <div className="fixed inset-0 bg-black/75 backdrop-blur-2xl" onClick={onClose} />
-
-      <div data-lenis-prevent="true" className="relative w-full max-w-3xl bg-[#0c0c14]/85 backdrop-blur-3xl border border-white/15 rounded-3xl p-6 sm:p-8 shadow-[0_16px_50px_rgba(0,0,0,0.8)] z-10 space-y-6 max-h-[90vh] overflow-y-auto custom-scrollbar">
-        {/* Close Button with Glassmorphism */}
+    <div
+      data-lenis-prevent="true"
+      className="fixed inset-0 z-[120] bg-[#070709] overflow-y-auto custom-scrollbar text-white flex flex-col animate-in fade-in duration-300 select-none"
+    >
+      {/* Top Floating Cinema Navigation Bar */}
+      <div className="sticky top-0 z-50 w-full bg-[#070709]/90 backdrop-blur-2xl border-b border-white/10 px-4 sm:px-12 lg:px-16 py-4 flex items-center justify-between">
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-zinc-300 hover:text-white flex items-center justify-center backdrop-blur-xl transition-all shadow-md hover:scale-105 active:scale-95"
+          className="flex items-center gap-2 text-xs sm:text-sm font-medium text-zinc-300 hover:text-[#ff5c00] transition-colors group cursor-pointer"
+        >
+          <svg
+            className="w-4 h-4 transition-transform group-hover:-translate-x-1"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2.5"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          <span>Назад</span>
+        </button>
+
+        <span className="text-xs sm:text-sm text-zinc-400 font-medium tracking-wide">
+          Персональная страница создателя
+        </span>
+
+        <button
+          onClick={onClose}
+          className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-zinc-300 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-90"
           title="Закрыть (Esc)"
         >
           ✕
         </button>
+      </div>
 
-        {/* Actor Hero / Header */}
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 sm:gap-6 border-b border-white/10 pb-6 text-center sm:text-left">
-          {/* Avatar / Photo with Glow */}
-          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-900 border-2 border-[#ff5c00]/50 overflow-hidden flex items-center justify-center text-white font-heading font-bold text-2xl sm:text-3xl shadow-[0_0_25px_rgba(255,92,0,0.25)] shrink-0">
+      {/* Main Fullscreen Body */}
+      <div className="flex-1 w-full max-w-[1500px] mx-auto px-4 sm:px-12 lg:px-16 py-8 sm:py-12 space-y-10 sm:space-y-14">
+        {/* Creator Hero Header in Pure Deep Black */}
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-6 sm:gap-10 pb-10 border-b border-white/10 text-center md:text-left">
+          {/* Large High-Resolution Portrait / Avatar */}
+          <div className="relative w-32 h-32 sm:w-44 sm:h-44 md:w-52 md:h-52 rounded-3xl bg-[#121216] border-2 border-[#ff5c00]/50 overflow-hidden flex items-center justify-center text-white font-heading font-bold text-4xl sm:text-5xl shadow-[0_0_40px_rgba(255,92,0,0.2)] shrink-0">
             {actor.photo ? (
               <img
                 src={actor.photo}
@@ -62,85 +101,102 @@ export const OfmediaActorModal: React.FC<OfmediaActorModalProps> = ({
             ) : (
               actor.initials
             )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
           </div>
 
-          <div className="space-y-2 min-w-0 flex-1">
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
-              <h2 className="font-heading font-bold text-2xl sm:text-3xl text-white tracking-tight">
+          {/* Biography & Metadata */}
+          <div className="space-y-4 min-w-0 flex-1">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+              <h1 className="font-heading font-bold text-3xl sm:text-5xl lg:text-6xl text-white tracking-tight leading-none">
                 {actor.name}
-              </h2>
-              <span className="px-3 py-0.5 rounded-full bg-[#ff5c00]/20 border border-[#ff5c00]/30 text-[#ff5c00] text-xs font-semibold backdrop-blur-xl">
-                {actor.filmsCount} {actor.filmsCount === 1 ? 'релиз' : actor.filmsCount < 5 ? 'релиза' : 'релизов'}
+              </h1>
+              <span className="px-3.5 py-1 rounded-full bg-[#ff5c00]/15 border border-[#ff5c00]/35 text-[#ff5c00] text-xs sm:text-sm font-semibold">
+                {actor.filmsCount} {actor.filmsCount === 1 ? 'релиз' : actor.filmsCount < 5 ? 'релиза' : 'релизов'} в OFMEDIA
               </span>
             </div>
 
-            <p className="text-xs sm:text-sm text-[#ff5c00] font-medium">
+            <p className="text-sm sm:text-base text-[#ff5c00] font-medium tracking-wide">
               {actor.mainRole}
             </p>
 
-            <p className="text-xs sm:text-sm text-zinc-300 font-normal leading-relaxed">
+            <p className="text-sm sm:text-base text-zinc-300 font-normal leading-relaxed max-w-3xl">
               {actor.bio}
             </p>
           </div>
         </div>
 
-        {/* Filmography Section */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-heading font-bold text-lg sm:text-xl text-white">
-              Фильмография в OFMEDIA
-            </h3>
-            <span className="text-xs text-zinc-400 font-normal">
-              Все работы создателя
+        {/* Filmography Section with Modern Movie Cards */}
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 border-b border-white/5 pb-4">
+            <div>
+              <h2 className="font-heading font-bold text-2xl sm:text-3xl text-white tracking-tight">
+                Фильмография в OFMEDIA
+              </h2>
+              <p className="text-xs sm:text-sm text-zinc-400 font-normal mt-1">
+                Все проекты и авторские работы создателя
+              </p>
+            </div>
+            <span className="text-xs text-zinc-400 font-medium">
+              Всего работ: {actor.filmography.length}
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-7">
             {actor.filmography.map((item, idx) => {
               const fullProject = PROJECTS_DATA.find((p) => p.id === item.projectId || p.slug === item.projectSlug);
+
+              if (fullProject) {
+                return (
+                  <div key={idx} className="flex flex-col space-y-2.5">
+                    {/* Modern Movie Card */}
+                    <OfmediaMovieCard
+                      project={fullProject}
+                      onPlay={(p) => {
+                        onPlayProject(p);
+                        onClose();
+                      }}
+                      onOpenDetails={(p) => {
+                        onSelectProject(p);
+                        onClose();
+                      }}
+                      isFavorite={favorites.includes(fullProject.id)}
+                      onToggleFavorite={onToggleFavorite}
+                    />
+
+                    {/* Actor Role Badge in this project */}
+                    <div className="px-3 py-2 rounded-xl bg-[#121216] border border-white/10 flex items-center justify-between text-xs">
+                      <span className="text-zinc-400 truncate">
+                        Роль: <span className="text-zinc-200 font-medium">{item.role}</span>
+                      </span>
+                      <span className="text-zinc-400 text-[11px] shrink-0 ml-2">
+                        {item.year}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
 
               return (
                 <div
                   key={idx}
-                  onClick={() => {
-                    if (fullProject) {
-                      onSelectProject(fullProject);
-                      onClose();
-                    }
-                  }}
-                  className="p-3.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] backdrop-blur-3xl border border-white/12 hover:border-[#ff5c00]/50 transition-all flex gap-3.5 items-center cursor-pointer group shadow-lg"
+                  className="p-4 rounded-2xl bg-[#121216] border border-white/10 flex gap-4 items-center shadow-lg"
                 >
                   <img
                     src={item.poster}
                     alt={item.projectTitle}
-                    className="w-20 aspect-video rounded-xl object-cover bg-zinc-800 shrink-0 shadow"
+                    className="w-24 aspect-video rounded-xl object-cover bg-zinc-800 shrink-0"
                   />
-
-                  <div className="min-w-0 flex-1 space-y-0.5">
-                    <div className="text-xs sm:text-sm font-medium text-white group-hover:text-[#ff5c00] transition-colors truncate">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="text-sm font-medium text-white truncate">
                       {item.projectTitle}
                     </div>
-                    <div className="text-[11px] text-zinc-400 font-normal truncate">
+                    <div className="text-xs text-zinc-400 truncate">
                       Роль: <span className="text-zinc-300">{item.role}</span>
                     </div>
-                    <div className="text-[10px] text-zinc-500 font-normal">
+                    <div className="text-[11px] text-zinc-400">
                       {item.year}
                     </div>
                   </div>
-
-                  {fullProject && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onPlayProject(fullProject);
-                        onClose();
-                      }}
-                      className="w-8 h-8 rounded-full bg-[#ff5c00] hover:bg-[#e05200] text-white flex items-center justify-center shadow-lg shrink-0 border border-white/20"
-                      title="Смотреть"
-                    >
-                      <PlayIcon className="w-3.5 h-3.5 fill-white" />
-                    </button>
-                  )}
                 </div>
               );
             })}

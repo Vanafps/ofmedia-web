@@ -22,6 +22,7 @@ import {
 } from '../services/reviewService';
 import { PlayIcon } from './PlayIcon';
 import { Tooltip } from './ui/Tooltip';
+import { OfmediaMovieCard } from './OfmediaMovieCard';
 
 interface OfmediaDetailModalProps {
   project: Project | null;
@@ -31,6 +32,8 @@ interface OfmediaDetailModalProps {
   onOpenActor: (actor: Actor) => void;
   isFavorite: boolean;
   onToggleFavorite: (projectId: string) => void;
+  onSelectProject?: (project: Project) => void;
+  favorites?: string[];
 }
 
 export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
@@ -41,6 +44,8 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
   onOpenActor,
   isFavorite,
   onToggleFavorite,
+  onSelectProject,
+  favorites,
 }) => {
   const initialColor = getRatingColorInfo(null);
   const [ratingData, setRatingData] = useState<MovieRatingStats>({
@@ -878,38 +883,25 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
 
       {/* 6. «СМОТРИТЕ ТАКЖЕ» */}
       <div className="max-w-[1600px] mx-auto px-4 sm:px-14 lg:px-20 space-y-4 sm:space-y-6 pt-12 sm:pt-14 pb-24 sm:pb-20">
-        <h2 className="font-bold text-lg sm:text-2xl text-white">
+        <h2 className="font-heading font-bold text-lg sm:text-2xl text-white">
           Смотрите также
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
           {relatedProjects.map((rel) => (
-            <div
+            <OfmediaMovieCard
               key={rel.id}
-              onClick={() => onPlay(rel)}
-              className="group cursor-pointer space-y-2"
-            >
-              <div className="relative aspect-video rounded-2xl overflow-hidden bg-zinc-800 border border-white/10 group-hover:border-[#ff5c00]/50 transition-all shadow-md group-hover:shadow-[0_8px_25px_rgba(255,92,0,0.2)]">
-                <img
-                  src={rel.backdrop || rel.poster}
-                  alt={rel.title}
-                  className="w-full h-full object-cover group-hover:scale-104 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                  <div className="w-10 h-10 rounded-full bg-[#ff5c00] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg border border-white/20">
-                    <PlayIcon className="w-4 h-4 fill-white" />
-                  </div>
-                </div>
-                <span className="absolute bottom-1.5 right-1.5 px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md border border-white/10 text-[10px] font-medium text-white">
-                  {rel.duration}
-                </span>
-              </div>
-              <div className="text-xs sm:text-sm font-medium text-white group-hover:text-[#ff5c00] transition-colors truncate">
-                {rel.title}
-              </div>
-              <div className="text-[11px] text-zinc-400 font-normal">
-                {rel.genres.slice(0, 2).join(' • ')}
-              </div>
-            </div>
+              project={rel}
+              onPlay={onPlay}
+              onOpenDetails={(p) => {
+                if (onSelectProject) {
+                  onSelectProject(p);
+                } else {
+                  onPlay(p);
+                }
+              }}
+              isFavorite={favorites?.includes(rel.id) ?? (rel.id === project.id ? isFavorite : false)}
+              onToggleFavorite={onToggleFavorite}
+            />
           ))}
         </div>
       </div>

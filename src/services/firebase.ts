@@ -11,18 +11,27 @@ import {
   type User,
   type Auth
 } from 'firebase/auth';
+import {
+  getDatabase,
+  ref,
+  set,
+  get,
+  type Database
+} from 'firebase/database';
 
 const DEFAULT_FIREBASE_CONFIG = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDummyKeyForOfmediaOnline12345",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "ofmedia-cinema.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "ofmedia-cinema",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "ofmedia-cinema.appspot.com",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "ofmedia-web.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "ofmedia-web",
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "https://ofmedia-web-default-rtdb.europe-west1.firebasedatabase.app/",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "ofmedia-web.appspot.com",
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1029384756",
   appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:1029384756:web:abcdef123456"
 };
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
+let rtdb: Database | null = null;
 
 try {
   if (!getApps().length) {
@@ -31,6 +40,7 @@ try {
     app = getApps()[0];
   }
   auth = getAuth(app);
+  rtdb = getDatabase(app, DEFAULT_FIREBASE_CONFIG.databaseURL);
 } catch (err) {
   console.warn("Firebase initialization notice:", err);
 }
@@ -306,3 +316,44 @@ export const logoutUser = async () => {
   }
   window.dispatchEvent(new Event('ofmedia_user_updated'));
 };
+
+// Realtime Database Sync Helpers
+export const syncRatingsToFirebase = async (ratings: unknown) => {
+  if (!rtdb) return;
+  try {
+    await set(ref(rtdb, 'ratings_store'), ratings);
+  } catch (err) {
+    console.warn('Firebase RTDB ratings sync fallback:', err);
+  }
+};
+
+export const syncReviewsToFirebase = async (reviews: unknown) => {
+  if (!rtdb) return;
+  try {
+    await set(ref(rtdb, 'reviews_store'), reviews);
+  } catch (err) {
+    console.warn('Firebase RTDB reviews sync fallback:', err);
+  }
+};
+
+export const syncUserFavoritesToFirebase = async (userId: string, favorites: string[]) => {
+  if (!rtdb || !userId) return;
+  try {
+    await set(ref(rtdb, `users/${userId}/favorites`), favorites);
+  } catch (err) {
+    console.warn('Firebase RTDB favorites sync fallback:', err);
+  }
+};
+
+export const fetchRatingsFromFirebase = async () => {
+  if (!rtdb) return null;
+  try {
+    const snapshot = await get(ref(rtdb, 'ratings_store'));
+    return snapshot.exists() ? snapshot.val() : null;
+  } catch (err) {
+    console.warn('Firebase RTDB ratings fetch fallback:', err);
+    return null;
+  }
+};
+
+
