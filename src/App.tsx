@@ -112,25 +112,96 @@ export function App() {
     };
   }, []);
 
-  // Deep Link check (?film=park or ?actor=ivan-lepo)
-  useEffect(() => {
+  // URL Router: Sync route from location (handles direct links, page refresh, and back/forward browser history)
+  const syncRouteFromLocation = () => {
+    const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
     const params = new URLSearchParams(window.location.search);
-    const filmSlug = params.get('film');
-    const actorSlug = params.get('actor');
 
-    if (filmSlug) {
-      const match = PROJECTS_DATA.find((p) => p.slug === filmSlug || p.id === filmSlug);
+    // Support legacy query params (?film=... or ?actor=...)
+    const filmQuery = params.get('film');
+    const actorQuery = params.get('actor');
+    if (filmQuery) {
+      const match = PROJECTS_DATA.find((p) => p.slug === filmQuery || p.id === filmQuery);
       if (match) {
         setSelectedProject(match);
         setIsDetailModalOpen(true);
-      }
-    } else if (actorSlug) {
-      const actorMatch = ACTORS_DATA.find((a) => a.slug === actorSlug || a.id === actorSlug);
-      if (actorMatch) {
-        setSelectedActor(actorMatch);
-        setIsActorModalOpen(true);
+        setIsPlayerOpen(false);
+        setIsActorModalOpen(false);
+        return;
       }
     }
+    if (actorQuery) {
+      const match = ACTORS_DATA.find((a) => a.slug === actorQuery || a.id === actorQuery);
+      if (match) {
+        setSelectedActor(match);
+        setIsActorModalOpen(true);
+        setIsDetailModalOpen(false);
+        setIsPlayerOpen(false);
+        return;
+      }
+    }
+
+    // Route: /my or /favorites
+    if (pathname === '/my' || pathname === '/favorites') {
+      setActiveTab('favorites');
+      setIsDetailModalOpen(false);
+      setIsPlayerOpen(false);
+      setIsActorModalOpen(false);
+      return;
+    }
+
+    // Route: /actor/:slug
+    if (pathname.startsWith('/actor/')) {
+      const actorSlug = decodeURIComponent(pathname.replace('/actor/', ''));
+      const match = ACTORS_DATA.find((a) => a.slug === actorSlug || a.id === actorSlug);
+      if (match) {
+        setSelectedActor(match);
+        setIsActorModalOpen(true);
+        setIsDetailModalOpen(false);
+        setIsPlayerOpen(false);
+        return;
+      }
+    }
+
+    // Route: /:slug/player
+    const playerMatch = pathname.match(/^\/([^/]+)\/player$/);
+    if (playerMatch) {
+      const filmSlug = decodeURIComponent(playerMatch[1]);
+      const match = PROJECTS_DATA.find((p) => p.slug === filmSlug || p.id === filmSlug);
+      if (match) {
+        setSelectedProject(match);
+        setSelectedEpisode(match.episodes?.[0]);
+        setIsPlayerOpen(true);
+        setIsDetailModalOpen(false);
+        setIsActorModalOpen(false);
+        return;
+      }
+    }
+
+    // Route: /:slug (Direct film page)
+    const singleSlug = decodeURIComponent(pathname.replace(/^\//, ''));
+    if (singleSlug && singleSlug !== 'main') {
+      const match = PROJECTS_DATA.find((p) => p.slug === singleSlug || p.id === singleSlug);
+      if (match) {
+        setSelectedProject(match);
+        setIsDetailModalOpen(true);
+        setIsPlayerOpen(false);
+        setIsActorModalOpen(false);
+        return;
+      }
+    }
+
+    // Default route: / (Catalog)
+    setActiveTab('main');
+    setIsDetailModalOpen(false);
+    setIsPlayerOpen(false);
+    setIsActorModalOpen(false);
+  };
+
+  useEffect(() => {
+    syncRouteFromLocation();
+    window.addEventListener('popstate', syncRouteFromLocation);
+    return () => window.removeEventListener('popstate', syncRouteFromLocation);
   }, []);
 
   const toggleFavorite = (projectId: string) => {
@@ -139,22 +210,59 @@ export function App() {
     );
   };
 
+  const handleSelectTab = (tab: 'main' | 'favorites') => {
+    setActiveTab(tab);
+    if (isDetailModalOpen) setIsDetailModalOpen(false);
+    if (isPlayerOpen) setIsPlayerOpen(false);
+    if (isActorModalOpen) setIsActorModalOpen(false);
+    window.history.pushState(null, '', tab === 'favorites' ? '/my' : '/');
+  };
+
   const handlePlayProject = (project: Project, episode?: Episode) => {
     setSelectedProject(project);
     setSelectedEpisode(episode || project.episodes?.[0]);
     setIsPlayerOpen(true);
     setIsDetailModalOpen(false);
     setIsActorModalOpen(false);
+    window.history.pushState({ type: 'player', slug: project.slug }, '', `/${project.slug || project.id}/player`);
   };
 
   const handleOpenDetails = (project: Project) => {
     setSelectedProject(project);
     setIsDetailModalOpen(true);
+    setIsPlayerOpen(false);
+    setIsActorModalOpen(false);
+    window.history.pushState({ type: 'film', slug: project.slug }, '', `/${project.slug || project.id}`);
+  };
+
+  const handleCloseDetails = () => {
+    setIsDetailModalOpen(false);
+    setSelectedProject(null);
+    window.history.pushState(null, '', activeTab === 'favorites' ? '/my' : '/');
+  };
+
+  const handleClosePlayer = () => {
+    setIsPlayerOpen(false);
+    if (selectedProject) {
+      setIsDetailModalOpen(true);
+      window.history.pushState({ type: 'film', slug: selectedProject.slug }, '', `/${selectedProject.slug || selectedProject.id}`);
+    } else {
+      window.history.pushState(null, '', activeTab === 'favorites' ? '/my' : '/');
+    }
   };
 
   const handleOpenActor = (actor: Actor) => {
     setSelectedActor(actor);
     setIsActorModalOpen(true);
+    setIsDetailModalOpen(false);
+    setIsPlayerOpen(false);
+    window.history.pushState({ type: 'actor', slug: actor.slug }, '', `/actor/${actor.slug || actor.id}`);
+  };
+
+  const handleCloseActor = () => {
+    setIsActorModalOpen(false);
+    setSelectedActor(null);
+    window.history.pushState(null, '', activeTab === 'favorites' ? '/my' : '/');
   };
 
   const handleSelectNextEpisode = () => {
@@ -231,7 +339,7 @@ export function App() {
       {/* Header with Profile Modal Access */}
       <OfmediaHeader
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleSelectTab}
         onSelectProject={handleOpenDetails}
         onSelectActor={handleOpenActor}
         projects={PROJECTS_DATA}
@@ -537,7 +645,7 @@ export function App() {
       <OfmediaDetailModal
         project={selectedProject}
         isOpen={isDetailModalOpen}
-        onClose={() => setIsDetailModalOpen(false)}
+        onClose={handleCloseDetails}
         onPlay={handlePlayProject}
         onOpenActor={handleOpenActor}
         isFavorite={selectedProject ? favorites.includes(selectedProject.id) : false}
@@ -548,7 +656,7 @@ export function App() {
       <OfmediaActorModal
         actor={selectedActor}
         isOpen={isActorModalOpen}
-        onClose={() => setIsActorModalOpen(false)}
+        onClose={handleCloseActor}
         onSelectProject={handleOpenDetails}
         onPlayProject={handlePlayProject}
       />
@@ -569,7 +677,7 @@ export function App() {
           project={selectedProject}
           initialEpisode={selectedEpisode}
           isOpen={isPlayerOpen}
-          onClose={() => setIsPlayerOpen(false)}
+          onClose={handleClosePlayer}
           onSelectNext={handleSelectNextEpisode}
         />
       )}
@@ -584,7 +692,7 @@ export function App() {
       {/* Mobile Bottom Navigation Bar */}
       <OfmediaMobileNav
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleSelectTab}
         favoritesCount={favorites.length}
         onOpenSearch={() => {
           const btn = document.querySelector('header button[title="Поиск фильмов и актёров"]') as HTMLButtonElement;
@@ -607,7 +715,7 @@ export function App() {
             <span className="text-zinc-400 font-normal">© 2024–2026 • Все права защищены</span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 font-normal text-xs">
-            <button onClick={() => { setActiveTab('main'); setSelectedCategory('none'); }} className="hover:text-white transition-colors">
+            <button onClick={() => { handleSelectTab('main'); setSelectedCategory('none'); }} className="hover:text-white transition-colors">
               Главная
             </button>
             <button onClick={() => { setActiveTab('main'); setSelectedCategory('comedy'); }} className="hover:text-white transition-colors">
