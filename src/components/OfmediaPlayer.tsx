@@ -878,6 +878,8 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
         {/* OKKO SETTINGS POPOVER (Positioned directly above the Settings button) */}
         {showSettingsMenu && (
           <div
+            data-lenis-prevent="true"
+            onWheel={(e) => e.stopPropagation()}
             className="absolute left-4 sm:left-6 bottom-20 sm:bottom-24 bg-[#14141a]/96 backdrop-blur-2xl border border-white/20 rounded-2xl sm:rounded-3xl p-3.5 sm:p-4 min-w-[290px] max-w-[330px] shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(255,92,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.2)] z-30 animate-settings-pop text-white transition-all overflow-hidden"
           >
             {settingsSubView === 'main' && (
@@ -988,7 +990,11 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
                   </button>
                   <span className="text-xs sm:text-sm font-semibold text-white">Качество</span>
                 </div>
-                <div className="flex flex-col space-y-0.5 max-h-60 overflow-y-auto pr-1">
+                <div
+                  data-lenis-prevent="true"
+                  onWheel={(e) => e.stopPropagation()}
+                  className="flex flex-col space-y-0.5 max-h-[60vh] sm:max-h-80 overflow-y-auto custom-scrollbar pr-1 overscroll-contain"
+                >
                   {QUALITY_STEPS.map((q) => {
                     const isSelected = quality === q.id;
                     return (
@@ -1181,12 +1187,12 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
 
             return (
               <div
-                className="absolute -top-[128px] -translate-x-1/2 w-44 rounded-xl overflow-hidden bg-[#0c0c12]/92 backdrop-blur-2xl border border-white/25 shadow-[0_16px_40px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.2)] pointer-events-none p-1 flex flex-col items-center animate-in fade-in zoom-in-95 duration-150 z-30"
+                className="absolute -top-[132px] -translate-x-1/2 w-44 rounded-2xl overflow-hidden bg-black/45 backdrop-blur-3xl border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.95),inset_0_1px_1px_rgba(255,255,255,0.25)] pointer-events-none p-1.5 flex flex-col items-center animate-in fade-in zoom-in-95 duration-150 z-30"
                 style={{
                   left: `${Math.max(90, Math.min(trackWidth - 90, hoverPos))}px`,
                 }}
               >
-                <div className="w-full h-24 rounded-lg overflow-hidden bg-black/90 relative flex items-center justify-center border border-white/10">
+                <div className="w-full h-24 rounded-xl overflow-hidden bg-black/50 relative flex items-center justify-center border border-white/10 shadow-inner">
                   {isStoryboardLoaded ? (
                     <div
                       className="w-full h-full"
@@ -1205,9 +1211,10 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
                     />
                   )}
                 </div>
-                <div className="mt-1 text-[11px] font-bold text-white tracking-wider px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md border border-white/15">
+                {/* Clean timecode without rectangular dark background box */}
+                <span className="pt-1.5 pb-0.5 text-xs font-heading font-semibold text-white tracking-wider drop-shadow-[0_2px_6px_rgba(0,0,0,0.95)] select-none">
                   {formatTime(hoverTime)}
-                </div>
+                </span>
               </div>
             );
           })()}

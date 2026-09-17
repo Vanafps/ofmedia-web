@@ -5,7 +5,7 @@ import type { Project, Episode } from './data/projects';
 import type { Actor } from './data/actors';
 import { ACTORS_DATA } from './data/actors';
 import { OfmediaHeader } from './components/OfmediaHeader';
-import { OfmediaHero } from './components/OfmediaHero';
+import { OfmediaInteractiveHero } from './components/OfmediaInteractiveHero';
 import { OfmediaCardRow } from './components/OfmediaCardRow';
 import { OfmediaMovieCard } from './components/OfmediaMovieCard';
 import { OfmediaDetailModal } from './components/OfmediaDetailModal';
@@ -275,8 +275,6 @@ export function App() {
     }
   };
 
-  const heroProject = PROJECTS_DATA[0];
-
   const filterProjectsByCategory = (cat: GenreCategoryId): Project[] => {
     switch (cat) {
       case 'new':
@@ -355,17 +353,15 @@ export function App() {
         {/* TAB 1: MAIN PAGE */}
         {activeTab === 'main' && (
           <div className="space-y-8 sm:space-y-14">
-            {/* Hero Banner */}
-            <OfmediaHero
-              project={heroProject}
-              onPlay={handlePlayProject}
+            {/* Interactive 3D Hero Banner: ТВОЙ НОВЫЙ OFMEDIA */}
+            <OfmediaInteractiveHero
+              projects={PROJECTS_DATA}
               onOpenDetails={handleOpenDetails}
-              isFavorite={favorites.includes(heroProject.id)}
-              onToggleFavorite={toggleFavorite}
+              onPlay={handlePlayProject}
             />
 
             {/* Genre Navigation System */}
-            <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
+            <section id="catalog-section" className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
               <OfmediaGenreCards
                 selectedCategory={selectedCategory}
                 onSelectCategory={setSelectedCategory}

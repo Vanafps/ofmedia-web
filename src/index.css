@@ -553,4 +553,61 @@ input[type=range].slider-orange::-webkit-slider-thumb {
   animation: checkPopIn 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
+/* Bebas Neue Font Class for Hero Headings */
+.font-bebas {
+  font-family: 'Bebas Neue Cyrillic', 'Bebas Neue', Impact, sans-serif !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+  font-synthesis: none !important;
+  text-transform: uppercase;
+}
+
+/* 3D Perspective & Hardware Acceleration */
+.perspective-1200 {
+  perspective: 1200px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* Infinite 3D Film Ribbon Marquees */
+@keyframes ribbonLeft {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes ribbonRight {
+  0% {
+    transform: translate3d(-50%, 0, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-ribbon-left {
+  display: flex;
+  width: max-content;
+  animation: ribbonLeft 34s linear infinite;
+  will-change: transform;
+}
+
+.animate-ribbon-right {
+  display: flex;
+  width: max-content;
+  animation: ribbonRight 38s linear infinite;
+  will-change: transform;
+}
+
+.animate-ribbon-left:hover,
+.animate-ribbon-right:hover {
+  animation-play-state: paused;
+}
+
+
 
