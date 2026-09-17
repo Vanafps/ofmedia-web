@@ -55,7 +55,7 @@ export const PROJECTS_DATA: Project[] = [
     description: 'Видеоклип на гимн Школы 2070. В нём задействованы любимые учителя, яркие локации и одноклассники.',
     year: 2026,
     country: 'Россия',
-    duration: '3 мин',
+    duration: '4 мин',
     ageRating: '6+',
     genres: ['Музыкальное', 'Комедия', 'Клип'],
     poster: '/posters/poster_clip.png',
@@ -69,7 +69,7 @@ export const PROJECTS_DATA: Project[] = [
         id: 'clip-ep1',
         number: 1,
         title: 'Клип — Школа 2070 (Официальное видео)',
-        duration: '03:15',
+        duration: '03:30',
         thumbnail: '/posters/poster_clip.png',
         videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/clip/master.m3u8',
         storyboard: '/storyboards/clip.webp'
@@ -109,7 +109,7 @@ export const PROJECTS_DATA: Project[] = [
     description: 'Весёлое и полное неожиданностей путешествие команды по городскому парку отдыха: аттракционы, юмор и атмосфера дружбы.',
     year: 2024,
     country: 'Россия',
-    duration: '27 мин',
+    duration: '28 мин',
     ageRating: '12+',
     genres: ['Комедия', 'Приключения', 'Влог'],
     poster: '/posters/poster_park.png',
@@ -123,7 +123,7 @@ export const PROJECTS_DATA: Project[] = [
         id: 'park-ep1',
         number: 1,
         title: 'Поездка в парк — Полная версия',
-        duration: '27:14',
+        duration: '28:29',
         thumbnail: '/posters/poster_park.png',
         videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/park/master.m3u8',
         storyboard: '/storyboards/park.webp'
@@ -164,7 +164,7 @@ export const PROJECTS_DATA: Project[] = [
         id: 'nalim-ep1',
         number: 1,
         title: 'Налим — Короткометражный фильм-спектакль',
-        duration: '08:42',
+        duration: '07:31',
         thumbnail: '/posters/poster_nalim.png',
         videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/nalim/master.m3u8',
         storyboard: '/storyboards/nalim.webp'
@@ -208,7 +208,7 @@ export const PROJECTS_DATA: Project[] = [
         id: 'ng-ep1',
         number: 1,
         title: 'Новогодний корпоратив 2024–2025',
-        duration: '16:30',
+        duration: '15:36',
         thumbnail: '/posters/poster_ng.png',
         videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/ng/master.m3u8',
         storyboard: '/storyboards/ng.webp'
@@ -256,7 +256,7 @@ export const PROJECTS_DATA: Project[] = [
         id: 'vdnh-ep1',
         number: 1,
         title: 'Поездка на ВДНХ — Полный выпуск',
-        duration: '08:15',
+        duration: '08:01',
         thumbnail: '/posters/poster_vdnh.png',
         videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/vdnh/master.m3u8',
         storyboard: '/storyboards/vdnh.webp'
@@ -297,7 +297,7 @@ export const PROJECTS_DATA: Project[] = [
         id: 'hor-ep1',
         number: 1,
         title: 'Каждый класс — Хор: Гала-концерт',
-        duration: '22:45',
+        duration: '21:43',
         thumbnail: '/posters/poster_hor.png',
         videoUrl: 'https://raw.githubusercontent.com/Vanafps/ofmedia-media/main/hor/master.m3u8',
         storyboard: '/storyboards/hor.webp'

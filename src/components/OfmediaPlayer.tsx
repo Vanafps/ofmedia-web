@@ -494,6 +494,13 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
             }
           });
 
+          // Dynamically sync exact HLS stream duration from playlist manifest
+          hls.on(Hls.Events.LEVEL_LOADED, (_event, data) => {
+            if (data.details && data.details.totalduration && isFinite(data.details.totalduration)) {
+              setDuration(data.details.totalduration);
+            }
+          });
+
           // Self-Healing Network & Media Error Recovery
           hls.on(Hls.Events.ERROR, (_event, data) => {
             if (data.fatal) {
@@ -548,7 +555,14 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     video.volume = isMuted ? 0 : volume;
 
     const onLoadedMetadata = () => {
-      if (video.duration) {
+      if (video.duration && isFinite(video.duration) && video.duration > 0) {
+        setDuration(video.duration);
+        updateBufferedRanges(video, video.duration);
+      }
+    };
+
+    const onDurationChange = () => {
+      if (video.duration && isFinite(video.duration) && video.duration > 0) {
         setDuration(video.duration);
         updateBufferedRanges(video, video.duration);
       }
@@ -578,6 +592,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     };
 
     video.addEventListener('loadedmetadata', onLoadedMetadata);
+    video.addEventListener('durationchange', onDurationChange);
     video.addEventListener('progress', onProgress);
     video.addEventListener('waiting', onWaiting);
     video.addEventListener('playing', onPlaying);
@@ -598,6 +613,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
 
     return () => {
       video.removeEventListener('loadedmetadata', onLoadedMetadata);
+      video.removeEventListener('durationchange', onDurationChange);
       video.removeEventListener('progress', onProgress);
       video.removeEventListener('waiting', onWaiting);
       video.removeEventListener('playing', onPlaying);
