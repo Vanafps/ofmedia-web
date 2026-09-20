@@ -174,7 +174,7 @@ export const SpeedometerIcon: React.FC<{ className?: string }> = ({ className = 
   </svg>
 );
 
-// Modern Okko / Apple Style Speaker Volume SVG Icon
+// Premium Cinematic Speaker Volume SVG Icon
 export const SpeakerVolumeIcon: React.FC<{ isMuted: boolean; volume: number; className?: string }> = ({
   isMuted,
   volume,
@@ -183,25 +183,33 @@ export const SpeakerVolumeIcon: React.FC<{ isMuted: boolean; volume: number; cla
   if (isMuted || volume === 0) {
     return (
       <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M11 5L6 9H2v6h4l5 4V5z" fill="currentColor" stroke="none" />
-        <line x1="16" y1="9" x2="22" y2="15" />
-        <line x1="22" y1="9" x2="16" y2="15" />
+        <path d="M11 4.7L6.6 8.5H3a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h3.6l4.4 3.8a.8.8 0 0 0 1.3-.6V5.3a.8.8 0 0 0-1.3-.6z" fill="currentColor" stroke="none" />
+        <line x1="22" y1="9" x2="16" y2="15" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+        <line x1="16" y1="9" x2="22" y2="15" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
       </svg>
     );
   }
-  if (volume > 0.5) {
+  if (volume > 0.6) {
     return (
       <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M11 5L6 9H2v6h4l5 4V5z" fill="currentColor" stroke="none" />
-        <path d="M15.5 8.5a5 5 0 0 1 0 7" />
-        <path d="M18.8 5.5a9.5 9.5 0 0 1 0 13" />
+        <path d="M11 4.7L6.6 8.5H3a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h3.6l4.4 3.8a.8.8 0 0 0 1.3-.6V5.3a.8.8 0 0 0-1.3-.6z" fill="currentColor" stroke="none" />
+        <path d="M15.5 8.5a5 5 0 0 1 0 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+        <path d="M19 5.5a9.5 9.5 0 0 1 0 13" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+      </svg>
+    );
+  }
+  if (volume > 0.3) {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 4.7L6.6 8.5H3a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h3.6l4.4 3.8a.8.8 0 0 0 1.3-.6V5.3a.8.8 0 0 0-1.3-.6z" fill="currentColor" stroke="none" />
+        <path d="M15.5 8.5a5 5 0 0 1 0 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none" />
       </svg>
     );
   }
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M11 5L6 9H2v6h4l5 4V5z" fill="currentColor" stroke="none" />
-      <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+      <path d="M11 4.7L6.6 8.5H3a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h3.6l4.4 3.8a.8.8 0 0 0 1.3-.6V5.3a.8.8 0 0 0-1.3-.6z" fill="currentColor" stroke="none" />
+      <path d="M14.5 10a3 3 0 0 1 0 4" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none" />
     </svg>
   );
 };

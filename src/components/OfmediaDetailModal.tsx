@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import Hls from 'hls.js';
 import type { Project, Episode } from '../data/projects';
 import { PROJECTS_DATA } from '../data/projects';
 import type { Actor } from '../data/actors';
-import { getActorByName } from '../data/actors';
+import { getActorByName, getOrGenerateActor } from '../data/actors';
 import {
   getMovieRating,
   submitMovieRating,
@@ -33,6 +34,7 @@ interface OfmediaDetailModalProps {
   isFavorite: boolean;
   onToggleFavorite: (projectId: string) => void;
   onSelectProject?: (project: Project) => void;
+  onSelectGenre?: (genre: string) => void;
   favorites?: string[];
 }
 
@@ -45,6 +47,7 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
   isFavorite,
   onToggleFavorite,
   onSelectProject,
+  onSelectGenre,
   favorites,
 }) => {
   const initialColor = getRatingColorInfo(null);
@@ -75,6 +78,44 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
   const [showHistogram, setShowHistogram] = useState(false);
   const [isWatched, setIsWatched] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Trailer Lightbox State
+  const [isTrailerOpen, setIsTrailerOpen] = useState(false);
+  const trailerVideoRef = useRef<HTMLVideoElement | null>(null);
+  const trailerHlsRef = useRef<Hls | null>(null);
+
+  useEffect(() => {
+    if (!isTrailerOpen || !project?.videoUrl) {
+      if (trailerHlsRef.current) {
+        trailerHlsRef.current.destroy();
+        trailerHlsRef.current = null;
+      }
+      if (trailerVideoRef.current) {
+        trailerVideoRef.current.pause();
+        trailerVideoRef.current.removeAttribute('src');
+      }
+      return;
+    }
+
+    const video = trailerVideoRef.current;
+    if (!video) return;
+
+    if (Hls.isSupported() && project.videoUrl.includes('.m3u8')) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true,
+      });
+      trailerHlsRef.current = hls;
+      hls.loadSource(project.videoUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.play().catch(() => {});
+      });
+    } else {
+      video.src = project.videoUrl;
+      video.play().catch(() => {});
+    }
+  }, [isTrailerOpen, project?.videoUrl]);
 
   // Review Form State
   const [isWritingReview, setIsWritingReview] = useState(false);
@@ -233,8 +274,8 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
     <div data-lenis-prevent="true" className="fixed inset-0 z-50 bg-[#070709] overflow-y-auto custom-scrollbar animate-in fade-in duration-200">
       {/* Toast Notification with Glassmorphism */}
       {toastMessage && (
-        <div className="fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 z-[130] px-5 py-3 rounded-full glass-modal text-white text-xs font-medium shadow-2xl animate-in fade-in slide-in-from-top-4 duration-200 flex items-center gap-2.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#ff5c00] shadow-[0_0_8px_#ff5c00]" />
+        <div className="fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 z-[130] px-5 py-3 rounded-full glass-modal text-white text-xs font-medium shadow-2xl animate-in fade-in slide-in-from-top-4 duration-200 flex items-center gap-2">
+          <span className="text-[#ff5c00] font-bold">✓</span>
           <span>{toastMessage}</span>
         </div>
       )}
@@ -343,6 +384,17 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
               <span>Смотреть фильм</span>
             </button>
 
+            {/* Watch Trailer Button */}
+            <button
+              onClick={() => setIsTrailerOpen(true)}
+              className="w-full sm:w-auto px-7 py-3.5 rounded-full font-medium text-sm glass-pill hover:bg-white/15 text-white shadow-xl hover:scale-104 active:scale-95 transition-all flex items-center justify-center gap-2.5 border border-white/20"
+            >
+              <svg className="w-4 h-4 fill-[#ff5c00]" viewBox="0 0 24 24">
+                <path d="M18 3v2h-2V3H8v2H6V3H4v18h2v-2h2v2h8v-2h2v2h2V3h-2zM8 17H6v-2h2v2zm0-4H6v-2h2v2zm0-4H6V7h2v2zm10 8h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V7h2v2z" />
+              </svg>
+              <span>Трейлер</span>
+            </button>
+
             {/* Favorite Bookmark */}
             <Tooltip content={isFavorite ? 'В избранном' : 'Добавить в избранное'} position="top">
               <button
@@ -394,15 +446,24 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
       <div className="max-w-[1600px] mx-auto px-4 sm:px-14 lg:px-20 pt-6 sm:pt-8">
         <div className="p-5 sm:p-7 rounded-3xl glass-card flex flex-wrap items-center justify-between gap-4 sm:gap-6">
           <div className="space-y-2">
-            <div className="text-[11px] text-zinc-400 font-normal uppercase tracking-wider">Жанры</div>
+            <div className="text-[11px] text-zinc-400 font-normal uppercase tracking-wider">Жанры (нажмите для фильтрации)</div>
             <div className="flex flex-wrap items-center gap-2">
               {project.genres.map((g, idx) => (
-                <span
+                <button
                   key={idx}
-                  className="px-3.5 py-1.5 rounded-full glass-pill text-xs sm:text-sm font-medium text-white shadow-sm"
+                  type="button"
+                  onClick={() => {
+                    if (onSelectGenre) {
+                      onSelectGenre(g);
+                      onClose();
+                    }
+                  }}
+                  className="px-3.5 py-1.5 rounded-full glass-pill hover:bg-[#ff5c00]/25 hover:border-[#ff5c00] text-xs sm:text-sm font-medium text-white transition-all hover:scale-105 active:scale-95 shadow-sm cursor-pointer flex items-center gap-1.5"
+                  title={`Показать все фильмы в жанре «${g}»`}
                 >
-                  {g}
-                </span>
+                  <span>{g}</span>
+                  <span className="text-zinc-400 text-[10px]">→</span>
+                </button>
               ))}
             </div>
           </div>

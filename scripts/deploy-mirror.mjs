@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { copyFileSync, writeFileSync, existsSync } from 'node:fs';
+import { copyFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 console.log('🚀 [OFMEDIA] Building production bundle...');
@@ -14,6 +14,11 @@ if (existsSync(public404)) {
   copyFileSync(public404, dist404);
 }
 writeFileSync(join(distDir, '.nojekyll'), '');
+
+// Static routing support for /app/apk on GitHub Pages
+const appApkDir = join(distDir, 'app', 'apk');
+mkdirSync(appApkDir, { recursive: true });
+copyFileSync(join(distDir, 'index.html'), join(appApkDir, 'index.html'));
 
 console.log('🌐 [OFMEDIA] Pushing to ofmedia-web.github.io...');
 

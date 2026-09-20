@@ -123,9 +123,7 @@ export const OfmediaInteractiveHero: React.FC<OfmediaInteractiveHeroProps> = ({
           }}
         >
           {/* Status Badge */}
-          <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10 backdrop-blur-xl w-fit shadow-lg">
-            <span className="w-2 h-2 rounded-full bg-[#ff5c00] animate-ping" />
-            <span className="w-2 h-2 rounded-full bg-[#ff5c00] -ml-4" />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/10 backdrop-blur-xl w-fit shadow-lg">
             <span className="text-[11px] sm:text-xs font-medium tracking-wider text-zinc-300 uppercase">
               Обновление платформы • 2026
             </span>

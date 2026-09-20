@@ -374,3 +374,63 @@ export const getActorByName = (name: string): Actor | undefined => {
   const norm = name.trim().toLowerCase();
   return ACTORS_DATA.find((a) => a.name.toLowerCase().includes(norm) || norm.includes(a.name.toLowerCase()));
 };
+
+// Generate a full filmography actor card dynamically for any actor or creator in OFMEDIA
+export const getOrGenerateActor = (
+  memberOrName: { name: string; role?: string; avatar?: string; isCreator?: boolean } | string,
+  projects: any[]
+): Actor => {
+  const name = typeof memberOrName === 'string' ? memberOrName.trim() : memberOrName.name.trim();
+  const existing = getActorByName(name);
+  if (existing) return existing;
+
+  const lower = name.toLowerCase();
+  const matchedProjects = (projects || []).filter((p) =>
+    p.cast?.some((c: any) => c.name.toLowerCase().includes(lower) || lower.includes(c.name.toLowerCase())) ||
+    p.directors?.some((d: any) => d.toLowerCase().includes(lower) || lower.includes(d.toLowerCase()))
+  );
+
+  const targetProjects = matchedProjects.length > 0 ? matchedProjects : (projects || []).slice(0, 1);
+
+  const filmography: ActorFilmographyItem[] = targetProjects.map((p) => {
+    const castItem = p.cast?.find((c: any) => c.name.toLowerCase().includes(lower) || lower.includes(c.name.toLowerCase()));
+    const isDirector = p.directors?.some((d: any) => d.toLowerCase().includes(lower) || lower.includes(d.toLowerCase()));
+    const role = castItem?.role || (isDirector ? 'Режиссёр' : 'Актёр / Участник проекта');
+    return {
+      projectId: p.id,
+      projectSlug: p.slug,
+      projectTitle: p.title,
+      role,
+      year: p.year,
+      poster: p.poster,
+      duration: p.duration,
+      genres: p.genres,
+    };
+  });
+
+  const memberObj = typeof memberOrName !== 'string' ? memberOrName : undefined;
+  const avatar = memberObj?.avatar || matchedProjects[0]?.cast?.find((c: any) => c.name.toLowerCase().includes(lower))?.avatar;
+  const initials = name
+    .split(' ')
+    .filter(Boolean)
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  const mainRole = memberObj?.role || filmography[0]?.role || 'Актёр студии OFMEDIA';
+
+  return {
+    id: `actor-${name.toLowerCase().replace(/[^a-zа-я0-9]/gi, '-')}`,
+    slug: `actor-${name.toLowerCase().replace(/[^a-zа-я0-9]/gi, '-')}`,
+    name,
+    initials: initials || 'OF',
+    mainRole,
+    filmsCount: filmography.length,
+    bio: `Участник творческой команды и актёр студии OFMEDIA. В фильмографии ${filmography.length} ${
+      filmography.length === 1 ? 'проект' : filmography.length < 5 ? 'проекта' : 'проектов'
+    }.`,
+    photo: avatar,
+    filmography,
+  };
+};

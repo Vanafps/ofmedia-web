@@ -15,6 +15,7 @@ import { OfmediaAuthModal } from './components/OfmediaAuthModal';
 import { OfmediaActorModal } from './components/OfmediaActorModal';
 import { OfmediaProfileModal } from './components/OfmediaProfileModal';
 import { OfmediaMobileNav } from './components/OfmediaMobileNav';
+import { DownloadApkPage } from './components/DownloadApkPage';
 import { CustomSelect } from './components/ui/CustomSelect';
 import { subscribeToAuth, logoutUser, type UserProfile } from './services/firebase';
 import { getUserRatings, getMovieRating } from './services/ratingService';
@@ -22,6 +23,16 @@ import { getPersonalizedRecommendations, type RecommendedRow } from './services/
 import { getContinueWatchingProjects, type ContinueWatchingItem } from './services/watchHistoryService';
 
 export function App() {
+  const isApkDownloadRoute = typeof window !== 'undefined' && (
+    window.location.pathname.startsWith('/app/apk') ||
+    window.location.search.includes('download=apk') ||
+    window.location.pathname.endsWith('/app/apk')
+  );
+
+  if (isApkDownloadRoute) {
+    return <DownloadApkPage />;
+  }
+
   const [activeTab, setActiveTab] = useState<'main' | 'favorites'>('main');
   const [favoritesSubTab, setFavoritesSubTab] = useState<'favorites' | 'ratings'>('favorites');
   const [sortOrder, setSortOrder] = useState<'rating_desc' | 'year_desc' | 'title_asc'>('rating_desc');

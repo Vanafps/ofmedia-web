@@ -230,7 +230,7 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
     };
   }, []);
 
-  // Desktop hover: Card expands immediately, but video trailer starts after exactly 5 seconds
+  // Desktop hover: Card expands immediately, video trailer starts quickly after 700ms
   const handleMouseEnter = () => {
     if (isDragging || isMobile) return;
     setIsHovered(true);
@@ -239,10 +239,15 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
     }
     hoverTimerRef.current = setTimeout(() => {
       setIsTeaserActive(true);
-    }, 5000);
+    }, 700);
   };
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave = (e: React.MouseEvent) => {
+    // Prevent accidental resets if cursor moves over internal elements
+    if (containerRef.current && containerRef.current.contains(e.relatedTarget as Node)) {
+      return;
+    }
+
     if (hoverTimerRef.current) {
       clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;
@@ -439,8 +444,7 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
           {/* Remaining Time Badge on Mobile */}
           {showRemainingBadge && watchProgress && watchProgress.duration > 0 && (
             <div className="absolute top-2 right-2 z-20 pointer-events-none">
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/85 text-zinc-100 border border-white/15 backdrop-blur-md shadow-lg flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#ff5c00] animate-pulse" />
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-black/85 text-zinc-100 border border-white/15 backdrop-blur-md shadow-lg flex items-center">
                 Осталось {remainingMinutes ?? Math.max(1, Math.ceil((watchProgress.duration - watchProgress.currentTime) / 60))} мин
               </span>
             </div>
@@ -613,8 +617,7 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
             {/* Remaining Time Badge on Desktop Poster */}
             {showRemainingBadge && watchProgress && watchProgress.duration > 0 && (
               <div className="absolute top-2.5 right-2.5 z-20 pointer-events-none">
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/85 text-zinc-100 border border-white/15 backdrop-blur-md shadow-lg flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#ff5c00] animate-pulse" />
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-black/85 text-zinc-100 border border-white/15 backdrop-blur-md shadow-lg flex items-center">
                   Осталось {remainingMinutes ?? Math.max(1, Math.ceil((watchProgress.duration - watchProgress.currentTime) / 60))} мин
                 </span>
               </div>
