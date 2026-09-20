@@ -17,6 +17,7 @@
     "@capacitor/core": "^8.5.2",
     "@capacitor/status-bar": "^8.0.3",
     "@tailwindcss/vite": "^4.3.3",
+    "@vkid/sdk": "^2.6.8",
     "clsx": "^2.1.1",
     "firebase": "^12.17.1",
     "framer-motion": "^13.1.0",
