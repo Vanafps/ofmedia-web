@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { UserProfile } from '../services/firebase';
-import { updateLocalUserProfile } from '../services/firebase';
+import { updateLocalUserProfile, CINEMA_AVATARS } from '../services/firebase';
 import { getUserRatings } from '../services/ratingService';
 import { getAllUserReviews, deleteMovieReview, type Review } from '../services/reviewService';
 import { PROJECTS_DATA, type Project } from '../data/projects';
@@ -26,6 +26,7 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'ratings' | 'reviews' | 'settings'>('overview');
   const [displayName, setDisplayName] = useState('');
+  const [selectedAvatar, setSelectedAvatar] = useState(user?.avatarIcon || 'popcorn');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [userReviews, setUserReviews] = useState<Review[]>([]);
   const [watchedProjects, setWatchedProjects] = useState<Project[]>([]);
@@ -61,6 +62,7 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
       document.body.style.overflow = 'hidden';
       const currentName = user?.displayName || user?.email?.split('@')[0] || 'Пользователь';
       setDisplayName(currentName);
+      setSelectedAvatar(user?.avatarIcon || 'popcorn');
       refreshData();
     } else {
       document.body.style.overflow = 'auto';
@@ -87,6 +89,7 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
   const handleSaveProfile = () => {
     updateLocalUserProfile({
       displayName: currentDisplayName.trim() || 'Пользователь',
+      avatarIcon: selectedAvatar,
     });
     setIsEditingProfile(false);
   };
@@ -163,9 +166,26 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
         <div className="p-6 sm:p-8 rounded-3xl glass-card flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           {/* Avatar & Meta */}
           <div className="flex flex-col sm:flex-row items-center sm:items-center gap-5 text-center sm:text-left">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-[#ff5c00] to-orange-700 flex items-center justify-center text-white font-bold text-3xl shadow-lg border border-white/20 shrink-0">
-              {initialLetter}
-            </div>
+            {(() => {
+              const currentAvatarObj = CINEMA_AVATARS.find((a) => a.id === user?.avatarIcon);
+              if (currentAvatarObj) {
+                return (
+                  <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-tr ${currentAvatarObj.bg} flex items-center justify-center text-4xl sm:text-5xl shadow-lg border border-white/20 shrink-0`}>
+                    {currentAvatarObj.emoji}
+                  </div>
+                );
+              }
+              if (user?.photoURL) {
+                return (
+                  <img src={user.photoURL} alt={user.displayName || ''} className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-white/20 shrink-0 shadow-lg" />
+                );
+              }
+              return (
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-[#ff5c00] to-orange-700 flex items-center justify-center text-white font-bold text-3xl sm:text-4xl shadow-lg border border-white/20 shrink-0">
+                  {initialLetter}
+                </div>
+              );
+            })()}
 
             <div className="space-y-1.5">
               <h1 className="font-bold text-2xl sm:text-3xl text-white tracking-tight">
@@ -202,8 +222,35 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
 
         {/* PROFILE EDIT FORM */}
         {isEditingProfile && (
-          <div className="p-6 rounded-3xl glass-card space-y-4 animate-in fade-in">
+          <div className="p-6 rounded-3xl glass-card space-y-5 animate-in fade-in">
             <h3 className="font-bold text-base text-white">Редактирование профиля</h3>
+            
+            <div className="space-y-2">
+              <label className="text-xs text-zinc-400 font-medium block">Выберите аватар киномана:</label>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5 max-w-md">
+                {CINEMA_AVATARS.map((av) => {
+                  const isSelected = selectedAvatar === av.id;
+                  return (
+                    <button
+                      key={av.id}
+                      type="button"
+                      onClick={() => setSelectedAvatar(av.id)}
+                      className={`flex flex-col items-center justify-center p-2 rounded-2xl border transition-all ${
+                        isSelected
+                          ? 'border-[#ff5c00] bg-[#ff5c00]/15 ring-2 ring-[#ff5c00]/40 scale-105'
+                          : 'border-white/10 bg-white/5 hover:border-white/25 hover:bg-white/10'
+                      }`}
+                    >
+                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${av.bg} flex items-center justify-center text-xl shadow-inner mb-1`}>
+                        {av.emoji}
+                      </div>
+                      <span className="text-[10px] text-zinc-300 font-medium truncate max-w-full">{av.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="max-w-md space-y-1.5">
               <label className="text-xs text-zinc-400 font-medium block">Имя пользователя:</label>
               <input

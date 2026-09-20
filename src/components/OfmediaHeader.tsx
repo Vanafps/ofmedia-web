@@ -3,6 +3,7 @@ import type { Project } from '../data/projects';
 import type { Actor } from '../data/actors';
 import { ACTORS_DATA } from '../data/actors';
 import type { UserProfile } from '../services/firebase';
+import { CINEMA_AVATARS } from '../services/firebase';
 import { getUserRatings } from '../services/ratingService';
 import { Tooltip } from './ui/Tooltip';
 
@@ -256,41 +257,57 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
           {/* User Profile / Auth Button */}
           {user ? (
             <div className="relative">
-              <button
-                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                className="flex items-center gap-2 p-1 sm:p-1.5 sm:pr-3.5 rounded-full glass-pill text-white transition-all shadow-lg hover:scale-102 active:scale-95"
-              >
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt={user.displayName || ''} className="w-7 h-7 rounded-full object-cover border border-white/20" />
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-[#ff5c00] text-white font-semibold text-xs flex items-center justify-center shadow">
-                    {(user.displayName || user.email || 'U')[0].toUpperCase()}
-                  </div>
-                )}
-                <span className="text-xs font-medium max-w-[90px] truncate hidden md:block">
-                  {user.displayName || user.email?.split('@')[0]}
-                </span>
-                <svg className="w-3.5 h-3.5 fill-zinc-400 hidden sm:block" viewBox="0 0 24 24">
-                  <path d="M7 10l5 5 5-5z" />
-                </svg>
-              </button>
+              {(() => {
+                const avatar = user.avatarIcon ? CINEMA_AVATARS.find((a) => a.id === user.avatarIcon) : null;
+                return (
+                  <>
+                    <button
+                      onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                      className="flex items-center gap-2 p-1 sm:p-1.5 sm:pr-3.5 rounded-full glass-pill text-white transition-all shadow-lg hover:scale-102 active:scale-95"
+                    >
+                      {avatar ? (
+                        <div className={`w-7 h-7 rounded-full bg-gradient-to-tr ${avatar.bg} flex items-center justify-center text-sm shadow-inner shrink-0`}>
+                          {avatar.emoji}
+                        </div>
+                      ) : user.photoURL ? (
+                        <img src={user.photoURL} alt={user.displayName || ''} className="w-7 h-7 rounded-full object-cover border border-white/20" />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-[#ff5c00] text-white font-semibold text-xs flex items-center justify-center shadow">
+                          {(user.displayName || user.email || 'U')[0].toUpperCase()}
+                        </div>
+                      )}
+                      <span className="text-xs font-medium max-w-[90px] truncate hidden md:block">
+                        {user.displayName || user.email?.split('@')[0]}
+                      </span>
+                      <svg className="w-3.5 h-3.5 fill-zinc-400 hidden sm:block" viewBox="0 0 24 24">
+                        <path d="M7 10l5 5 5-5z" />
+                      </svg>
+                    </button>
 
-              {/* Profile Dropdown with Hardware-Accelerated Frosted Glass */}
-              {isProfileDropdownOpen && (
-                <div className="absolute right-0 mt-3 w-64 glass-dropdown rounded-3xl p-4 z-50 space-y-3 animate-in fade-in zoom-in-95">
-                  <div className="flex items-center gap-3 pb-3 border-b border-white/10">
-                    <div className="w-10 h-10 rounded-2xl bg-[#ff5c00] text-white font-semibold text-sm flex items-center justify-center shadow shrink-0">
-                      {(user.displayName || user.email || 'U')[0].toUpperCase()}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-medium text-white truncate">
-                        {user.displayName || 'Пользователь'}
-                      </div>
-                      <div className="text-[11px] text-zinc-400 font-normal truncate">
-                        {user.email || 'Авторизован'}
-                      </div>
-                    </div>
-                  </div>
+                    {/* Profile Dropdown with Hardware-Accelerated Frosted Glass */}
+                    {isProfileDropdownOpen && (
+                      <div className="absolute right-0 mt-3 w-64 glass-dropdown rounded-3xl p-4 z-50 space-y-3 animate-in fade-in zoom-in-95">
+                        <div className="flex items-center gap-3 pb-3 border-b border-white/10">
+                          {avatar ? (
+                            <div className={`w-10 h-10 rounded-2xl bg-gradient-to-tr ${avatar.bg} flex items-center justify-center text-xl shadow-inner shrink-0`}>
+                              {avatar.emoji}
+                            </div>
+                          ) : user.photoURL ? (
+                            <img src={user.photoURL} alt={user.displayName || ''} className="w-10 h-10 rounded-2xl object-cover border border-white/20 shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-2xl bg-[#ff5c00] text-white font-semibold text-sm flex items-center justify-center shadow shrink-0">
+                              {(user.displayName || user.email || 'U')[0].toUpperCase()}
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-medium text-white truncate">
+                              {user.displayName || 'Пользователь'}
+                            </div>
+                            <div className="text-[11px] text-zinc-400 font-normal truncate">
+                              {user.email || 'Авторизован'}
+                            </div>
+                          </div>
+                        </div>
 
                   <div className="space-y-1 text-xs">
                     <button
@@ -324,8 +341,11 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
                   </button>
                 </div>
               )}
-            </div>
-          ) : (
+            </>
+          );
+        })()}
+      </div>
+    ) : (
             <button
               onClick={onOpenAuth}
               className="px-4 py-2 rounded-full font-medium text-xs bg-[#ff5c00] hover:bg-[#e05200] text-white shadow-lg shadow-[#ff5c00]/30 hover:scale-103 active:scale-95 transition-all flex items-center gap-1.5"

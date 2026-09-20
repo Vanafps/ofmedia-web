@@ -688,7 +688,13 @@ export function App() {
           const btn = document.querySelector('header button[title="Поиск фильмов и актёров"]') as HTMLButtonElement;
           if (btn) btn.click();
         }}
-        onOpenProfile={() => setIsProfileModalOpen(true)}
+        onOpenProfile={() => {
+          if (user) {
+            setIsProfileModalOpen(true);
+          } else {
+            setIsAuthModalOpen(true);
+          }
+        }}
         isLoggedIn={!!user}
       />
 

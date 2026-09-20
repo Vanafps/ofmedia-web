@@ -19,30 +19,37 @@ import {
   type Database
 } from 'firebase/database';
 
+const rawApiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+const isRealFirebase = Boolean(rawApiKey && !rawApiKey.includes("Dummy"));
+
 const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDummyKeyForOfmediaOnline12345",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "ofmedia-web.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "ofmedia-web",
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "https://ofmedia-web-default-rtdb.europe-west1.firebasedatabase.app/",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "ofmedia-web.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "1029384756",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:1029384756:web:abcdef123456"
+  apiKey: rawApiKey || "",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "",
+  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "",
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || ""
 };
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let rtdb: Database | null = null;
 
-try {
-  if (!getApps().length) {
-    app = initializeApp(DEFAULT_FIREBASE_CONFIG);
-  } else {
-    app = getApps()[0];
+if (isRealFirebase) {
+  try {
+    if (!getApps().length) {
+      app = initializeApp(DEFAULT_FIREBASE_CONFIG);
+    } else {
+      app = getApps()[0];
+    }
+    auth = getAuth(app);
+    if (DEFAULT_FIREBASE_CONFIG.databaseURL) {
+      rtdb = getDatabase(app, DEFAULT_FIREBASE_CONFIG.databaseURL);
+    }
+  } catch (err) {
+    console.warn("Firebase initialization notice:", err);
   }
-  auth = getAuth(app);
-  rtdb = getDatabase(app, DEFAULT_FIREBASE_CONFIG.databaseURL);
-} catch (err) {
-  console.warn("Firebase initialization notice:", err);
 }
 
 export interface UserProfile {
@@ -50,18 +57,30 @@ export interface UserProfile {
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
+  avatarIcon?: string | null;
   isAnonymous?: boolean;
 }
 
-interface StoredAccount {
+export interface StoredAccount {
   uid: string;
-  email: string;
+  identifier: string; // username or email in lowercase
+  email?: string;
   displayName: string;
   password?: string;
   photoURL?: string | null;
+  avatarIcon?: string | null;
 }
 
-const getStoredAccounts = (): StoredAccount[] => {
+export const CINEMA_AVATARS = [
+  { id: 'popcorn', emoji: '🍿', label: 'Киноман', bg: 'from-orange-500 to-amber-600' },
+  { id: 'director', emoji: '🎬', label: 'Режиссёр', bg: 'from-red-500 to-amber-600' },
+  { id: 'camera', emoji: '🎥', label: 'Оператор', bg: 'from-blue-500 to-cyan-600' },
+  { id: 'star', emoji: '⭐', label: 'Звезда', bg: 'from-yellow-400 to-orange-500' },
+  { id: 'mask', emoji: '🎭', label: 'Актёр', bg: 'from-purple-500 to-pink-600' },
+  { id: 'sound', emoji: '🎧', label: 'Звукач', bg: 'from-emerald-500 to-teal-600' },
+];
+
+export const getStoredAccounts = (): StoredAccount[] => {
   try {
     const raw = localStorage.getItem('ofmedia_registered_accounts');
     return raw ? JSON.parse(raw) : [];
@@ -70,7 +89,7 @@ const getStoredAccounts = (): StoredAccount[] => {
   }
 };
 
-const saveStoredAccounts = (accounts: StoredAccount[]) => {
+export const saveStoredAccounts = (accounts: StoredAccount[]) => {
   try {
     localStorage.setItem('ofmedia_registered_accounts', JSON.stringify(accounts));
   } catch {
@@ -78,11 +97,11 @@ const saveStoredAccounts = (accounts: StoredAccount[]) => {
   }
 };
 
-// Generate deterministic UID based on email
-const generateUidForEmail = (email: string): string => {
+// Generate deterministic UID based on string identifier
+const generateUidForId = (id: string): string => {
   let hash = 0;
-  for (let i = 0; i < email.length; i++) {
-    const char = email.charCodeAt(i);
+  for (let i = 0; i < id.length; i++) {
+    const char = id.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
     hash |= 0;
   }
@@ -101,7 +120,7 @@ export const subscribeToAuth = (callback: (user: UserProfile | null) => void) =>
 
   callback(getSavedUser());
 
-  if (auth && DEFAULT_FIREBASE_CONFIG.apiKey !== "AIzaSyDummyKeyForOfmediaOnline12345") {
+  if (auth && DEFAULT_FIREBASE_CONFIG.apiKey && !DEFAULT_FIREBASE_CONFIG.apiKey.includes('Dummy')) {
     onAuthStateChanged(auth, (user: User | null) => {
       if (user) {
         const profile: UserProfile = {
@@ -122,6 +141,11 @@ export const subscribeToAuth = (callback: (user: UserProfile | null) => void) =>
   };
 
   window.addEventListener('ofmedia_user_updated', localUpdateHandler);
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'ofmedia_user') {
+      callback(getSavedUser());
+    }
+  });
 
   return () => {
     window.removeEventListener('ofmedia_user_updated', localUpdateHandler);
@@ -138,10 +162,11 @@ export const updateLocalUserProfile = (updates: Partial<UserProfile>) => {
 
     // Update in accounts DB
     const accounts = getStoredAccounts();
-    const idx = accounts.findIndex((a) => a.email.toLowerCase() === (cur.email || '').toLowerCase());
+    const idx = accounts.findIndex((a) => a.uid === cur.uid);
     if (idx !== -1) {
       if (updates.displayName) accounts[idx].displayName = updates.displayName;
       if (updates.photoURL !== undefined) accounts[idx].photoURL = updates.photoURL;
+      if (updates.avatarIcon !== undefined) accounts[idx].avatarIcon = updates.avatarIcon;
       saveStoredAccounts(accounts);
     }
 
@@ -152,15 +177,16 @@ export const updateLocalUserProfile = (updates: Partial<UserProfile>) => {
 };
 
 export const loginWithGoogle = async (): Promise<UserProfile> => {
-  if (auth && DEFAULT_FIREBASE_CONFIG.apiKey !== "AIzaSyDummyKeyForOfmediaOnline12345") {
+  if (auth && DEFAULT_FIREBASE_CONFIG.apiKey && !DEFAULT_FIREBASE_CONFIG.apiKey.includes('Dummy')) {
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const profile: UserProfile = {
         uid: result.user.uid,
         email: result.user.email,
-        displayName: result.user.displayName || result.user.email?.split('@')[0] || 'Google Пользователь',
+        displayName: result.user.displayName || result.user.email?.split('@')[0] || 'Пользователь',
         photoURL: result.user.photoURL,
+        avatarIcon: 'star',
         isAnonymous: false
       };
       localStorage.setItem('ofmedia_user', JSON.stringify(profile));
@@ -171,13 +197,14 @@ export const loginWithGoogle = async (): Promise<UserProfile> => {
     }
   }
 
-  // Consistent Google User profile
+  // Quick Google-style login
   const googleEmail = 'user.google@gmail.com';
   const profile: UserProfile = {
-    uid: generateUidForEmail(googleEmail),
+    uid: generateUidForId(googleEmail),
     email: googleEmail,
     displayName: 'Google Пользователь',
     photoURL: null,
+    avatarIcon: 'star',
     isAnonymous: false
   };
   localStorage.setItem('ofmedia_user', JSON.stringify(profile));
@@ -185,16 +212,33 @@ export const loginWithGoogle = async (): Promise<UserProfile> => {
   return profile;
 };
 
-export const loginWithEmail = async (email: string, pass: string): Promise<UserProfile> => {
-  const normEmail = email.trim().toLowerCase();
+export const loginAsGuest = (): UserProfile => {
+  const guestNumber = Math.floor(1000 + Math.random() * 9000);
+  const profile: UserProfile = {
+    uid: `guest_${guestNumber}`,
+    email: null,
+    displayName: `Гость #${guestNumber}`,
+    photoURL: null,
+    avatarIcon: 'popcorn',
+    isAnonymous: true
+  };
+  localStorage.setItem('ofmedia_user', JSON.stringify(profile));
+  window.dispatchEvent(new Event('ofmedia_user_updated'));
+  return profile;
+};
 
-  if (auth && DEFAULT_FIREBASE_CONFIG.apiKey !== "AIzaSyDummyKeyForOfmediaOnline12345") {
+export const loginWithEmail = async (identifier: string, pass: string): Promise<UserProfile> => {
+  const normId = identifier.trim().toLowerCase();
+  if (!normId) throw new Error('Введите логин или email');
+  if (!pass) throw new Error('Введите пароль');
+
+  if (auth && DEFAULT_FIREBASE_CONFIG.apiKey && !DEFAULT_FIREBASE_CONFIG.apiKey.includes('Dummy')) {
     try {
-      const result = await signInWithEmailAndPassword(auth, normEmail, pass);
+      const result = await signInWithEmailAndPassword(auth, normId, pass);
       const profile: UserProfile = {
         uid: result.user.uid,
         email: result.user.email,
-        displayName: result.user.displayName || normEmail.split('@')[0],
+        displayName: result.user.displayName || normId.split('@')[0],
         photoURL: result.user.photoURL,
         isAnonymous: false
       };
@@ -207,41 +251,27 @@ export const loginWithEmail = async (email: string, pass: string): Promise<UserP
   }
 
   const accounts = getStoredAccounts();
-  const existing = accounts.find((a) => a.email.toLowerCase() === normEmail);
+  const existing = accounts.find(
+    (a) =>
+      a.identifier.toLowerCase() === normId ||
+      (a.email && a.email.toLowerCase() === normId) ||
+      a.displayName.toLowerCase() === normId
+  );
 
-  if (existing) {
-    if (existing.password && existing.password !== pass) {
-      throw new Error('Неверный пароль. Попробуйте еще раз.');
-    }
-    const profile: UserProfile = {
-      uid: existing.uid,
-      email: existing.email,
-      displayName: existing.displayName || normEmail.split('@')[0],
-      photoURL: existing.photoURL || null,
-      isAnonymous: false
-    };
-    localStorage.setItem('ofmedia_user', JSON.stringify(profile));
-    window.dispatchEvent(new Event('ofmedia_user_updated'));
-    return profile;
+  if (!existing) {
+    throw new Error('Аккаунт с таким логином или email не найден. Зарегистрируйтесь во вкладке «Регистрация».');
   }
 
-  // If not found in accounts, auto-register on login for seamless demo experience
-  const newUid = generateUidForEmail(normEmail);
-  const newAccount: StoredAccount = {
-    uid: newUid,
-    email: normEmail,
-    displayName: normEmail.split('@')[0],
-    password: pass,
-    photoURL: null,
-  };
-  accounts.push(newAccount);
-  saveStoredAccounts(accounts);
+  if (existing.password && existing.password !== pass) {
+    throw new Error('Неверный пароль. Пожалуйста, проверьте ввод.');
+  }
 
   const profile: UserProfile = {
-    uid: newUid,
-    email: normEmail,
-    displayName: normEmail.split('@')[0],
-    photoURL: null,
+    uid: existing.uid,
+    email: existing.email || normId,
+    displayName: existing.displayName || normId.split('@')[0],
+    photoURL: existing.photoURL || null,
+    avatarIcon: existing.avatarIcon || 'popcorn',
     isAnonymous: false
   };
   localStorage.setItem('ofmedia_user', JSON.stringify(profile));
@@ -249,20 +279,28 @@ export const loginWithEmail = async (email: string, pass: string): Promise<UserP
   return profile;
 };
 
-export const registerWithEmail = async (email: string, pass: string, name?: string): Promise<UserProfile> => {
-  const normEmail = email.trim().toLowerCase();
+export const registerWithEmail = async (
+  identifier: string,
+  pass: string,
+  name?: string,
+  avatarIcon?: string
+): Promise<UserProfile> => {
+  const normId = identifier.trim().toLowerCase();
+  if (!normId) throw new Error('Введите логин или email');
+  if (!pass || pass.length < 4) throw new Error('Пароль должен быть не менее 4 символов');
 
-  if (auth && DEFAULT_FIREBASE_CONFIG.apiKey !== "AIzaSyDummyKeyForOfmediaOnline12345") {
+  if (auth && DEFAULT_FIREBASE_CONFIG.apiKey && !DEFAULT_FIREBASE_CONFIG.apiKey.includes('Dummy')) {
     try {
-      const result = await createUserWithEmailAndPassword(auth, normEmail, pass);
+      const result = await createUserWithEmailAndPassword(auth, normId, pass);
       if (name && result.user) {
         await updateProfile(result.user, { displayName: name });
       }
       const profile: UserProfile = {
         uid: result.user.uid,
         email: result.user.email,
-        displayName: name || result.user.displayName || normEmail.split('@')[0],
+        displayName: name || result.user.displayName || normId.split('@')[0],
         photoURL: result.user.photoURL,
+        avatarIcon: avatarIcon || 'popcorn',
         isAnonymous: false
       };
       localStorage.setItem('ofmedia_user', JSON.stringify(profile));
@@ -274,30 +312,38 @@ export const registerWithEmail = async (email: string, pass: string, name?: stri
   }
 
   const accounts = getStoredAccounts();
-  const existingIdx = accounts.findIndex((a) => a.email.toLowerCase() === normEmail);
-  const uid = generateUidForEmail(normEmail);
-  const displayName = name?.trim() || normEmail.split('@')[0];
+  const existing = accounts.find(
+    (a) =>
+      a.identifier.toLowerCase() === normId ||
+      (a.email && a.email.toLowerCase() === normId)
+  );
+
+  if (existing) {
+    throw new Error('Аккаунт с таким логином или email уже зарегистрирован. Перейдите на вкладку «Войти».');
+  }
+
+  const uid = generateUidForId(normId);
+  const displayName = name?.trim() || normId.split('@')[0];
 
   const newAccount: StoredAccount = {
     uid,
-    email: normEmail,
+    identifier: normId,
+    email: normId.includes('@') ? normId : undefined,
     displayName,
     password: pass,
     photoURL: null,
+    avatarIcon: avatarIcon || 'popcorn',
   };
 
-  if (existingIdx !== -1) {
-    accounts[existingIdx] = newAccount;
-  } else {
-    accounts.push(newAccount);
-  }
+  accounts.push(newAccount);
   saveStoredAccounts(accounts);
 
   const profile: UserProfile = {
     uid,
-    email: normEmail,
+    email: newAccount.email || null,
     displayName,
     photoURL: null,
+    avatarIcon: avatarIcon || 'popcorn',
     isAnonymous: false
   };
   localStorage.setItem('ofmedia_user', JSON.stringify(profile));
