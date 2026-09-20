@@ -48,9 +48,10 @@ export const checkForAppUpdate = async (): Promise<{
 };
 
 export const triggerApkDownload = (apkUrl?: string) => {
-  const target = apkUrl || '/app/apk';
+  const target = apkUrl || 'https://ofmedia.vercel.app/ofmedia-latest.apk';
   const a = document.createElement('a');
   a.href = target;
+  a.target = '_blank';
   a.download = 'OFMEDIA.apk';
   document.body.appendChild(a);
   a.click();

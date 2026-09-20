@@ -151,7 +151,7 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.25 }}
           data-lenis-prevent="true"
-          className="fixed inset-0 z-50 bg-[#08080a] overflow-y-auto custom-scrollbar text-[#f4f4f5] pb-28 sm:pb-12"
+          className="fixed inset-0 z-[100] bg-[#08080a] overflow-y-auto custom-scrollbar text-[#f4f4f5] pb-28 sm:pb-12"
         >
       {/* Top Floating Navigation Header */}
       <div className="sticky top-0 left-0 right-0 z-40 px-4 sm:px-12 py-3.5 sm:py-5 glass-header flex items-center justify-between">
@@ -856,7 +856,7 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
                     setIsCheckingUpdate(false);
                     if (res.updateAvailable && res.latestVersion) {
                       setUpdateMessage(`Доступна новая версия ${res.latestVersion.versionName}! Загрузка APK...`);
-                      triggerApkDownload(res.latestVersion.apkUrl);
+                      triggerApkDownload(res.latestVersion.apkDirectUrl || res.latestVersion.apkUrl);
                     } else {
                       setUpdateMessage('У вас установлена последняя версия приложения.');
                     }

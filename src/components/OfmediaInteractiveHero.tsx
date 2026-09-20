@@ -164,7 +164,7 @@ export const OfmediaInteractiveHero: React.FC<OfmediaInteractiveHeroProps> = ({
       ref={containerRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className="relative w-full min-h-[82vh] lg:min-h-[88vh] overflow-hidden bg-[#070709] select-none flex items-center justify-center pt-20 pb-12 sm:pt-24 sm:pb-16"
+      className="relative w-full min-h-[85vh] lg:min-h-[90vh] overflow-hidden bg-[#070709] select-none flex items-center justify-center pt-24 pb-14 sm:pt-28 sm:pb-20 md:pt-32"
     >
       {/* Dynamic Ambient Parallax Spotlight Glow */}
       <div

@@ -6,8 +6,8 @@ import type { UserProfile } from '../services/firebase';
 import { getUserRatings } from '../services/ratingService';
 
 interface OfmediaHeaderProps {
-  activeTab: 'main' | 'favorites';
-  setActiveTab: (tab: 'main' | 'favorites') => void;
+  activeTab: 'main' | 'search' | 'favorites';
+  setActiveTab: (tab: 'main' | 'search' | 'favorites') => void;
   onSelectProject: (project: Project) => void;
   onSelectActor: (actor: Actor) => void;
   projects: Project[];
@@ -51,7 +51,7 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
       setIsScrolled(window.scrollY > 20);
     };
     const handleGlobalOpenSearch = () => {
-      setIsSearchOpen(true);
+      setActiveTab('search');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -61,7 +61,7 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('ofmedia_open_search', handleGlobalOpenSearch);
     };
-  }, []);
+  }, [setActiveTab]);
 
   const queryNorm = searchQuery.trim().toLowerCase();
 
@@ -117,6 +117,17 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
               }`}
             >
               Главная
+            </button>
+
+            <button
+              onClick={() => setActiveTab('search')}
+              className={`relative px-4 py-1.5 rounded-full transition-all duration-200 ${
+                activeTab === 'search'
+                  ? 'bg-white/20 text-white font-medium shadow-sm border border-white/20'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              Поиск
             </button>
 
             <button

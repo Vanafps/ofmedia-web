@@ -15,6 +15,7 @@ import { OfmediaAuthModal } from './components/OfmediaAuthModal';
 import { OfmediaActorModal } from './components/OfmediaActorModal';
 import { OfmediaProfileModal } from './components/OfmediaProfileModal';
 import { OfmediaMobileNav } from './components/OfmediaMobileNav';
+import { OfmediaSearchPage } from './components/OfmediaSearchPage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DownloadApkPage } from './components/DownloadApkPage';
 import { AppLandingPage } from './components/AppLandingPage';
@@ -52,7 +53,7 @@ export function App() {
     return <AppLandingPage />;
   }
 
-  const [activeTab, setActiveTab] = useState<'main' | 'favorites'>('main');
+  const [activeTab, setActiveTab] = useState<'main' | 'search' | 'favorites'>('main');
   const [favoritesSubTab, setFavoritesSubTab] = useState<'favorites' | 'ratings'>('favorites');
   const [sortOrder, setSortOrder] = useState<'rating_desc' | 'year_desc' | 'title_asc'>('rating_desc');
   const [selectedCategory, setSelectedCategory] = useState<GenreCategoryId>('none');
@@ -261,9 +262,18 @@ export function App() {
       }
     }
 
+    // Route: /search
+    if (pathname === '/search' || pathname === '/search/') {
+      setActiveTab('search');
+      setIsDetailModalOpen(false);
+      setIsPlayerOpen(false);
+      setIsActorModalOpen(false);
+      return;
+    }
+
     // Route: /:slug (Direct film page)
     const singleSlug = decodeURIComponent(pathname.replace(/^\//, ''));
-    if (singleSlug && singleSlug !== 'main') {
+    if (singleSlug && singleSlug !== 'main' && singleSlug !== 'search') {
       const match = PROJECTS_DATA.find((p) => p.slug === singleSlug || p.id === singleSlug);
       if (match) {
         setSelectedProject(match);
@@ -287,18 +297,54 @@ export function App() {
     return () => window.removeEventListener('popstate', syncRouteFromLocation);
   }, []);
 
+  // Hardware Back Button integration for Android (Capacitor)
+  useEffect(() => {
+    let removeListener: (() => void) | null = null;
+
+    const setupBackButton = async () => {
+      try {
+        const { App: CapApp } = await import('@capacitor/app');
+        const handle = await CapApp.addListener('backButton', ({ canGoBack }) => {
+          if (isPlayerOpen) {
+            handleClosePlayer();
+          } else if (isDetailModalOpen) {
+            handleCloseDetails();
+          } else if (isActorModalOpen) {
+            handleCloseActor();
+          } else if (isProfileModalOpen) {
+            setIsProfileModalOpen(false);
+          } else if (isAuthModalOpen) {
+            setIsAuthModalOpen(false);
+          } else if (activeTab !== 'main') {
+            setActiveTab('main');
+          } else if (canGoBack) {
+            window.history.back();
+          } else {
+            CapApp.exitApp();
+          }
+        });
+        removeListener = () => handle.remove();
+      } catch {}
+    };
+
+    setupBackButton();
+    return () => {
+      if (removeListener) removeListener();
+    };
+  }, [isPlayerOpen, isDetailModalOpen, isActorModalOpen, isProfileModalOpen, isAuthModalOpen, activeTab]);
+
   const toggleFavorite = (projectId: string) => {
     setFavorites((prev) =>
       prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId]
     );
   };
 
-  const handleSelectTab = (tab: 'main' | 'favorites') => {
+  const handleSelectTab = (tab: 'main' | 'search' | 'favorites') => {
     setActiveTab(tab);
     if (isDetailModalOpen) setIsDetailModalOpen(false);
     if (isPlayerOpen) setIsPlayerOpen(false);
     if (isActorModalOpen) setIsActorModalOpen(false);
-    window.history.pushState(null, '', tab === 'favorites' ? '/my' : '/');
+    window.history.pushState(null, '', tab === 'favorites' ? '/my' : tab === 'search' ? '/search' : '/');
   };
 
   const handlePlayProject = (project: Project, episode?: Episode) => {
@@ -438,19 +484,21 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-[#070709] text-zinc-100 flex flex-col selection:bg-[#ff5c00] selection:text-white pb-16 sm:pb-0">
-      {/* Header with Profile Modal Access */}
-      <OfmediaHeader
-        activeTab={activeTab}
-        setActiveTab={handleSelectTab}
-        onSelectProject={handleOpenDetails}
-        onSelectActor={handleOpenActor}
-        projects={PROJECTS_DATA}
-        favoritesCount={favorites.length}
-        user={user}
-        onOpenAuth={() => setIsAuthModalOpen(true)}
-        onOpenProfile={() => setIsProfileModalOpen(true)}
-        onLogout={logoutUser}
-      />
+      {/* Header with Profile Modal Access (hidden when viewing standalone modal or player) */}
+      {!isPlayerOpen && !isDetailModalOpen && !isActorModalOpen && (
+        <OfmediaHeader
+          activeTab={activeTab}
+          setActiveTab={handleSelectTab}
+          onSelectProject={handleOpenDetails}
+          onSelectActor={handleOpenActor}
+          projects={PROJECTS_DATA}
+          favoritesCount={favorites.length}
+          user={user}
+          onOpenAuth={() => setIsAuthModalOpen(true)}
+          onOpenProfile={() => setIsProfileModalOpen(true)}
+          onLogout={logoutUser}
+        />
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 pb-16">
@@ -578,7 +626,20 @@ export function App() {
           </div>
         )}
 
-        {/* TAB 2: FAVORITES & RATINGS ("МОЁ") */}
+        {/* TAB 2: DEDICATED SEARCH PAGE */}
+        {activeTab === 'search' && (
+          <div className="pt-16 sm:pt-20">
+            <OfmediaSearchPage
+              onSelectProject={handleOpenDetails}
+              onPlayProject={handlePlayProject}
+              onSelectActor={handleOpenActor}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
+            />
+          </div>
+        )}
+
+        {/* TAB 3: FAVORITES & RATINGS ("МОЁ") */}
         {activeTab === 'favorites' && (
           <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 pt-20 sm:pt-24 space-y-6 sm:space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -900,7 +961,7 @@ export function App() {
               <div className="flex items-center gap-2 pt-2">
                 <button
                   onClick={() => {
-                    triggerApkDownload(updateInfo.apkUrl);
+                    triggerApkDownload(updateInfo.apkDirectUrl || updateInfo.apkUrl);
                     setShowUpdateModal(false);
                   }}
                   className="flex-1 py-3 px-4 rounded-xl bg-[#ff5c00] hover:bg-[#e05200] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-lg shadow-[#ff5c00]/30 transition-all active:scale-95 cursor-pointer"

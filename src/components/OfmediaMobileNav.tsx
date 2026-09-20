@@ -1,10 +1,10 @@
 import React from 'react';
 
 interface OfmediaMobileNavProps {
-  activeTab: 'main' | 'favorites';
-  setActiveTab: (tab: 'main' | 'favorites') => void;
+  activeTab: 'main' | 'search' | 'favorites';
+  setActiveTab: (tab: 'main' | 'search' | 'favorites') => void;
   favoritesCount: number;
-  onOpenSearch: () => void;
+  onOpenSearch?: () => void;
   onOpenProfile: () => void;
   isLoggedIn: boolean;
   isProfileOpen?: boolean;
@@ -15,14 +15,13 @@ export const OfmediaMobileNav: React.FC<OfmediaMobileNavProps> = ({
   activeTab,
   setActiveTab,
   favoritesCount,
-  onOpenSearch,
   onOpenProfile,
   isLoggedIn,
   isProfileOpen = false,
   onGoHome,
 }) => {
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-[70] bg-[#0a0a0a]/95 backdrop-blur-3xl border-t border-white/12 px-4 py-2 flex items-center justify-around select-none shadow-[0_-8px_30px_rgba(0,0,0,0.9)]">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-[70] bg-[#0a0a0a]/95 backdrop-blur-3xl border-t border-white/12 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center justify-around select-none shadow-[0_-8px_30px_rgba(0,0,0,0.9)]">
       {/* 1. Главная */}
       <button
         onClick={() => {
@@ -44,9 +43,12 @@ export const OfmediaMobileNav: React.FC<OfmediaMobileNavProps> = ({
       <button
         onClick={() => {
           onGoHome();
-          onOpenSearch();
+          setActiveTab('search');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
-        className="flex flex-col items-center gap-1 p-1 text-zinc-400 hover:text-white transition-all active:scale-90"
+        className={`flex flex-col items-center gap-1 p-1 transition-all active:scale-90 ${
+          activeTab === 'search' && !isProfileOpen ? 'text-[#ff5c00]' : 'text-zinc-400 hover:text-white'
+        }`}
       >
         <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
           <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z" />

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Hls from 'hls.js';
 import type { Project, Episode } from '../data/projects';
 import { saveWatchProgress, getWatchProgress } from '../services/watchHistoryService';
+import { isNativeAndroid } from '../services/vkIdService';
 import { SpeakerVolumeIcon } from './SpeakerVolumeIcon';
 
 interface OfmediaPlayerProps {
@@ -768,8 +769,28 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
-      setIsPipSupported('pictureInPictureEnabled' in document);
+      const hasDocPip = 'pictureInPictureEnabled' in document && Boolean((document as any).pictureInPictureEnabled);
+      const video = videoRef.current;
+      const hasVideoPip = video && typeof (video as any).requestPictureInPicture === 'function';
+      const hasWebkitPip = video && typeof (video as any).webkitSupportsPresentationMode === 'function';
+      setIsPipSupported(Boolean(hasDocPip || hasVideoPip || hasWebkitPip || isNativeAndroid()));
     }
+
+    const handleFullscreenChange = () => {
+      const isFs = Boolean(
+        document.fullscreenElement ||
+        (document as any).webkitFullscreenElement ||
+        (document as any).mozFullScreenElement
+      );
+      setIsFullscreen(isFs);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
   }, []);
 
   const togglePictureInPicture = async () => {
@@ -779,9 +800,13 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
       if (document.pictureInPictureElement) {
         await document.exitPictureInPicture();
         setIsPipActive(false);
-      } else {
+      } else if (video.requestPictureInPicture) {
         await video.requestPictureInPicture();
         setIsPipActive(true);
+      } else if ((video as any).webkitSetPresentationMode) {
+        const currentMode = (video as any).webkitPresentationMode;
+        (video as any).webkitSetPresentationMode(currentMode === 'picture-in-picture' ? 'inline' : 'picture-in-picture');
+        setIsPipActive(currentMode !== 'picture-in-picture');
       }
     } catch (err) {
       console.warn('Picture in picture error:', err);
@@ -793,8 +818,14 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     const video = videoRef.current;
     if (!container) return;
 
+    const isCurrentlyFs = Boolean(
+      document.fullscreenElement ||
+      (document as any).webkitFullscreenElement ||
+      (document as any).mozFullScreenElement
+    );
+
     try {
-      if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+      if (!isCurrentlyFs) {
         if (container.requestFullscreen) {
           await container.requestFullscreen();
         } else if ((container as any).webkitRequestFullscreen) {
@@ -802,12 +833,32 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
         } else if (video && (video as any).webkitEnterFullscreen) {
           (video as any).webkitEnterFullscreen();
         }
+
+        if (isNativeAndroid()) {
+          try {
+            const { StatusBar } = await import('@capacitor/status-bar');
+            await StatusBar.hide();
+          } catch {}
+          try {
+            (window.screen?.orientation as any)?.lock?.('landscape').catch(() => {});
+          } catch {}
+        }
         setIsFullscreen(true);
       } else {
         if (document.exitFullscreen) {
           await document.exitFullscreen();
         } else if ((document as any).webkitExitFullscreen) {
           await (document as any).webkitExitFullscreen();
+        }
+
+        if (isNativeAndroid()) {
+          try {
+            const { StatusBar } = await import('@capacitor/status-bar');
+            await StatusBar.show();
+          } catch {}
+          try {
+            (window.screen?.orientation as any)?.unlock?.();
+          } catch {}
         }
         setIsFullscreen(false);
       }
@@ -1074,7 +1125,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
           <div
             data-lenis-prevent="true"
             onWheel={(e) => e.stopPropagation()}
-            className="absolute left-2 sm:left-6 bottom-16 sm:bottom-24 bg-[#101012]/98 backdrop-blur-2xl border border-white/15 rounded-2xl sm:rounded-3xl p-3 sm:p-4 w-[280px] sm:w-[320px] max-h-[min(380px,calc(100vh-5rem))] overflow-y-auto custom-scrollbar shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(255,92,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.15)] z-30 animate-settings-pop text-white transition-all"
+            className="absolute left-2 sm:left-6 bottom-16 sm:bottom-24 bg-[#101012]/98 backdrop-blur-2xl border border-white/15 rounded-2xl sm:rounded-3xl p-3 sm:p-4 w-[280px] sm:w-[320px] max-h-[min(340px,calc(100dvh-5.5rem))] overflow-y-auto custom-scrollbar shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(255,92,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.15)] z-30 animate-settings-pop text-white transition-all"
           >
             {settingsSubView === 'main' && (
               <div className="flex flex-col py-1 space-y-1 animate-settings-slide-back">
