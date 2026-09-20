@@ -23,12 +23,12 @@ export const DownloadApkPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#070709] text-white flex flex-col items-center justify-center p-4 relative overflow-hidden select-none">
+    <div className="min-h-screen bg-[#08080a] text-white flex flex-col items-center justify-center p-4 relative overflow-hidden select-none">
       {/* Ambient background glow */}
-      <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#ff5c00]/15 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-[#ff5c00]/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#ff5c00]/12 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-[#ff5c00]/8 rounded-full blur-[140px] pointer-events-none" />
 
-      <div className="relative z-10 max-w-md w-full bg-[#0e0e14]/90 backdrop-blur-3xl border border-white/15 rounded-3xl p-6 sm:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.9)] text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
+      <div className="relative z-10 max-w-md w-full bg-[#101012] border border-white/12 rounded-3xl p-6 sm:p-8 shadow-[0_25px_70px_rgba(0,0,0,0.95)] text-center space-y-6 animate-in fade-in zoom-in-95 duration-300">
         {/* Brand Logo */}
         <div className="flex justify-center">
           <a href="/" className="hover:opacity-90 transition-opacity">

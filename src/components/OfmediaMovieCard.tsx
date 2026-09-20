@@ -524,11 +524,11 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
       <div className="hidden md:block relative aspect-video w-full group">
         <div
           onClick={handleCardClick}
-          className={`absolute top-0 left-0 w-full rounded-2xl overflow-hidden bg-[#0a0a0d] border border-white/10 transition-all duration-300 ease-out origin-center ${
+          className={`absolute top-0 left-0 w-full rounded-2xl overflow-hidden bg-[#0a0a0c] border border-white/10 transition-all duration-300 ease-out origin-center ${
             isHovered
-              ? 'scale-110 z-30 shadow-[0_25px_50px_rgba(0,0,0,0.95)] border-white/25 bg-[#0c0c10]'
+              ? 'scale-110 z-30 shadow-[0_25px_50px_rgba(0,0,0,0.95)] border-white/25 bg-[#101012]'
               : ''
-          } group-hover:scale-110 group-hover:z-30 group-hover:shadow-[0_25px_50px_rgba(0,0,0,0.95)] group-hover:border-white/25 group-hover:bg-[#0c0c10] cursor-pointer`}
+          } group-hover:scale-110 group-hover:z-30 group-hover:shadow-[0_25px_50px_rgba(0,0,0,0.95)] group-hover:border-white/25 group-hover:bg-[#101012] cursor-pointer`}
         >
           {/* Poster Image Container */}
           <div className="relative aspect-video w-full overflow-hidden bg-[#070709]">
@@ -644,11 +644,11 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20" />
 
             {/* Bottom subtle shadow transition to info drawer */}
-            <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-[#0c0c10] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20" />
+            <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-[#101012] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20" />
           </div>
 
           {/* Hover Revealed Information Drawer (Okko layout) */}
-          <div className="max-h-0 opacity-0 py-0 px-3.5 group-hover:max-h-36 group-hover:py-3 group-hover:opacity-100 transition-all duration-300 ease-out overflow-hidden bg-[#0c0c10] space-y-2.5 pointer-events-none group-hover:pointer-events-auto">
+          <div className="max-h-0 opacity-0 py-0 px-3.5 group-hover:max-h-36 group-hover:py-3 group-hover:opacity-100 transition-all duration-300 ease-out overflow-hidden bg-[#101012] space-y-2.5 pointer-events-none group-hover:pointer-events-auto">
             {/* Metadata Row */}
             <div className="flex items-center gap-2.5 text-xs text-zinc-300 font-medium whitespace-nowrap overflow-hidden">
               {hasRealRating && (

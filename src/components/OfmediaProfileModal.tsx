@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { UserProfile } from '../services/firebase';
 import { updateLocalUserProfile, CINEMA_AVATARS } from '../services/firebase';
 import { getUserRatings } from '../services/ratingService';
@@ -88,8 +89,6 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
-
   const currentDisplayName = displayName || user?.displayName || user?.email?.split('@')[0] || 'Пользователь';
 
   const handleSaveProfile = () => {
@@ -143,7 +142,16 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
   const initialLetter = (currentDisplayName || user?.email || 'U')[0].toUpperCase();
 
   return (
-    <div data-lenis-prevent="true" className="fixed inset-0 z-50 bg-[#070709] overflow-y-auto custom-scrollbar animate-in fade-in duration-200 text-[#f4f4f5] pb-28 sm:pb-12">
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.25 }}
+          data-lenis-prevent="true"
+          className="fixed inset-0 z-50 bg-[#08080a] overflow-y-auto custom-scrollbar text-[#f4f4f5] pb-28 sm:pb-12"
+        >
       {/* Top Floating Navigation Header */}
       <div className="sticky top-0 left-0 right-0 z-40 px-4 sm:px-12 py-3.5 sm:py-5 glass-header flex items-center justify-between">
         <button
@@ -827,7 +835,9 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
             </div>
           </div>
         )}
-      </div>
-    </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

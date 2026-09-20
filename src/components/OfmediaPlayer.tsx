@@ -1030,7 +1030,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
 
       {/* DYNAMIC QUALITY TOAST NOTIFICATION (Top Right) */}
       {qualityToast && (
-        <div className="absolute top-20 right-6 z-30 px-3.5 py-1.5 rounded-full bg-[#0c0c12]/85 backdrop-blur-xl border border-white/20 text-xs font-semibold text-[#ff5c00] shadow-[0_8px_24px_rgba(0,0,0,0.6)] animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute top-20 right-6 z-30 px-3.5 py-1.5 rounded-full bg-[#101012]/90 backdrop-blur-xl border border-white/15 text-xs font-semibold text-[#ff5c00] shadow-[0_8px_24px_rgba(0,0,0,0.8)] animate-in fade-in slide-in-from-top-2 duration-200">
           {qualityToast}
         </div>
       )}
@@ -1041,7 +1041,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
           key={flashFeedback.id}
           className="absolute inset-0 flex items-center justify-center pointer-events-none z-30"
         >
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#0c0c12]/85 backdrop-blur-2xl border-2 border-white/30 flex items-center justify-center text-white shadow-[0_0_45px_rgba(255,92,0,0.5)] animate-center-pop">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#101012]/90 backdrop-blur-2xl border-2 border-white/25 flex items-center justify-center text-white shadow-[0_0_45px_rgba(255,92,0,0.5)] animate-center-pop">
             {flashFeedback.type === 'play' ? (
               <ModernPlayIcon className="w-10 h-10 text-white ml-1" />
             ) : (
@@ -1109,7 +1109,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
           <div
             data-lenis-prevent="true"
             onWheel={(e) => e.stopPropagation()}
-            className="absolute left-2 sm:left-6 bottom-16 sm:bottom-24 bg-[#14141a]/96 backdrop-blur-2xl border border-white/20 rounded-2xl sm:rounded-3xl p-3 sm:p-4 w-[280px] sm:w-[320px] max-h-[calc(100vh-4.5rem)] overflow-y-auto custom-scrollbar shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(255,92,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.2)] z-30 animate-settings-pop text-white transition-all"
+            className="absolute left-2 sm:left-6 bottom-16 sm:bottom-24 bg-[#101012]/98 backdrop-blur-2xl border border-white/15 rounded-2xl sm:rounded-3xl p-3 sm:p-4 w-[280px] sm:w-[320px] max-h-[calc(100vh-4.5rem)] overflow-y-auto custom-scrollbar shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(255,92,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.15)] z-30 animate-settings-pop text-white transition-all"
           >
             {settingsSubView === 'main' && (
               <div className="flex flex-col py-1 space-y-1 animate-settings-slide-back">

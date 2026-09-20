@@ -1,4 +1,6 @@
-﻿export interface AppVersionInfo {
+import { isNativeAndroid } from './vkIdService';
+
+export interface AppVersionInfo {
   versionCode: number;
   versionName: string;
   minVersionCode: number;
@@ -8,19 +10,34 @@
   releaseDate: string;
 }
 
-export const CURRENT_APP_VERSION = '1.0.0';
-export const CURRENT_APP_CODE = 1;
+export const CURRENT_APP_VERSION = '1.0.1';
+export const CURRENT_APP_CODE = 2;
 
 export const checkForAppUpdate = async (): Promise<{
   updateAvailable: boolean;
   latestVersion?: AppVersionInfo;
 }> => {
+  // CRITICAL: NEVER check for updates or show update prompts on website!
+  // Only check inside the native Android Capacitor application shell.
+  if (typeof window === 'undefined' || !isNativeAndroid()) {
+    return { updateAvailable: false };
+  }
+
   try {
-    const res = await fetch('/version.json?_t=' + Date.now());
+    let installedBuildCode = CURRENT_APP_CODE;
+    try {
+      const { App: CapApp } = await import('@capacitor/app');
+      const info = await CapApp.getInfo();
+      if (info?.build) {
+        installedBuildCode = parseInt(info.build, 10) || CURRENT_APP_CODE;
+      }
+    } catch {}
+
+    const res = await fetch('https://ofmedia.vercel.app/version.json?_t=' + Date.now());
     if (!res.ok) return { updateAvailable: false };
     const latest: AppVersionInfo = await res.json();
 
-    if (latest.versionCode > CURRENT_APP_CODE) {
+    if (latest.versionCode > installedBuildCode) {
       return { updateAvailable: true, latestVersion: latest };
     }
     return { updateAvailable: false, latestVersion: latest };

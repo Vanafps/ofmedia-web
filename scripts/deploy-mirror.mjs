@@ -15,15 +15,20 @@ if (existsSync(public404)) {
 }
 writeFileSync(join(distDir, '.nojekyll'), '');
 
-// Static routing support for /app/apk on GitHub Pages
+// Static routing support for /app/apk, /apk and /app on GitHub Pages
 const appApkDir = join(distDir, 'app', 'apk');
 mkdirSync(appApkDir, { recursive: true });
+const apkDir = join(distDir, 'apk');
+mkdirSync(apkDir, { recursive: true });
+const appDir = join(distDir, 'app');
+mkdirSync(appDir, { recursive: true });
+
 const publicApkHtml = join(process.cwd(), 'public', 'app', 'apk', 'index.html');
 if (existsSync(publicApkHtml)) {
   copyFileSync(publicApkHtml, join(appApkDir, 'index.html'));
-} else {
-  copyFileSync(join(distDir, 'index.html'), join(appApkDir, 'index.html'));
+  copyFileSync(publicApkHtml, join(apkDir, 'index.html'));
 }
+copyFileSync(join(distDir, 'index.html'), join(appDir, 'index.html'));
 
 console.log('🌐 [OFMEDIA] Pushing to ofmedia-web.github.io...');
 

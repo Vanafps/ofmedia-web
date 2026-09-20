@@ -28,15 +28,11 @@ export const setVkAppId = (id: number | string) => {
   isInitialized = false;
 };
 
+/**
+ * The redirect URL registered in the VK ID Console for App 54781535.
+ * Must match exactly to prevent VK "Ошибка загрузки" domain verification failure.
+ */
 export const getRedirectUrl = (): string => {
-  if (typeof window === 'undefined') return 'https://ofmedia-web.github.io/';
-  const origin = window.location.origin;
-  if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
-    return `${origin}/`;
-  }
-  if (origin.includes('vercel.app')) {
-    return `${origin}/`;
-  }
   return 'https://ofmedia-web.github.io/';
 };
 
@@ -53,6 +49,7 @@ export const initVkId = () => {
       redirectUrl,
       responseMode: VKID.ConfigResponseMode.Callback,
       source: VKID.ConfigSource.LOWCODE,
+      mode: VKID.ConfigAuthMode.Redirect,
       scope: '',
     });
     isInitialized = true;
@@ -85,7 +82,7 @@ export const fetchVkUserProfile = async (
       }
     }
   } catch {
-    // Ignore and fallback to JSONP
+    // Fallback to JSONP
   }
 
   // 2. Client JSONP fallback (works in all browsers without CORS restrictions)
@@ -181,8 +178,13 @@ export const renderVkOneTap = (
       .render({
         container,
         scheme: VKID.Scheme.DARK,
+        skin: VKID.OneTapSkin.Primary,
         showAlternativeLogin: true,
         oauthList: ['ok_ru' as any, 'mail_ru' as any],
+        styles: {
+          height: 44,
+          borderRadius: 12,
+        },
       })
       .on(VKID.WidgetEvents.ERROR, (err: any) => {
         console.warn('VK ID OneTap error:', err);
@@ -212,33 +214,57 @@ export const renderVkOneTap = (
 };
 
 /**
- * Direct OAuth redirect fallback for browsers where LowCode OneTap is blocked
+ * Direct VK ID 2.0 Auth flow using official SDK PKCE redirect
  */
-export const loginWithVkId = async (): Promise<UserProfile | void> => {
+export const loginWithVkId = async (): Promise<void> => {
   initVkId();
 
   try {
-    VKID.Auth.login();
-    return;
+    await VKID.Auth.login();
   } catch (e: any) {
-    console.warn('VKID.Auth.login notice, fallback to direct VK OAuth:', e?.message);
+    console.warn('VKID.Auth.login error:', e?.message);
   }
-
-  const appId = getVkAppId();
-  const redirectUrl = getRedirectUrl();
-  const state = Math.random().toString(36).substring(2, 12);
-  
-  // Standard VK OAuth flow
-  window.location.href = `https://oauth.vk.com/authorize?client_id=${appId}&display=page&redirect_uri=${encodeURIComponent(redirectUrl)}&response_type=token&v=5.131&state=${state}`;
 };
 
 /**
- * Handle URL hash or search parameters after returning from VK OAuth
+ * Handle URL parameters after returning from VK ID redirect
  */
 export const checkAndHandleVkRedirect = async (): Promise<UserProfile | null> => {
   if (typeof window === 'undefined') return null;
 
-  // 1. Check Hash: #access_token=...&user_id=...
+  // 1. Check Search: ?code=...&device_id=...
+  if (window.location.search && window.location.search.includes('code=')) {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const deviceId = params.get('device_id') || params.get('deviceId') || '';
+    const state = params.get('state');
+
+    if (code) {
+      initVkId();
+      try {
+        const data = await VKID.Auth.exchangeCode(code, deviceId);
+        const user = await handleVkAuthPayload(data);
+
+        // If returned from external origin (e.g. Vercel), redirect back
+        if (state) {
+          try {
+            const returnUrl = decodeURIComponent(state);
+            if (returnUrl.startsWith('http') && !returnUrl.includes(window.location.host)) {
+              window.location.href = `${returnUrl}${returnUrl.includes('?') ? '&' : '?'}vk_auth=success`;
+              return user;
+            }
+          } catch {}
+        }
+
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return user;
+      } catch (e) {
+        console.warn('Code exchange from URL failed:', e);
+      }
+    }
+  }
+
+  // 2. Check Hash: #access_token=...&user_id=...
   if (window.location.hash && window.location.hash.includes('access_token')) {
     const params = new URLSearchParams(window.location.hash.substring(1));
     const token = params.get('access_token');
@@ -252,28 +278,8 @@ export const checkAndHandleVkRedirect = async (): Promise<UserProfile | null> =>
         email,
       });
 
-      // Clear the hash from URL without reloading
       window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
       return user;
-    }
-  }
-
-  // 2. Check Search: ?code=...&device_id=...
-  if (window.location.search && window.location.search.includes('code=')) {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-    const deviceId = params.get('device_id') || params.get('deviceId');
-
-    if (code) {
-      initVkId();
-      try {
-        const data = await VKID.Auth.exchangeCode(code, deviceId || '');
-        const user = await handleVkAuthPayload(data);
-        window.history.replaceState({}, document.title, window.location.pathname);
-        return user;
-      } catch (e) {
-        console.warn('Code exchange from URL failed:', e);
-      }
     }
   }
 

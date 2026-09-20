@@ -89,7 +89,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setIsOpen((prev) => !prev)}
-        className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-[#14141c]/90 hover:bg-[#1c1c28] border border-white/10 hover:border-white/20 text-white text-xs font-medium shadow-sm transition-all focus:outline-none focus:border-[#ff5c00] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none ${triggerClassName}`}
+        className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded-xl bg-[#141416]/90 hover:bg-[#1c1c1e] border border-white/10 hover:border-white/20 text-white text-xs font-medium shadow-sm transition-all focus:outline-none focus:border-[#ff5c00] cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed select-none ${triggerClassName}`}
       >
         <span className="truncate flex items-center gap-2">
           {selectedOption?.icon && <span className="shrink-0">{selectedOption.icon}</span>}
@@ -115,7 +115,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       {/* Popover Dropdown Menu */}
       {isOpen && (
         <div
-          className={`absolute left-0 top-full mt-1.5 w-max min-w-full max-w-xs z-[100] rounded-xl bg-[#161620]/95 backdrop-blur-xl border border-white/15 shadow-[0_16px_36px_rgba(0,0,0,0.85)] p-1 space-y-0.5 animate-in fade-in zoom-in-95 duration-150 origin-top overflow-hidden ${menuClassName}`}
+          className={`absolute left-0 top-full mt-1.5 w-max min-w-full max-w-xs z-[100] rounded-xl bg-[#141416]/95 backdrop-blur-xl border border-white/12 shadow-[0_16px_36px_rgba(0,0,0,0.85)] p-1 space-y-0.5 animate-in fade-in zoom-in-95 duration-150 origin-top overflow-hidden ${menuClassName}`}
         >
           {options.map((option) => {
             const isSelected = option.value === value;

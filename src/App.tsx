@@ -15,24 +15,41 @@ import { OfmediaAuthModal } from './components/OfmediaAuthModal';
 import { OfmediaActorModal } from './components/OfmediaActorModal';
 import { OfmediaProfileModal } from './components/OfmediaProfileModal';
 import { OfmediaMobileNav } from './components/OfmediaMobileNav';
+import { motion, AnimatePresence } from 'framer-motion';
 import { DownloadApkPage } from './components/DownloadApkPage';
+import { AppLandingPage } from './components/AppLandingPage';
+import { OfmediaMobileAppNotice } from './components/OfmediaMobileAppNotice';
 import { CustomSelect } from './components/ui/CustomSelect';
 import { subscribeToAuth, logoutUser, type UserProfile } from './services/firebase';
 import { getUserRatings, getMovieRating } from './services/ratingService';
 import { getPersonalizedRecommendations, type RecommendedRow } from './services/recommendationService';
 import { getContinueWatchingProjects, type ContinueWatchingItem } from './services/watchHistoryService';
-import { checkAndHandleVkRedirect } from './services/vkIdService';
+import { checkAndHandleVkRedirect, isNativeAndroid } from './services/vkIdService';
 import { checkForAppUpdate, triggerApkDownload, type AppVersionInfo } from './services/updateService';
 
 export function App() {
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname.toLowerCase() : '';
+  const currentSearch = typeof window !== 'undefined' ? window.location.search : '';
+
   const isApkDownloadRoute = typeof window !== 'undefined' && (
-    window.location.pathname.startsWith('/app/apk') ||
-    window.location.search.includes('download=apk') ||
-    window.location.pathname.endsWith('/app/apk')
+    currentPath.startsWith('/app/apk') ||
+    currentPath === '/apk' ||
+    currentPath.startsWith('/apk/') ||
+    currentSearch.includes('download=apk') ||
+    currentPath.endsWith('/app/apk')
+  );
+
+  const isAppLandingRoute = typeof window !== 'undefined' && (
+    currentPath === '/app' ||
+    currentPath === '/app/'
   );
 
   if (isApkDownloadRoute) {
     return <DownloadApkPage />;
+  }
+
+  if (isAppLandingRoute) {
+    return <AppLandingPage />;
   }
 
   const [activeTab, setActiveTab] = useState<'main' | 'favorites'>('main');
@@ -155,13 +172,15 @@ export function App() {
       if (vkUser) setUser(vkUser);
     });
 
-    // Check for APK updates on mobile / web
-    checkForAppUpdate().then((res) => {
-      if (res.updateAvailable && res.latestVersion) {
-        setUpdateInfo(res.latestVersion);
-        setShowUpdateModal(true);
-      }
-    });
+    // Check for APK updates ONLY inside native Android app
+    if (isNativeAndroid()) {
+      checkForAppUpdate().then((res) => {
+        if (res.updateAvailable && res.latestVersion) {
+          setUpdateInfo(res.latestVersion);
+          setShowUpdateModal(true);
+        }
+      });
+    }
 
     return () => {
       if (typeof unsub === 'function') unsub();
@@ -568,7 +587,7 @@ export function App() {
                       { value: 'year_desc', label: 'По году выпуска' },
                       { value: 'title_asc', label: 'По алфавиту' },
                     ]}
-                    triggerClassName="rounded-2xl px-3.5 py-2 bg-[#0a0a0d]/90 border border-white/10 text-xs shadow-md"
+                    triggerClassName="rounded-2xl px-3.5 py-2 bg-[#101012]/90 border border-white/10 text-xs shadow-md"
                   />
                 </div>
 
@@ -599,7 +618,7 @@ export function App() {
 
             {/* 6-Color Rating Scale Legend */}
             {favoritesSubTab === 'ratings' && ratedProjects.length > 0 && (
-              <div className="flex flex-wrap items-center gap-3 sm:gap-4 px-4 py-2.5 rounded-2xl bg-[#0a0a0d]/70 backdrop-blur-xl border border-white/10 text-[11px] text-zinc-300 shadow-md">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 px-4 py-2.5 rounded-2xl bg-[#101012]/70 backdrop-blur-xl border border-white/10 text-[11px] text-zinc-300 shadow-md">
                 <span className="font-semibold text-white uppercase text-[11px] tracking-wide">Шкала цветов:</span>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#00b050] shadow-[0_0_6px_#00b050]" />
@@ -646,7 +665,7 @@ export function App() {
                     ))}
                   </div>
                 ) : (
-                  <div className="py-16 sm:py-20 text-center bg-[#101014] rounded-3xl border border-white/10 space-y-4 max-w-lg mx-auto p-6">
+                  <div className="py-16 sm:py-20 text-center bg-[#101012] rounded-3xl border border-white/10 space-y-4 max-w-lg mx-auto p-6">
                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-zinc-500">
                       <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
                         <path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z" />
@@ -694,7 +713,7 @@ export function App() {
                     })}
                   </div>
                 ) : (
-                  <div className="py-16 sm:py-20 text-center bg-[#101014] rounded-3xl border border-white/10 space-y-4 max-w-lg mx-auto p-6">
+                  <div className="py-16 sm:py-20 text-center bg-[#101012] rounded-3xl border border-white/10 space-y-4 max-w-lg mx-auto p-6">
                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-[#ff5c00]">
                       ★
                     </div>
@@ -769,87 +788,113 @@ export function App() {
         onSuccess={(u) => setUser(u)}
       />
 
-      {/* Floating Smart Auth Reminder for Unauthenticated Users */}
-      {showAuthBanner && !user && (
-        <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-[95] max-w-sm w-[calc(100%-2rem)] bg-[#0e0e14]/95 backdrop-blur-2xl border border-white/20 rounded-2xl p-4 shadow-[0_12px_40px_rgba(0,0,0,0.85)] animate-in fade-in slide-in-from-bottom-6 duration-300">
-          <button
-            onClick={handleDismissAuthBanner}
-            className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-zinc-400 hover:text-white flex items-center justify-center transition-colors text-xs"
-            title="Закрыть"
+      {/* Floating Smart Auth Reminder for Unauthenticated Users with Smooth AnimatePresence */}
+      <AnimatePresence>
+        {showAuthBanner && !user && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 25, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-[95] max-w-sm w-[calc(100%-2rem)] bg-[#101012] border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.9)] select-none"
           >
-            ✕
-          </button>
-          <div className="flex items-start gap-3">
-            <span className="text-2xl shrink-0 mt-0.5">🍿</span>
-            <div className="space-y-1 pr-4">
-              <div className="font-heading font-bold text-xs sm:text-sm text-white">
-                Войдите в OFMEDIA
+            <button
+              onClick={handleDismissAuthBanner}
+              className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white flex items-center justify-center transition-colors text-xs"
+              title="Закрыть"
+            >
+              ✕
+            </button>
+            <div className="flex items-start gap-3">
+              <span className="text-2xl shrink-0 mt-0.5">🍿</span>
+              <div className="space-y-1 pr-4">
+                <div className="font-heading font-bold text-xs sm:text-sm text-white">
+                  Войдите в OFMEDIA
+                </div>
+                <p className="text-[11px] text-zinc-400 leading-snug">
+                  Сохраняйте историю просмотров, оценки и продолжайте кино на любых устройствах.
+                </p>
+                <div className="pt-2 flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      handleDismissAuthBanner();
+                      setIsAuthModalOpen(true);
+                    }}
+                    className="px-4 py-1.5 rounded-xl bg-[#ff5c00] hover:bg-[#e05200] text-white text-xs font-semibold shadow-md shadow-[#ff5c00]/30 transition-all hover:scale-103 active:scale-95 cursor-pointer"
+                  >
+                    Войти
+                  </button>
+                  <button
+                    onClick={handleDismissAuthBanner}
+                    className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white text-xs font-medium transition-colors cursor-pointer"
+                  >
+                    Позже
+                  </button>
+                </div>
               </div>
-              <p className="text-[11px] text-zinc-400 leading-snug">
-                Сохраняйте историю просмотров, оценки и продолжайте кино на любых устройствах.
-              </p>
-              <div className="pt-2 flex items-center gap-2">
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* In-App Update Modal with Smooth AnimatePresence */}
+      <AnimatePresence>
+        {showUpdateModal && updateInfo && (
+          <div className="fixed inset-0 z-[130] flex items-center justify-center p-4 select-none">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/80 backdrop-blur-xl"
+              onClick={() => setShowUpdateModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 16 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-md bg-[#101012] border border-white/15 rounded-3xl p-6 sm:p-7 shadow-[0_30px_90px_rgba(0,0,0,0.95)] z-10 space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-[#ff5c00]/20 border border-[#ff5c00]/30 flex items-center justify-center text-2xl shadow-inner shrink-0">
+                  ⚡
+                </div>
+                <div>
+                  <h3 className="font-heading font-bold text-lg text-white">Доступно обновление OFMEDIA</h3>
+                  <p className="text-xs text-[#ff5c00] font-mono font-semibold">Версия {updateInfo.versionName}</p>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/8 text-xs text-zinc-300 space-y-1.5 whitespace-pre-line font-normal leading-relaxed">
+                <div className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-1">Что нового:</div>
+                {updateInfo.releaseNotes}
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
                 <button
                   onClick={() => {
-                    handleDismissAuthBanner();
-                    setIsAuthModalOpen(true);
+                    triggerApkDownload(updateInfo.apkUrl);
+                    setShowUpdateModal(false);
                   }}
-                  className="px-4 py-1.5 rounded-xl bg-[#ff5c00] hover:bg-[#e05200] text-white text-xs font-semibold shadow-md shadow-[#ff5c00]/30 transition-all hover:scale-103 active:scale-95"
+                  className="flex-1 py-3 px-4 rounded-xl bg-[#ff5c00] hover:bg-[#e05200] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-lg shadow-[#ff5c00]/30 transition-all active:scale-95 cursor-pointer"
                 >
-                  Войти
+                  <span>📥</span>
+                  <span>Скачать и обновить APK</span>
                 </button>
                 <button
-                  onClick={handleDismissAuthBanner}
-                  className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white text-xs font-medium transition-colors"
+                  onClick={() => setShowUpdateModal(false)}
+                  className="py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white text-xs font-medium transition-colors cursor-pointer"
                 >
                   Позже
                 </button>
               </div>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
-      {/* In-App Update Modal */}
-      {showUpdateModal && updateInfo && (
-        <div className="fixed inset-0 z-[130] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md bg-[#0e0e14]/95 backdrop-blur-2xl border border-white/20 rounded-3xl p-6 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] z-10 space-y-4 animate-in zoom-in-95">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-[#ff5c00]/20 border border-[#ff5c00]/30 flex items-center justify-center text-2xl shadow-inner shrink-0">
-                ⚡
-              </div>
-              <div>
-                <h3 className="font-heading font-bold text-lg text-white">Доступно обновление OFMEDIA</h3>
-                <p className="text-xs text-[#ff5c00] font-mono font-semibold">Версия {updateInfo.versionName}</p>
-              </div>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 text-xs text-zinc-300 space-y-1.5 whitespace-pre-line font-normal leading-relaxed">
-              <div className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-1">Что нового:</div>
-              {updateInfo.releaseNotes}
-            </div>
-
-            <div className="flex items-center gap-2 pt-2">
-              <button
-                onClick={() => {
-                  triggerApkDownload(updateInfo.apkUrl);
-                  setShowUpdateModal(false);
-                }}
-                className="flex-1 py-3 px-4 rounded-xl bg-[#ff5c00] hover:bg-[#e05200] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-lg shadow-[#ff5c00]/30 transition-all active:scale-95"
-              >
-                <span>📥</span>
-                <span>Скачать и обновить APK</span>
-              </button>
-              <button
-                onClick={() => setShowUpdateModal(false)}
-                className="py-3 px-4 rounded-xl glass-pill text-zinc-400 hover:text-white text-xs font-medium transition-colors"
-              >
-                Позже
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Mobile App Smart Notice (Floating above navigation) */}
+      <OfmediaMobileAppNotice />
 
       {/* Mobile Bottom Navigation Bar */}
       <OfmediaMobileNav
@@ -877,64 +922,121 @@ export function App() {
         }}
       />
 
-      {/* Desktop Footer */}
-      <footer className="border-t border-white/10 bg-[#070709] py-8 sm:py-10 text-zinc-400 text-xs">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
-          <div className="flex items-center gap-3">
-            <img
-              src="/logos/ofmediawhite_clean.png"
-              alt="OFMEDIA"
-              className="h-4 sm:h-5 w-auto object-contain"
-            />
-            <span className="text-zinc-600">|</span>
-            <span className="text-zinc-400 font-normal">© 2024–2026 • Все права защищены</span>
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 font-normal text-xs">
-            <button onClick={() => { handleSelectTab('main'); setSelectedCategory('none'); }} className="hover:text-white transition-colors">
-              Главная
-            </button>
-            <button onClick={() => { setActiveTab('main'); setSelectedCategory('comedy'); }} className="hover:text-white transition-colors">
-              Комедии
-            </button>
-            <button onClick={() => { setActiveTab('main'); setSelectedCategory('music'); }} className="hover:text-white transition-colors">
-              Музыкальные
-            </button>
-            <button onClick={() => { setActiveTab('main'); setSelectedCategory('shows'); }} className="hover:text-white transition-colors">
-              Шоу
-            </button>
-            <button onClick={() => { setActiveTab('main'); setSelectedCategory('adventure'); }} className="hover:text-white transition-colors">
-              Приключения
-            </button>
+      {/* Footer & App promo: STRICTLY HIDDEN in Native Android App AND on Mobile screens */}
+      {!isNativeAndroid() && (
+        <div className="hidden md:block">
+          {/* Mobile App Download Callout in Footer */}
+          <section className="border-t border-white/8 bg-[#09090b] py-8 sm:py-10 text-white select-none">
+            <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-4 text-center md:text-left">
+                <div className="w-12 h-12 rounded-2xl bg-[#ff5c00]/15 border border-[#ff5c00]/25 flex items-center justify-center text-2xl shrink-0 shadow-inner">
+                  📱
+                </div>
+                <div>
+                  <h3 className="font-heading font-bold text-sm sm:text-base text-white">
+                    Мобильное приложение OFMEDIA
+                  </h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Смотрите фильмы и сериалы без рекламы, скачивайте для оффлайн-просмотра и включайте фоновый режим
+                  </p>
+                </div>
+              </div>
 
-            {/* Mirror / Primary Switch Button with Clean SVGs (Vercel Primary <-> Netlify Mirror) */}
-            {typeof window !== 'undefined' && window.location.hostname.includes('netlify.app') ? (
-              <a
-                href="https://ofmedia.vercel.app"
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/10 text-[11px] group"
-                title="Перейти на основной сайт (Vercel)"
-              >
-                <svg className="w-3.5 h-3.5 fill-none stroke-current text-[#ff5c00] group-hover:scale-110 transition-transform" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                  <path d="M2 12h20" />
-                </svg>
-                <span>Основной сайт</span>
-              </a>
-            ) : (
-              <a
-                href="https://ofmedia.netlify.app"
-                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/10 text-[11px] group"
-                title="Перейти на резервное зеркало (Netlify)"
-              >
-                <svg className="w-3.5 h-3.5 fill-none stroke-current text-[#ff5c00] group-hover:scale-110 transition-transform" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-                <span>Зеркало</span>
-              </a>
-            )}
-          </div>
+              <div className="flex flex-wrap items-center justify-center gap-3 shrink-0">
+                <a
+                  href="https://www.rustore.ru/catalog/app/ru.ofmedia.app"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/12 text-white text-xs font-semibold flex items-center gap-2 transition-all hover:scale-102 active:scale-98"
+                >
+                  <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z" />
+                  </svg>
+                  <span>RuStore</span>
+                </a>
+
+                <a
+                  href="/apk"
+                  className="px-4 py-2.5 rounded-xl bg-[#ff5c00] hover:bg-[#e05200] text-white text-xs font-semibold flex items-center gap-2 shadow-md shadow-[#ff5c00]/25 transition-all hover:scale-102 active:scale-98"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  <span>Скачать APK</span>
+                </a>
+
+                <a
+                  href="/app"
+                  className="px-3.5 py-2.5 rounded-xl text-xs text-zinc-400 hover:text-white transition-colors underline underline-offset-4"
+                >
+                  Подробнее о приложении
+                </a>
+              </div>
+            </div>
+          </section>
+
+          {/* Desktop Footer */}
+          <footer className="border-t border-white/8 bg-[#08080a] py-8 sm:py-10 text-zinc-400 text-xs">
+            <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
+              <div className="flex items-center gap-3">
+                <img
+                  src="/logos/ofmediawhite_clean.png"
+                  alt="OFMEDIA"
+                  className="h-4 sm:h-5 w-auto object-contain"
+                />
+                <span className="text-zinc-600">|</span>
+                <span className="text-zinc-400 font-normal">© 2024–2026 • Все права защищены</span>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 font-normal text-xs">
+                <button onClick={() => { handleSelectTab('main'); setSelectedCategory('none'); }} className="hover:text-white transition-colors">
+                  Главная
+                </button>
+                <button onClick={() => { setActiveTab('main'); setSelectedCategory('comedy'); }} className="hover:text-white transition-colors">
+                  Комедии
+                </button>
+                <button onClick={() => { setActiveTab('main'); setSelectedCategory('music'); }} className="hover:text-white transition-colors">
+                  Музыкальные
+                </button>
+                <button onClick={() => { setActiveTab('main'); setSelectedCategory('shows'); }} className="hover:text-white transition-colors">
+                  Шоу
+                </button>
+                <button onClick={() => { setActiveTab('main'); setSelectedCategory('adventure'); }} className="hover:text-white transition-colors">
+                  Приключения
+                </button>
+
+                {/* Mirror / Primary Switch Button with Clean SVGs (Vercel Primary <-> Netlify Mirror) */}
+                {typeof window !== 'undefined' && window.location.hostname.includes('netlify.app') ? (
+                  <a
+                    href="https://ofmedia.vercel.app"
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/10 text-[11px] group"
+                    title="Перейти на основной сайт (Vercel)"
+                  >
+                    <svg className="w-3.5 h-3.5 fill-none stroke-current text-[#ff5c00] group-hover:scale-110 transition-transform" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                      <path d="M2 12h20" />
+                    </svg>
+                    <span>Основной сайт</span>
+                  </a>
+                ) : (
+                  <a
+                    href="https://ofmedia.netlify.app"
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/10 text-[11px] group"
+                    title="Перейти на резервное зеркало (Netlify)"
+                  >
+                    <svg className="w-3.5 h-3.5 fill-none stroke-current text-[#ff5c00] group-hover:scale-110 transition-transform" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                    </svg>
+                    <span>Зеркало</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          </footer>
         </div>
-      </footer>
+      )}
     </div>
   );
 }

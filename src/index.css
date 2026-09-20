@@ -2,14 +2,15 @@
 @import "tailwindcss";
 
 html, body, #root {
-  overscroll-behavior: none;
-  overscroll-behavior-y: none;
-  overscroll-behavior-x: none;
-  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none !important;
+  overscroll-behavior-y: none !important;
+  overscroll-behavior-x: none !important;
 }
 
-html {
-  scroll-behavior: smooth;
+/* Modals and scrollable containers must contain their scroll to prevent window bounce */
+.overflow-y-auto, .overflow-x-auto, .custom-scrollbar {
+  overscroll-behavior: contain !important;
+  overscroll-behavior-y: contain !important;
 }
 
 /* Yandex 360 / YS Text Web Variable Font (Headings: width 110, weight 500-900) */
@@ -242,14 +243,14 @@ html {
 
 /* Real Frosted Glass Classes with Hardware Acceleration */
 .glass-header {
-  background: rgba(7, 7, 9, 0.85) !important;
+  background: rgba(8, 8, 10, 0.88) !important;
   -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
   backdrop-filter: blur(24px) saturate(180%) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
 .glass-dropdown {
-  background: rgba(7, 7, 9, 0.88) !important;
+  background: rgba(14, 14, 16, 0.95) !important;
   -webkit-backdrop-filter: blur(28px) saturate(180%) !important;
   backdrop-filter: blur(28px) saturate(180%) !important;
   border: 1px solid rgba(255, 255, 255, 0.12) !important;
@@ -273,10 +274,10 @@ html {
 }
 
 .glass-modal {
-  background: rgba(10, 10, 16, 0.96) !important;
+  background: rgba(16, 16, 18, 0.98) !important;
   -webkit-backdrop-filter: blur(32px) saturate(200%) !important;
   backdrop-filter: blur(32px) saturate(200%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
 }
 
 /* Specific Stylized Genre Typography */
@@ -308,7 +309,7 @@ html {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #09090c;
+  background: #08080a;
 }
 ::-webkit-scrollbar-thumb {
   background: #27272a;
