@@ -30,11 +30,11 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleGuestLogin = () => {
+  const handleGuestLogin = async () => {
     try {
       setLoading(true);
       setError(null);
-      const user = loginAsGuest();
+      const user = await loginAsGuest();
       onSuccess(user);
       onClose();
     } catch (e: any) {

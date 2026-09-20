@@ -88,7 +88,7 @@ export const OfmediaActorModal: React.FC<OfmediaActorModalProps> = ({
         {/* Creator Hero Header in Pure Deep Black */}
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6 sm:gap-10 pb-10 border-b border-white/10 text-center md:text-left">
           {/* Large High-Resolution Portrait / Avatar */}
-          <div className="relative w-32 h-32 sm:w-44 sm:h-44 md:w-52 md:h-52 rounded-3xl bg-[#121216] border-2 border-[#ff5c00]/50 overflow-hidden flex items-center justify-center text-white font-heading font-bold text-4xl sm:text-5xl shadow-[0_0_40px_rgba(255,92,0,0.2)] shrink-0">
+          <div className="relative w-32 h-32 sm:w-44 sm:h-44 md:w-52 md:h-52 rounded-3xl bg-[#08080a] border-2 border-[#ff5c00]/50 overflow-hidden flex items-center justify-center text-white font-heading font-bold text-4xl sm:text-5xl shadow-[0_0_40px_rgba(255,92,0,0.2)] shrink-0">
             {actor.photo ? (
               <img
                 src={actor.photo}
@@ -164,7 +164,7 @@ export const OfmediaActorModal: React.FC<OfmediaActorModalProps> = ({
                     />
 
                     {/* Actor Role Badge in this project */}
-                    <div className="px-3 py-2 rounded-xl bg-[#121216] border border-white/10 flex items-center justify-between text-xs">
+                    <div className="px-3 py-2 rounded-xl bg-[#08080a] border border-white/10 flex items-center justify-between text-xs">
                       <span className="text-zinc-400 truncate">
                         Роль: <span className="text-zinc-200 font-medium">{item.role}</span>
                       </span>
@@ -179,7 +179,7 @@ export const OfmediaActorModal: React.FC<OfmediaActorModalProps> = ({
               return (
                 <div
                   key={idx}
-                  className="p-4 rounded-2xl bg-[#121216] border border-white/10 flex gap-4 items-center shadow-lg"
+                  className="p-4 rounded-2xl bg-[#08080a] border border-white/10 flex gap-4 items-center shadow-lg"
                 >
                   <img
                     src={item.poster}

@@ -19,6 +19,7 @@ import { CustomSelect } from './components/ui/CustomSelect';
 import { subscribeToAuth, logoutUser, type UserProfile } from './services/firebase';
 import { getUserRatings, getMovieRating } from './services/ratingService';
 import { getPersonalizedRecommendations, type RecommendedRow } from './services/recommendationService';
+import { getContinueWatchingProjects, type ContinueWatchingItem } from './services/watchHistoryService';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'main' | 'favorites'>('main');
@@ -39,6 +40,9 @@ export function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [userRatings, setUserRatings] = useState<Record<string, number>>({});
   const [recommendationRows, setRecommendationRows] = useState<RecommendedRow[]>([]);
+  const [continueWatchingList, setContinueWatchingList] = useState<ContinueWatchingItem[]>(() =>
+    getContinueWatchingProjects()
+  );
 
   const [favorites, setFavorites] = useState<string[]>(() => {
     try {
@@ -52,15 +56,18 @@ export function App() {
   const refreshUserData = () => {
     setUserRatings(getUserRatings());
     setRecommendationRows(getPersonalizedRecommendations());
+    setContinueWatchingList(getContinueWatchingProjects());
   };
 
   useEffect(() => {
     refreshUserData();
     window.addEventListener('ofmedia_ratings_updated', refreshUserData);
     window.addEventListener('ofmedia_reviews_updated', refreshUserData);
+    window.addEventListener('ofmedia_history_updated', refreshUserData);
     return () => {
       window.removeEventListener('ofmedia_ratings_updated', refreshUserData);
       window.removeEventListener('ofmedia_reviews_updated', refreshUserData);
+      window.removeEventListener('ofmedia_history_updated', refreshUserData);
     };
   }, []);
 
@@ -371,6 +378,23 @@ export function App() {
 
             {/* Dynamic Recommendations & Curated Feeds */}
             <div className="space-y-8 sm:space-y-12">
+              {/* CONTINUE WATCHING (FIRST ROW BEFORE RECOMMENDATIONS) */}
+              {continueWatchingList.length > 0 && (
+                <OfmediaCardRow
+                  title="Вы смотрели"
+                  subtitle="Продолжите просмотр с того момента, где остановились"
+                  projects={continueWatchingList.map((c) => c.project)}
+                  showRemainingBadge={true}
+                  remainingMinutesMap={Object.fromEntries(
+                    continueWatchingList.map((c) => [c.project.id, c.remainingMinutes])
+                  )}
+                  onOpenDetails={handleOpenDetails}
+                  onPlay={handlePlayProject}
+                  favorites={favorites}
+                  onToggleFavorite={toggleFavorite}
+                />
+              )}
+
               {selectedCategory === 'none' ? (
                 <>
                   {/* Dynamic Personalized Recommendation Rows */}
@@ -479,7 +503,7 @@ export function App() {
                       { value: 'year_desc', label: 'По году выпуска' },
                       { value: 'title_asc', label: 'По алфавиту' },
                     ]}
-                    triggerClassName="rounded-2xl px-3.5 py-2 bg-[#121218]/90 border border-white/10 text-xs shadow-md"
+                    triggerClassName="rounded-2xl px-3.5 py-2 bg-[#0a0a0d]/90 border border-white/10 text-xs shadow-md"
                   />
                 </div>
 
@@ -510,7 +534,7 @@ export function App() {
 
             {/* 6-Color Rating Scale Legend */}
             {favoritesSubTab === 'ratings' && ratedProjects.length > 0 && (
-              <div className="flex flex-wrap items-center gap-3 sm:gap-4 px-4 py-2.5 rounded-2xl bg-[#121218]/60 backdrop-blur-xl border border-white/10 text-[11px] text-zinc-300 shadow-md">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4 px-4 py-2.5 rounded-2xl bg-[#0a0a0d]/70 backdrop-blur-xl border border-white/10 text-[11px] text-zinc-300 shadow-md">
                 <span className="font-semibold text-white uppercase text-[11px] tracking-wide">Шкала цветов:</span>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-[#00b050] shadow-[0_0_6px_#00b050]" />
@@ -594,7 +618,7 @@ export function App() {
                             isFavorite={favorites.includes(project.id)}
                             onToggleFavorite={toggleFavorite}
                           />
-                          <div className="px-3.5 py-2 rounded-xl bg-[#121216] border border-white/10 flex items-center justify-between text-xs">
+                          <div className="px-3.5 py-2 rounded-xl bg-[#08080a] border border-white/10 flex items-center justify-between text-xs">
                             <span className="text-zinc-400">Ваша оценка:</span>
                             <span className="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-[#ff5c00]/20 text-[#ff5c00] border border-[#ff5c00]/30 shadow-[0_0_10px_rgba(255,92,0,0.2)]">
                               ★ {userScore} / 10

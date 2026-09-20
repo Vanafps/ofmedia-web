@@ -5,6 +5,7 @@ import {
   GoogleAuthProvider,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInAnonymously,
   signOut,
   onAuthStateChanged,
   updateProfile,
@@ -19,37 +20,32 @@ import {
   type Database
 } from 'firebase/database';
 
-const rawApiKey = import.meta.env.VITE_FIREBASE_API_KEY;
-const isRealFirebase = Boolean(rawApiKey && !rawApiKey.includes("Dummy"));
-
-const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: rawApiKey || "",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "",
-  databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL || "",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || ""
+export const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBJYIBwtTk17jV7P5KB62wKuT1RBgRCGjw",
+  authDomain: "ofmedia-web.firebaseapp.com",
+  projectId: "ofmedia-web",
+  databaseURL: "https://ofmedia-web-default-rtdb.europe-west1.firebasedatabase.app",
+  storageBucket: "ofmedia-web.firebasestorage.app",
+  messagingSenderId: "355690410762",
+  appId: "1:355690410762:web:3fcb211aaba30808e480f3"
 };
 
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let rtdb: Database | null = null;
 
-if (isRealFirebase) {
-  try {
-    if (!getApps().length) {
-      app = initializeApp(DEFAULT_FIREBASE_CONFIG);
-    } else {
-      app = getApps()[0];
-    }
-    auth = getAuth(app);
-    if (DEFAULT_FIREBASE_CONFIG.databaseURL) {
-      rtdb = getDatabase(app, DEFAULT_FIREBASE_CONFIG.databaseURL);
-    }
-  } catch (err) {
-    console.warn("Firebase initialization notice:", err);
+try {
+  if (!getApps().length) {
+    app = initializeApp(DEFAULT_FIREBASE_CONFIG);
+  } else {
+    app = getApps()[0];
   }
+  auth = getAuth(app);
+  if (DEFAULT_FIREBASE_CONFIG.databaseURL) {
+    rtdb = getDatabase(app, DEFAULT_FIREBASE_CONFIG.databaseURL);
+  }
+} catch (err) {
+  console.warn("Firebase initialization notice:", err);
 }
 
 export interface UserProfile {
@@ -212,7 +208,27 @@ export const loginWithGoogle = async (): Promise<UserProfile> => {
   return profile;
 };
 
-export const loginAsGuest = (): UserProfile => {
+export const loginAsGuest = async (): Promise<UserProfile> => {
+  if (auth) {
+    try {
+      const result = await signInAnonymously(auth);
+      const guestNumber = result.user.uid.substring(0, 5).toUpperCase();
+      const profile: UserProfile = {
+        uid: result.user.uid,
+        email: null,
+        displayName: `Гость #${guestNumber}`,
+        photoURL: null,
+        avatarIcon: 'popcorn',
+        isAnonymous: true
+      };
+      localStorage.setItem('ofmedia_user', JSON.stringify(profile));
+      window.dispatchEvent(new Event('ofmedia_user_updated'));
+      return profile;
+    } catch (e: any) {
+      console.warn("Firebase anonymous auth notice:", e);
+    }
+  }
+
   const guestNumber = Math.floor(1000 + Math.random() * 9000);
   const profile: UserProfile = {
     uid: `guest_${guestNumber}`,
@@ -232,21 +248,30 @@ export const loginWithEmail = async (identifier: string, pass: string): Promise<
   if (!normId) throw new Error('Введите логин или email');
   if (!pass) throw new Error('Введите пароль');
 
-  if (auth && DEFAULT_FIREBASE_CONFIG.apiKey && !DEFAULT_FIREBASE_CONFIG.apiKey.includes('Dummy')) {
+  const email = normId.includes('@') ? normId : `${normId}@ofmedia.ru`;
+
+  if (auth) {
     try {
-      const result = await signInWithEmailAndPassword(auth, normId, pass);
+      const result = await signInWithEmailAndPassword(auth, email, pass);
       const profile: UserProfile = {
         uid: result.user.uid,
         email: result.user.email,
         displayName: result.user.displayName || normId.split('@')[0],
         photoURL: result.user.photoURL,
+        avatarIcon: 'popcorn',
         isAnonymous: false
       };
       localStorage.setItem('ofmedia_user', JSON.stringify(profile));
       window.dispatchEvent(new Event('ofmedia_user_updated'));
       return profile;
     } catch (e: any) {
-      console.warn("Firebase email login error, falling back to local account:", e.message);
+      if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+        throw new Error('Неверный пароль. Пожалуйста, проверьте ввод.');
+      }
+      if (e.code === 'auth/user-not-found') {
+        throw new Error('Пользователь не найден. Зарегистрируйтесь во вкладке «Регистрация».');
+      }
+      console.warn("Firebase email login notice:", e.message);
     }
   }
 
@@ -289,9 +314,11 @@ export const registerWithEmail = async (
   if (!normId) throw new Error('Введите логин или email');
   if (!pass || pass.length < 4) throw new Error('Пароль должен быть не менее 4 символов');
 
-  if (auth && DEFAULT_FIREBASE_CONFIG.apiKey && !DEFAULT_FIREBASE_CONFIG.apiKey.includes('Dummy')) {
+  const email = normId.includes('@') ? normId : `${normId}@ofmedia.ru`;
+
+  if (auth) {
     try {
-      const result = await createUserWithEmailAndPassword(auth, normId, pass);
+      const result = await createUserWithEmailAndPassword(auth, email, pass);
       if (name && result.user) {
         await updateProfile(result.user, { displayName: name });
       }
@@ -307,7 +334,13 @@ export const registerWithEmail = async (
       window.dispatchEvent(new Event('ofmedia_user_updated'));
       return profile;
     } catch (e: any) {
-      console.warn("Firebase registration error, falling back to local account:", e.message);
+      if (e.code === 'auth/email-already-in-use') {
+        throw new Error('Аккаунт с таким логином или email уже зарегистрирован. Перейдите на вкладку «Войти».');
+      }
+      if (e.code === 'auth/weak-password') {
+        throw new Error('Пароль слишком простой (минимум 6 символов).');
+      }
+      console.warn("Firebase registration notice:", e.message);
     }
   }
 

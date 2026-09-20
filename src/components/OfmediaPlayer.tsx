@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Hls from 'hls.js';
 import type { Project, Episode } from '../data/projects';
+import { saveWatchProgress, getWatchProgress } from '../services/watchHistoryService';
 
 interface OfmediaPlayerProps {
   project: Project;
@@ -284,6 +285,48 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     img.onerror = () => setIsStoryboardLoaded(false);
   }, [storyboardUrl]);
 
+  // Screen Wake Lock API (keeps mobile screen awake during movie playback)
+  useEffect(() => {
+    let wakeLockSentinel: any = null;
+    let isMounted = true;
+
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator && isPlaying && document.visibilityState === 'visible') {
+          wakeLockSentinel = await (navigator as any).wakeLock.request('screen');
+        }
+      } catch {
+        // WakeLock unsupported or rejected
+      }
+    };
+
+    const releaseWakeLock = () => {
+      if (wakeLockSentinel) {
+        wakeLockSentinel.release().catch(() => {});
+        wakeLockSentinel = null;
+      }
+    };
+
+    if (isPlaying) {
+      requestWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && isPlaying && isMounted) {
+        requestWakeLock();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      isMounted = false;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      releaseWakeLock();
+    };
+  }, [isPlaying]);
+
   // Toggle remaining time mode (-00:09 vs 00:25)
   const [showRemainingTime, setShowRemainingTime] = useState(false);
 
@@ -483,9 +526,24 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
           });
           hls.loadSource(videoSrc);
           hls.attachMedia(video);
+          let hasRestored = false;
+          const tryRestore = () => {
+            if (!hasRestored && video) {
+              const saved = getWatchProgress(project.id);
+              if (saved && saved.currentTime > 5) {
+                video.currentTime = saved.currentTime;
+                setCurrentTime(saved.currentTime);
+              }
+              hasRestored = true;
+            }
+          };
+
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            tryRestore();
             video.play().catch(() => {});
           });
+
+          video.addEventListener('loadedmetadata', tryRestore, { once: true });
 
           // Level Switch Tracking for live resolution UI badge
           hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
@@ -530,16 +588,36 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
           hlsRef.current = hls;
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
           video.src = videoSrc;
+          const saved = getWatchProgress(project.id);
+          if (saved && saved.currentTime > 5) {
+            video.currentTime = saved.currentTime;
+            setCurrentTime(saved.currentTime);
+          }
           video.play().catch(() => {});
         }
       } else {
         video.src = videoSrc;
         video.preload = 'auto';
+        const saved = getWatchProgress(project.id);
+        if (saved && saved.currentTime > 5) {
+          video.currentTime = saved.currentTime;
+          setCurrentTime(saved.currentTime);
+        }
         video.play().catch(() => {});
       }
     }
 
+    const saveInterval = setInterval(() => {
+      if (video && !video.paused && video.duration > 0) {
+        saveWatchProgress(project.id, video.currentTime, video.duration);
+      }
+    }, 2000);
+
     return () => {
+      clearInterval(saveInterval);
+      if (video && video.duration > 0) {
+        saveWatchProgress(project.id, video.currentTime, video.duration);
+      }
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;

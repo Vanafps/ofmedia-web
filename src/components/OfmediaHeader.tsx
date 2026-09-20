@@ -80,7 +80,7 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${
         isScrolled
           ? 'glass-header py-3 sm:py-3.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)]'
           : 'bg-gradient-to-b from-black/85 via-black/40 to-transparent py-3.5 sm:py-4 backdrop-blur-md'
@@ -172,7 +172,7 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
 
             {/* Smart Search Dropdown with Real Frosted Glass */}
             {isSearchOpen && searchQuery.trim().length > 0 && (
-              <div className="absolute right-0 mt-3 w-80 sm:w-96 glass-dropdown rounded-3xl p-3.5 z-50 space-y-3 max-h-[80vh] overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95">
+              <div className="absolute right-0 mt-3 w-80 sm:w-96 glass-dropdown rounded-3xl p-3.5 z-[110] space-y-3 max-h-[80vh] overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95">
                 {actorResults.length > 0 && (
                   <div className="space-y-1.5">
                     <div className="px-2.5 py-1 text-[11px] font-semibold text-[#ff5c00] uppercase tracking-wide flex items-center justify-between">
@@ -286,21 +286,21 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
 
                     {/* Profile Dropdown with Hardware-Accelerated Frosted Glass */}
                     {isProfileDropdownOpen && (
-                      <div className="absolute right-0 mt-3 w-64 glass-dropdown rounded-3xl p-4 z-50 space-y-3 animate-in fade-in zoom-in-95">
-                        <div className="flex items-center gap-3 pb-3 border-b border-white/10">
+                      <div className="absolute right-0 mt-3 w-72 glass-dropdown rounded-3xl p-4 z-[110] space-y-3.5 animate-in fade-in zoom-in-95 shadow-2xl">
+                        <div className="flex items-center gap-3.5 pb-3.5 border-b border-white/10">
                           {avatar ? (
-                            <div className={`w-10 h-10 rounded-2xl bg-gradient-to-tr ${avatar.bg} flex items-center justify-center text-xl shadow-inner shrink-0`}>
+                            <div className={`w-11 h-11 rounded-2xl bg-gradient-to-tr ${avatar.bg} flex items-center justify-center text-2xl shadow-inner shrink-0 border border-white/20`}>
                               {avatar.emoji}
                             </div>
                           ) : user.photoURL ? (
-                            <img src={user.photoURL} alt={user.displayName || ''} className="w-10 h-10 rounded-2xl object-cover border border-white/20 shrink-0" />
+                            <img src={user.photoURL} alt={user.displayName || ''} className="w-11 h-11 rounded-2xl object-cover border border-white/20 shrink-0 shadow" />
                           ) : (
-                            <div className="w-10 h-10 rounded-2xl bg-[#ff5c00] text-white font-semibold text-sm flex items-center justify-center shadow shrink-0">
+                            <div className="w-11 h-11 rounded-2xl bg-[#ff5c00] text-white font-bold text-sm flex items-center justify-center shadow shrink-0 border border-white/20">
                               {(user.displayName || user.email || 'U')[0].toUpperCase()}
                             </div>
                           )}
                           <div className="min-w-0 flex-1">
-                            <div className="text-xs font-medium text-white truncate">
+                            <div className="text-sm font-semibold text-white truncate">
                               {user.displayName || 'Пользователь'}
                             </div>
                             <div className="text-[11px] text-zinc-400 font-normal truncate">
@@ -309,38 +309,38 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
                           </div>
                         </div>
 
-                  <div className="space-y-1 text-xs">
-                    <button
-                      onClick={() => {
-                        onOpenProfile();
-                        setIsProfileDropdownOpen(false);
-                      }}
-                      className="w-full py-2.5 px-3 rounded-2xl bg-white/5 hover:bg-[#ff5c00]/20 hover:text-[#ff5c00] text-zinc-200 text-xs font-medium transition-colors text-left flex items-center justify-between border border-transparent hover:border-[#ff5c00]/30"
-                    >
-                      <span>Личный кабинет и настройки</span>
-                      <span>→</span>
-                    </button>
-                    <div className="flex items-center justify-between px-3 py-1.5 text-zinc-400 text-[11px] font-normal">
-                      <span>Мои оценки:</span>
-                      <span className="font-semibold text-[#ff5c00]">{userRatingsCount}</span>
-                    </div>
-                    <div className="flex items-center justify-between px-3 py-1.5 text-zinc-400 text-[11px] font-normal">
-                      <span>В закладках:</span>
-                      <span className="font-semibold text-[#ff5c00]">{favoritesCount}</span>
-                    </div>
-                  </div>
+                        <div className="space-y-1.5 text-xs">
+                          <button
+                            onClick={() => {
+                              onOpenProfile();
+                              setIsProfileDropdownOpen(false);
+                            }}
+                            className="w-full py-2.5 px-3.5 rounded-2xl bg-white/[0.06] hover:bg-[#ff5c00] hover:text-white text-zinc-200 text-xs font-medium transition-all text-left flex items-center justify-between border border-white/10 hover:border-[#ff5c00] shadow-sm hover:scale-102 active:scale-98"
+                          >
+                            <span>Личный кабинет и настройки</span>
+                            <span className="font-bold">→</span>
+                          </button>
+                          <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-black/40 border border-white/5 text-zinc-300 text-[11px]">
+                            <span>Мои оценки:</span>
+                            <span className="font-semibold text-[#ff5c00]">{userRatingsCount}</span>
+                          </div>
+                          <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-black/40 border border-white/5 text-zinc-300 text-[11px]">
+                            <span>В закладках:</span>
+                            <span className="font-semibold text-[#ff5c00]">{favoritesCount}</span>
+                          </div>
+                        </div>
 
-                  <button
-                    onClick={() => {
-                      onLogout();
-                      setIsProfileDropdownOpen(false);
-                    }}
-                    className="w-full py-2 px-3 rounded-2xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/20 text-red-400 text-xs font-medium transition-colors text-center"
-                  >
-                    Выйти из аккаунта
-                  </button>
-                </div>
-              )}
+                        <button
+                          onClick={() => {
+                            onLogout();
+                            setIsProfileDropdownOpen(false);
+                          }}
+                          className="w-full py-2.5 px-3 rounded-2xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/20 text-red-300 hover:text-red-200 text-xs font-medium transition-colors text-center active:scale-98"
+                        >
+                          Выйти из аккаунта
+                        </button>
+                      </div>
+                    )}
             </>
           );
         })()}

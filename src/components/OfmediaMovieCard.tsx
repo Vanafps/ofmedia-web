@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Hls from 'hls.js';
 import type { Project } from '../data/projects';
 import { getMovieRating } from '../services/ratingService';
+import { getWatchProgress, type WatchProgress } from '../services/watchHistoryService';
 import { PlayIcon } from './PlayIcon';
 import { SpeakerVolumeIcon } from './OfmediaPlayer';
 import { Tooltip } from './ui/Tooltip';
@@ -15,6 +16,8 @@ export interface OfmediaMovieCardProps {
   onToggleFavorite: (projectId: string) => void;
   className?: string;
   isDragging?: boolean;
+  showRemainingBadge?: boolean;
+  remainingMinutes?: number;
 }
 
 export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
@@ -25,6 +28,8 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
   onToggleFavorite,
   className = '',
   isDragging = false,
+  showRemainingBadge = false,
+  remainingMinutes,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const instanceIdRef = useRef<string>(
@@ -36,6 +41,10 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
   });
 
   const [isMobileCenterActive, setIsMobileCenterActive] = useState<boolean>(false);
+
+  const [watchProgress, setWatchProgress] = useState<WatchProgress | null>(() =>
+    getWatchProgress(project.id)
+  );
 
   const [isWatched, setIsWatched] = useState<boolean>(() => {
     try {
@@ -65,6 +74,7 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
   });
 
   const [isHovered, setIsHovered] = useState<boolean>(false);
+  const [isTeaserActive, setIsTeaserActive] = useState<boolean>(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(false);
   const [previewProgress, setPreviewProgress] = useState<number>(0);
   const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -127,8 +137,8 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
 
   // Determine whether video teaser should play:
   // On mobile: only if this card is in the center of the viewport
-  // On desktop: if user hovers the card
-  const shouldPlayVideo = isMobile ? isMobileCenterActive : isHovered;
+  // On desktop: if user has hovered the card for 5 consecutive seconds
+  const shouldPlayVideo = isMobile ? isMobileCenterActive : isTeaserActive;
 
   useEffect(() => {
     if (!shouldPlayVideo || !project.videoUrl) {
@@ -153,6 +163,31 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
     const src = project.videoUrl;
     const isHls = src.includes('.m3u8');
 
+    // Retrieve saved playback position for this specific movie trailer
+    const savedPosStr = localStorage.getItem(`ofmedia_card_trailer_pos_${project.id}`);
+    const savedPos = savedPosStr ? parseFloat(savedPosStr) : 0;
+
+    const applySavedTimeAndPlay = () => {
+      if (savedPos > 0 && isFinite(savedPos)) {
+        try {
+          if (!video.duration || savedPos < video.duration - 1) {
+            video.currentTime = savedPos;
+          } else {
+            video.currentTime = 0;
+          }
+        } catch {
+          // ignore seek error
+        }
+      }
+      video.muted = isMuted;
+      video.play().catch(() => {
+        if (!video.muted) {
+          video.muted = true;
+          video.play().catch(() => {});
+        }
+      });
+    };
+
     if (isHls && Hls.isSupported()) {
       const hls = new Hls({
         enableWorker: false,
@@ -166,23 +201,14 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
       hls.loadSource(src);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.muted = isMuted;
-        video.play().catch(() => {
-          if (!video.muted) {
-            video.muted = true;
-            video.play().catch(() => {});
-          }
-        });
+        applySavedTimeAndPlay();
       });
     } else {
       video.src = src;
-      video.muted = isMuted;
-      video.play().catch(() => {
-        if (!video.muted) {
-          video.muted = true;
-          video.play().catch(() => {});
-        }
-      });
+      video.onloadedmetadata = () => {
+        applySavedTimeAndPlay();
+      };
+      applySavedTimeAndPlay();
     }
 
     return () => {
@@ -191,7 +217,7 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
         hlsRef.current = null;
       }
     };
-  }, [shouldPlayVideo, project.videoUrl, isMuted]);
+  }, [shouldPlayVideo, project.videoUrl, project.id, isMuted]);
 
   useEffect(() => {
     return () => {
@@ -204,11 +230,16 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
     };
   }, []);
 
+  // Desktop hover: Card expands immediately, but video trailer starts after exactly 5 seconds
   const handleMouseEnter = () => {
     if (isDragging || isMobile) return;
+    setIsHovered(true);
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+    }
     hoverTimerRef.current = setTimeout(() => {
-      setIsHovered(true);
-    }, 300);
+      setIsTeaserActive(true);
+    }, 5000);
   };
 
   const handleMouseLeave = () => {
@@ -216,9 +247,24 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
       clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;
     }
+
+    // Remember the exact playback timestamp when mouse leaves
+    if (videoRef.current && videoRef.current.currentTime > 0) {
+      try {
+        localStorage.setItem(
+          `ofmedia_card_trailer_pos_${project.id}`,
+          videoRef.current.currentTime.toString()
+        );
+      } catch {
+        // ignore storage errors
+      }
+    }
+
     setIsHovered(false);
+    setIsTeaserActive(false);
     setIsVideoPlaying(false);
     setPreviewProgress(0);
+
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
@@ -230,7 +276,7 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
     }
   };
 
-  // Re-sync with other card updates and ratings changes
+  // Re-sync with other card updates, ratings changes, and watch progress updates
   useEffect(() => {
     const handleSync = () => {
       try {
@@ -248,11 +294,17 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
       setRatingsTick((t) => t + 1);
     };
 
+    const handleWatchHistoryUpdate = () => {
+      setWatchProgress(getWatchProgress(project.id));
+    };
+
     window.addEventListener('ofmedia_card_actions_sync', handleSync);
     window.addEventListener('ofmedia_ratings_updated', handleRatingUpdate);
+    window.addEventListener('ofmedia_history_updated', handleWatchHistoryUpdate);
     return () => {
       window.removeEventListener('ofmedia_card_actions_sync', handleSync);
       window.removeEventListener('ofmedia_ratings_updated', handleRatingUpdate);
+      window.removeEventListener('ofmedia_history_updated', handleWatchHistoryUpdate);
     };
   }, [project.id]);
 
@@ -311,7 +363,7 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
         {/* 16:9 Artwork / Center-Autoplay Video */}
         <div
           onClick={handleCardClick}
-          className="relative aspect-video w-full rounded-2xl overflow-hidden bg-[#121216] border border-white/10 shadow-lg cursor-pointer transition-all active:scale-[0.98]"
+          className="relative aspect-video w-full rounded-2xl overflow-hidden bg-[#08080a] border border-white/10 shadow-lg cursor-pointer transition-all active:scale-[0.98]"
         >
           <img
             src={project.poster}
@@ -383,6 +435,26 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
               </span>
             </div>
           )}
+
+          {/* Remaining Time Badge on Mobile */}
+          {showRemainingBadge && watchProgress && watchProgress.duration > 0 && (
+            <div className="absolute top-2 right-2 z-20 pointer-events-none">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/85 text-zinc-100 border border-white/15 backdrop-blur-md shadow-lg flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#ff5c00] animate-pulse" />
+                Осталось {remainingMinutes ?? Math.max(1, Math.ceil((watchProgress.duration - watchProgress.currentTime) / 60))} мин
+              </span>
+            </div>
+          )}
+
+          {/* Watch Progress Bar on Mobile */}
+          {watchProgress && watchProgress.percentage > 0 && watchProgress.percentage < 95 && (
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/60 backdrop-blur-xs z-20 pointer-events-none overflow-hidden">
+              <div
+                className="h-full bg-[#ff5c00] rounded-r-full shadow-[0_0_8px_#ff5c00]"
+                style={{ width: `${watchProgress.percentage}%` }}
+              />
+            </div>
+          )}
         </div>
 
         {/* Clean Direct Info Row on Mobile (Immediately Visible, No Drawer) */}
@@ -448,20 +520,30 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
       <div className="hidden md:block relative aspect-video w-full group">
         <div
           onClick={handleCardClick}
-          className="absolute top-0 left-0 w-full rounded-2xl overflow-hidden bg-[#16161c] border border-white/5 transition-all duration-300 ease-out origin-center group-hover:scale-110 group-hover:z-50 group-hover:shadow-[0_20px_45px_rgba(0,0,0,0.95)] group-hover:border-white/20 group-hover:bg-[#191922] cursor-pointer"
+          className={`absolute top-0 left-0 w-full rounded-2xl overflow-hidden bg-[#0a0a0d] border border-white/10 transition-all duration-300 ease-out origin-center ${
+            isHovered
+              ? 'scale-110 z-30 shadow-[0_25px_50px_rgba(0,0,0,0.95)] border-white/25 bg-[#0c0c10]'
+              : ''
+          } group-hover:scale-110 group-hover:z-30 group-hover:shadow-[0_25px_50px_rgba(0,0,0,0.95)] group-hover:border-white/25 group-hover:bg-[#0c0c10] cursor-pointer`}
         >
           {/* Poster Image Container */}
-          <div className="relative aspect-video w-full overflow-hidden bg-[#0d0d12]">
+          <div className="relative aspect-video w-full overflow-hidden bg-[#070709]">
             <img
               src={project.poster}
               alt={project.title}
               draggable={false}
-              className="w-full h-full object-cover select-none transition-transform duration-500 ease-out group-hover:scale-104"
+              className={`w-full h-full object-cover select-none transition-all duration-700 ease-out ${
+                isVideoPlaying ? 'opacity-0 scale-105' : 'opacity-100 scale-100 group-hover:scale-104'
+              }`}
             />
 
-            {/* Hover Video Intro Preview */}
-            {isHovered && (
-              <div className="absolute inset-0 overflow-hidden bg-black z-10">
+            {/* Hover Video Intro Preview (starts after 5 seconds of hovering) */}
+            {isTeaserActive && (
+              <div
+                className={`absolute inset-0 overflow-hidden bg-black z-10 transition-opacity duration-700 ease-out ${
+                  isVideoPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                }`}
+              >
                 <video
                   ref={videoRef}
                   muted={isMuted}
@@ -472,13 +554,17 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
                   onTimeUpdate={(e) => {
                     const v = e.currentTarget;
                     if (v.duration) {
-                      const loopDuration = Math.min(v.duration, 30);
+                      const loopDuration = Math.min(v.duration, 45);
                       setPreviewProgress(((v.currentTime % loopDuration) / loopDuration) * 100);
+                      try {
+                        localStorage.setItem(
+                          `ofmedia_card_trailer_pos_${project.id}`,
+                          v.currentTime.toString()
+                        );
+                      } catch {}
                     }
                   }}
-                  className={`w-full h-full object-cover transition-opacity duration-500 ${
-                    isVideoPlaying ? 'opacity-100' : 'opacity-0'
-                  }`}
+                  className="w-full h-full object-cover"
                 />
 
                 {/* Teaser loop progress bar */}
@@ -493,8 +579,49 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
               </div>
             )}
 
-            {/* Sound Mute / Unmute Button on Hover */}
-            {isHovered && (
+            {/* Movie Title / Logo Overlay with Smooth Shrink Animation when video plays */}
+            <div
+              className={`absolute bottom-3 left-3 z-20 pointer-events-none transition-all duration-700 ease-out flex items-end gap-2 max-w-[80%] ${
+                isVideoPlaying
+                  ? 'scale-70 -translate-x-1.5 translate-y-1 opacity-70 origin-bottom-left'
+                  : 'scale-100 translate-x-0 translate-y-0 opacity-100 origin-bottom-left'
+              }`}
+            >
+              {project.titleLogo ? (
+                <img
+                  src={project.titleLogo}
+                  alt={project.title}
+                  className="h-6 sm:h-8 w-auto object-contain drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
+                />
+              ) : (
+                <span className="font-heading font-black text-xs sm:text-sm text-white tracking-wide uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)] line-clamp-1">
+                  {project.title}
+                </span>
+              )}
+            </div>
+
+            {/* Watch Progress Bar on Desktop Poster */}
+            {watchProgress && watchProgress.percentage > 0 && watchProgress.percentage < 95 && (
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/60 backdrop-blur-xs z-20 pointer-events-none overflow-hidden">
+                <div
+                  className="h-full bg-[#ff5c00] rounded-r-full shadow-[0_0_8px_#ff5c00]"
+                  style={{ width: `${watchProgress.percentage}%` }}
+                />
+              </div>
+            )}
+
+            {/* Remaining Time Badge on Desktop Poster */}
+            {showRemainingBadge && watchProgress && watchProgress.duration > 0 && (
+              <div className="absolute top-2.5 right-2.5 z-20 pointer-events-none">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-black/85 text-zinc-100 border border-white/15 backdrop-blur-md shadow-lg flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#ff5c00] animate-pulse" />
+                  Осталось {remainingMinutes ?? Math.max(1, Math.ceil((watchProgress.duration - watchProgress.currentTime) / 60))} мин
+                </span>
+              </div>
+            )}
+
+            {/* Sound Mute / Unmute Button on Hover when video is playing */}
+            {isTeaserActive && isVideoPlaying && (
               <button
                 type="button"
                 onClick={toggleSound}
@@ -514,11 +641,11 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20" />
 
             {/* Bottom subtle shadow transition to info drawer */}
-            <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-[#191922] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20" />
+            <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-[#0c0c10] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20" />
           </div>
 
           {/* Hover Revealed Information Drawer (Okko layout) */}
-          <div className="max-h-0 opacity-0 py-0 px-3.5 group-hover:max-h-36 group-hover:py-3 group-hover:opacity-100 transition-all duration-300 ease-out overflow-hidden bg-[#191922] space-y-2.5 pointer-events-none group-hover:pointer-events-auto">
+          <div className="max-h-0 opacity-0 py-0 px-3.5 group-hover:max-h-36 group-hover:py-3 group-hover:opacity-100 transition-all duration-300 ease-out overflow-hidden bg-[#0c0c10] space-y-2.5 pointer-events-none group-hover:pointer-events-auto">
             {/* Metadata Row */}
             <div className="flex items-center gap-2.5 text-xs text-zinc-300 font-medium whitespace-nowrap overflow-hidden">
               {hasRealRating && (

@@ -10,6 +10,8 @@ interface OfmediaCardRowProps {
   onOpenDetails: (project: Project) => void;
   favorites: string[];
   onToggleFavorite: (projectId: string) => void;
+  showRemainingBadge?: boolean;
+  remainingMinutesMap?: Record<string, number>;
 }
 
 export const OfmediaCardRow: React.FC<OfmediaCardRowProps> = ({
@@ -20,6 +22,8 @@ export const OfmediaCardRow: React.FC<OfmediaCardRowProps> = ({
   onOpenDetails,
   favorites,
   onToggleFavorite,
+  showRemainingBadge = false,
+  remainingMinutesMap,
 }) => {
   const rowRef = useRef<HTMLDivElement>(null);
   const isDownRef = useRef(false);
@@ -90,14 +94,8 @@ export const OfmediaCardRow: React.FC<OfmediaCardRowProps> = ({
           )}
         </div>
 
-        {/* Drag Hint & Navigation Controls */}
+        {/* Navigation Controls */}
         <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-zinc-400 font-normal select-none px-3 py-1 rounded-full bg-white/[0.04] backdrop-blur-xl border border-white/10">
-            <svg className="w-3.5 h-3.5 fill-current opacity-70" viewBox="0 0 24 24">
-              <path d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74 0-2.49-2.01-4.5-4.5S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74l-3.43-.72c-.08-.01-.15-.02-.24-.02-.31 0-.59.13-.79.33l-.79.8 4.94 4.94c.27.27.65.43 1.06.43h6.79c.75 0 1.33-.55 1.44-1.28l.75-5.27c.01-.06.01-.13.01-.2 0-.49-.24-.93-.65-1.19z" />
-            </svg>
-            <span>Перетягивайте ленту</span>
-          </div>
 
           {/* Smooth Scroll Navigation Buttons */}
           <div className="hidden md:flex items-center gap-1.5 opacity-0 group-hover/section:opacity-100 transition-opacity duration-300">
@@ -150,6 +148,8 @@ export const OfmediaCardRow: React.FC<OfmediaCardRowProps> = ({
                 isFavorite={isFav}
                 onToggleFavorite={onToggleFavorite}
                 isDragging={isDragging}
+                showRemainingBadge={showRemainingBadge}
+                remainingMinutes={remainingMinutesMap?.[project.id]}
               />
             </div>
           );
