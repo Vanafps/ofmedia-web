@@ -6,7 +6,7 @@ import {
   CINEMA_AVATARS,
   type UserProfile,
 } from '../services/firebase';
-import { loginWithVkId, renderVkOneTap } from '../services/vkIdService';
+import { renderVkOneTap } from '../services/vkIdService';
 
 interface OfmediaAuthModalProps {
   isOpen: boolean;
@@ -54,20 +54,6 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
     }
   };
 
-  const handleVkLogin = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const user = await loginWithVkId();
-      onSuccess(user);
-      onClose();
-    } catch (e: any) {
-      setError(e.message || 'Ошибка входа через VK ID');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!identifier.trim() || !password) {
@@ -97,7 +83,7 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
     <div className="fixed inset-0 z-[120] bg-black/75 backdrop-blur-2xl flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="fixed inset-0" onClick={onClose} />
 
-      <div className="relative w-full max-w-md bg-[#0e0e14]/90 backdrop-blur-3xl border border-white/15 rounded-3xl p-6 sm:p-8 shadow-[0_16px_50px_rgba(0,0,0,0.8)] z-10 space-y-5">
+      <div className="relative w-full max-w-md bg-[#0e0e14]/95 backdrop-blur-3xl border border-white/15 rounded-3xl p-6 sm:p-8 shadow-[0_25px_70px_rgba(0,0,0,0.95)] z-10 space-y-5 animate-in fade-in-50 zoom-in-95 slide-in-from-bottom-5 duration-300 ease-out">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -287,30 +273,16 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
         {/* Official VK ID OneTap Container */}
         <div ref={oneTapRef} className="w-full flex justify-center empty:hidden" />
 
-        {/* Alternative Actions: Guest & Direct VK Login */}
-        <div className="grid grid-cols-2 gap-2.5">
-          <button
-            type="button"
-            onClick={handleGuestLogin}
-            disabled={loading}
-            className="py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-200 hover:text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-all active:scale-98"
-          >
-            <span>🍿</span>
-            <span>Как гость</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleVkLogin}
-            disabled={loading}
-            className="py-2.5 px-3 rounded-xl bg-[#0077ff]/15 hover:bg-[#0077ff]/25 border border-[#0077ff]/35 text-white text-xs font-semibold flex items-center justify-center gap-2 transition-all active:scale-98 shadow-sm group"
-          >
-            <svg className="w-4 h-4 fill-[#0077ff] group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
-              <path d="M12.785 17.5c-4.437 0-6.965-3.037-7.072-8.087h2.215c.074 3.707 1.708 5.275 3.003 5.598V9.413h2.086v3.197c1.277-.138 2.607-1.587 3.06-3.197h2.086c-.35 2.012-1.835 3.46-2.88 4.07 1.045.49 2.705 1.758 3.322 4.017h-2.316c-.483-1.52-1.688-2.695-3.266-2.853v2.853h-.238z" />
-            </svg>
-            <span>VK ID</span>
-          </button>
-        </div>
+        {/* Alternative: Guest login without duplicate VK button */}
+        <button
+          type="button"
+          onClick={handleGuestLogin}
+          disabled={loading}
+          className="w-full py-2.5 px-4 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-zinc-300 hover:text-white text-xs font-medium flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.98]"
+        >
+          <span>🍿</span>
+          <span>Продолжить просмотр как гость</span>
+        </button>
       </div>
     </div>
   );

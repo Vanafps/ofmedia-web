@@ -3,7 +3,7 @@ import Hls from 'hls.js';
 import type { Project, Episode } from '../data/projects';
 import { PROJECTS_DATA } from '../data/projects';
 import type { Actor } from '../data/actors';
-import { getActorByName, getOrGenerateActor } from '../data/actors';
+import { getOrGenerateActor } from '../data/actors';
 import {
   getMovieRating,
   submitMovieRating,
@@ -509,18 +509,16 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
               .join('')
               .slice(0, 2);
 
-            const actorEntity = getActorByName(member.name);
+            const actorEntity = getOrGenerateActor(member, PROJECTS_DATA);
 
             return (
               <div
                 key={idx}
                 onClick={() => {
-                  if (actorEntity) {
-                    onOpenActor(actorEntity);
-                  }
+                  onOpenActor(actorEntity);
                 }}
                 className="p-3.5 sm:p-4 rounded-2xl glass-card hover:bg-white/[0.08] hover:border-[#ff5c00]/50 transition-all flex flex-col items-center text-center space-y-2 sm:space-y-3 group shadow-lg cursor-pointer hover:-translate-y-1"
-                title={`Открыть профиль: ${member.name}`}
+                title={`Открыть фильмографию: ${member.name}`}
               >
                 <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-900 border border-white/20 overflow-hidden flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow-md group-hover:scale-108 group-hover:border-[#ff5c00] transition-all shrink-0">
                   {member.avatar ? (
@@ -966,6 +964,57 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
           ))}
         </div>
       </div>
+
+      {/* 7. CINEMATIC TRAILER LIGHTBOX MODAL */}
+      {isTrailerOpen && (
+        <div className="fixed inset-0 z-[150] bg-black/90 backdrop-blur-2xl flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-5xl bg-[#08080a] border border-white/20 rounded-3xl overflow-hidden shadow-[0_25px_80px_rgba(0,0,0,0.95)]">
+            {/* Header bar */}
+            <div className="flex items-center justify-between px-5 py-3.5 bg-black/60 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <span className="px-2.5 py-0.5 rounded-full bg-[#ff5c00]/20 text-[#ff5c00] text-xs font-semibold border border-[#ff5c00]/30">
+                  Официальный трейлер
+                </span>
+                <span className="font-heading font-bold text-white text-sm sm:text-base truncate">
+                  {project.title}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setIsTrailerOpen(false);
+                    onPlay(project);
+                  }}
+                  className="px-4 py-1.5 rounded-xl bg-[#ff5c00] hover:bg-[#e05200] text-white text-xs font-semibold transition-all flex items-center gap-1.5"
+                >
+                  <PlayIcon className="w-3 h-3 fill-white" />
+                  <span>Смотреть фильм</span>
+                </button>
+
+                <button
+                  onClick={() => setIsTrailerOpen(false)}
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white flex items-center justify-center transition-colors text-sm"
+                  title="Закрыть (Esc)"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Video Container */}
+            <div className="relative aspect-video w-full bg-black">
+              <video
+                ref={trailerVideoRef}
+                controls
+                autoPlay
+                playsInline
+                className="w-full h-full object-contain"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

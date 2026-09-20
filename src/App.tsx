@@ -82,6 +82,26 @@ export function App() {
     };
   }, []);
 
+  const [showAuthBanner, setShowAuthBanner] = useState<boolean>(false);
+
+  useEffect(() => {
+    // Show auth prompt to unauthenticated visitors after 5 seconds
+    const isDismissed = sessionStorage.getItem('ofmedia_auth_prompt_dismissed');
+    if (!user && !isDismissed) {
+      const timer = setTimeout(() => {
+        setShowAuthBanner(true);
+      }, 5000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowAuthBanner(false);
+    }
+  }, [user]);
+
+  const handleDismissAuthBanner = () => {
+    setShowAuthBanner(false);
+    sessionStorage.setItem('ofmedia_auth_prompt_dismissed', 'true');
+  };
+
   const isAnyModalOpen = isDetailModalOpen || isActorModalOpen || isPlayerOpen || isAuthModalOpen || isProfileModalOpen;
 
   // Butter-Smooth Kinetic Inertia Scrolling via Lenis
@@ -257,6 +277,22 @@ export function App() {
     setIsDetailModalOpen(false);
     setSelectedProject(null);
     window.history.pushState(null, '', activeTab === 'favorites' ? '/my' : '/');
+  };
+
+  const handleSelectGenre = (genre: string) => {
+    setActiveTab('main');
+    const gLower = genre.toLowerCase();
+    if (gLower.includes('ком')) {
+      setSelectedCategory('comedy');
+    } else if (gLower.includes('муз') || gLower.includes('клип') || gLower.includes('концерт')) {
+      setSelectedCategory('music');
+    } else if (gLower.includes('шоу') || gLower.includes('постан') || gLower.includes('скетч')) {
+      setSelectedCategory('shows');
+    } else if (gLower.includes('приключ') || gLower.includes('влог') || gLower.includes('экскурс')) {
+      setSelectedCategory('adventure');
+    } else {
+      setSelectedCategory('none');
+    }
   };
 
   const handleClosePlayer = () => {
@@ -672,6 +708,7 @@ export function App() {
         isFavorite={selectedProject ? favorites.includes(selectedProject.id) : false}
         onToggleFavorite={toggleFavorite}
         onSelectProject={handleOpenDetails}
+        onSelectGenre={handleSelectGenre}
         favorites={favorites}
       />
 
@@ -713,6 +750,47 @@ export function App() {
         onClose={() => setIsAuthModalOpen(false)}
         onSuccess={(u) => setUser(u)}
       />
+
+      {/* Floating Smart Auth Reminder for Unauthenticated Users */}
+      {showAuthBanner && !user && (
+        <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-[95] max-w-sm w-[calc(100%-2rem)] bg-[#0e0e14]/95 backdrop-blur-2xl border border-white/20 rounded-2xl p-4 shadow-[0_12px_40px_rgba(0,0,0,0.85)] animate-in fade-in slide-in-from-bottom-6 duration-300">
+          <button
+            onClick={handleDismissAuthBanner}
+            className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-zinc-400 hover:text-white flex items-center justify-center transition-colors text-xs"
+            title="Закрыть"
+          >
+            ✕
+          </button>
+          <div className="flex items-start gap-3">
+            <span className="text-2xl shrink-0 mt-0.5">🍿</span>
+            <div className="space-y-1 pr-4">
+              <div className="font-heading font-bold text-xs sm:text-sm text-white">
+                Войдите в OFMEDIA
+              </div>
+              <p className="text-[11px] text-zinc-400 leading-snug">
+                Сохраняйте историю просмотров, оценки и продолжайте кино на любых устройствах.
+              </p>
+              <div className="pt-2 flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    handleDismissAuthBanner();
+                    setIsAuthModalOpen(true);
+                  }}
+                  className="px-4 py-1.5 rounded-xl bg-[#ff5c00] hover:bg-[#e05200] text-white text-xs font-semibold shadow-md shadow-[#ff5c00]/30 transition-all hover:scale-103 active:scale-95"
+                >
+                  Войти
+                </button>
+                <button
+                  onClick={handleDismissAuthBanner}
+                  className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white text-xs font-medium transition-colors"
+                >
+                  Позже
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Bottom Navigation Bar */}
       <OfmediaMobileNav
