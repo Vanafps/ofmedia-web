@@ -128,7 +128,7 @@ export const OfmediaCardRow: React.FC<OfmediaCardRowProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUpOrLeave}
         onMouseLeave={handleMouseUpOrLeave}
-        className={`flex items-start gap-4 sm:gap-5 overflow-x-auto px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto pt-2 pb-3 select-none no-scrollbar [&::-webkit-scrollbar]:hidden transition-cursor duration-150 scroll-smooth ${
+        className={`flex items-start gap-5 sm:gap-6 md:gap-7 overflow-x-auto px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto pt-2 pb-6 select-none no-scrollbar [&::-webkit-scrollbar]:hidden transition-cursor duration-150 scroll-smooth ${
           isDragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
