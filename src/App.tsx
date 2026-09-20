@@ -125,8 +125,14 @@ export function App() {
 
   const isAnyModalOpen = isDetailModalOpen || isActorModalOpen || isPlayerOpen || isAuthModalOpen || isProfileModalOpen;
 
-  // Butter-Smooth Kinetic Inertia Scrolling via Lenis
+  // Butter-Smooth Kinetic Inertia Scrolling via Lenis (DESKTOP ONLY)
   useEffect(() => {
+    // Disable Lenis on touch screens and mobile to eliminate rubber-band bounce
+    const isTouchDevice =
+      typeof window !== 'undefined' &&
+      ('ontouchstart' in window || navigator.maxTouchPoints > 0 || isNativeAndroid() || window.innerWidth < 768);
+    if (isTouchDevice) return;
+
     const lenis = new Lenis({
       duration: 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
@@ -134,7 +140,6 @@ export function App() {
       gestureOrientation: 'vertical',
       smoothWheel: true,
       wheelMultiplier: 1.0,
-      touchMultiplier: 1.2,
       autoRaf: false,
     });
 

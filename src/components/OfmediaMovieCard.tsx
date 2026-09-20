@@ -526,9 +526,9 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
           onClick={handleCardClick}
           className={`absolute top-0 left-0 w-full rounded-2xl overflow-hidden bg-[#0a0a0c] border border-white/10 transition-all duration-300 ease-out origin-center ${
             isHovered
-              ? '[@media(hover:hover)]:scale-[1.03] z-30 shadow-[0_25px_50px_rgba(0,0,0,0.95)] border-white/25 bg-[#101012]'
+              ? 'scale-110 z-30 shadow-[0_25px_50px_rgba(0,0,0,0.95)] border-white/25 bg-[#101012]'
               : ''
-          } [@media(hover:hover)]:group-hover:scale-[1.03] [@media(hover:hover)]:group-hover:z-30 [@media(hover:hover)]:group-hover:shadow-[0_25px_50px_rgba(0,0,0,0.95)] [@media(hover:hover)]:group-hover:border-white/25 [@media(hover:hover)]:group-hover:bg-[#101012] cursor-pointer`}
+          } group-hover:scale-110 group-hover:z-30 group-hover:shadow-[0_25px_50px_rgba(0,0,0,0.95)] group-hover:border-white/25 group-hover:bg-[#101012] cursor-pointer`}
         >
           {/* Poster Image Container */}
           <div className="relative aspect-video w-full overflow-hidden bg-[#070709]">
@@ -541,7 +541,7 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
               }`}
             />
 
-            {/* Hover Video Intro Preview (starts after 5 seconds of hovering) */}
+            {/* Hover Video Intro Preview (starts after 700ms of hovering) */}
             {isTeaserActive && (
               <div
                 className={`absolute inset-0 overflow-hidden bg-black z-10 transition-opacity duration-700 ease-out ${
@@ -582,27 +582,6 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
                 )}
               </div>
             )}
-
-            {/* Movie Title / Logo Overlay with Smooth Shrink Animation when video plays */}
-            <div
-              className={`absolute bottom-3 left-3 z-20 pointer-events-none transition-all duration-700 ease-out flex items-end gap-2 max-w-[80%] ${
-                isVideoPlaying
-                  ? 'scale-70 -translate-x-1.5 translate-y-1 opacity-70 origin-bottom-left'
-                  : 'scale-100 translate-x-0 translate-y-0 opacity-100 origin-bottom-left'
-              }`}
-            >
-              {project.titleLogo ? (
-                <img
-                  src={project.titleLogo}
-                  alt={project.title}
-                  className="h-6 sm:h-8 w-auto object-contain drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]"
-                />
-              ) : (
-                <span className="font-heading font-black text-xs sm:text-sm text-white tracking-wide uppercase drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)] line-clamp-1">
-                  {project.title}
-                </span>
-              )}
-            </div>
 
             {/* Watch Progress Bar on Desktop Poster */}
             {watchProgress && watchProgress.percentage > 0 && watchProgress.percentage < 95 && (

@@ -121,14 +121,14 @@ export const OfmediaCardRow: React.FC<OfmediaCardRowProps> = ({
         </div>
       </div>
 
-      {/* Swipe / Drag Cards Track */}
+      {/* Swipe / Drag Cards Track (with vertical breathing room for floating hover expansion) */}
       <div
         ref={rowRef}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUpOrLeave}
         onMouseLeave={handleMouseUpOrLeave}
-        className={`flex items-start gap-5 sm:gap-6 md:gap-7 overflow-x-auto px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto pt-2 pb-6 select-none no-scrollbar [&::-webkit-scrollbar]:hidden transition-cursor duration-150 scroll-smooth ${
+        className={`flex items-start gap-4 sm:gap-5 overflow-x-auto px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto pt-4 pb-28 -mt-2 -mb-24 select-none no-scrollbar [&::-webkit-scrollbar]:hidden transition-cursor duration-150 scroll-smooth ${
           isDragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -139,7 +139,7 @@ export const OfmediaCardRow: React.FC<OfmediaCardRowProps> = ({
           return (
             <div
               key={project.id}
-              className="flex-none w-[260px] sm:w-[300px] md:w-[320px] aspect-video relative"
+              className="flex-none w-[260px] sm:w-[300px] md:w-[320px] aspect-video relative hover:z-50 focus-within:z-50 transition-all"
             >
               <OfmediaMovieCard
                 project={project}

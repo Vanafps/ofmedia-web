@@ -1,14 +1,21 @@
 import * as VKID from '@vkid/sdk';
+import { Capacitor } from '@capacitor/core';
 import type { UserProfile } from './firebase';
 
-export const VK_APP_ID_WEB = 54781535;
-export const VK_APP_ID_ANDROID = 54781536;
+export const VK_APP_ID = 54781535;
 export const VK_CLIENT_SECRET = 'onvGud3EPvBipAvPz7AK';
 export const VK_SERVICE_TOKEN = '74427b5e74427b5e74427b5e0277019d3e7744274427b5e1ef273586bfcddc4a9f3a85e';
 
 export const isNativeAndroid = (): boolean => {
   if (typeof window === 'undefined') return false;
-  return !!(window as any)?.Capacitor?.isNativePlatform?.();
+  try {
+    if (Capacitor.isNativePlatform()) return true;
+  } catch {}
+  return (
+    !!(window as any)?.Capacitor?.isNativePlatform?.() ||
+    window.location.protocol === 'capacitor:' ||
+    (window.location.protocol === 'http:' && window.location.hostname === 'localhost' && !window.location.port)
+  );
 };
 
 export const getVkAppId = (): number => {
@@ -20,7 +27,7 @@ export const getVkAppId = (): number => {
   if (storedId && !isNaN(Number(storedId))) {
     return Number(storedId);
   }
-  return isNativeAndroid() ? VK_APP_ID_ANDROID : VK_APP_ID_WEB;
+  return VK_APP_ID;
 };
 
 export const setVkAppId = (id: number | string) => {
@@ -222,7 +229,10 @@ export const loginWithVkId = async (): Promise<void> => {
   try {
     await VKID.Auth.login();
   } catch (e: any) {
-    console.warn('VKID.Auth.login error:', e?.message);
+    console.warn('VKID.Auth.login notice:', e?.message);
+    const appId = getVkAppId();
+    const redirectUri = encodeURIComponent(getRedirectUrl());
+    window.location.href = `https://id.vk.ru/authorize?client_id=${appId}&redirect_uri=${redirectUri}&response_type=code&scope=&state=${encodeURIComponent(window.location.href)}`;
   }
 };
 
