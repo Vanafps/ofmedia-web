@@ -140,7 +140,7 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
         {/* Right: Search & Profile */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Search Bar */}
-          <div className="relative">
+          <div className="relative flex items-center">
             {isSearchOpen ? (
               <div className="flex items-center gap-2 bg-black/75 backdrop-blur-3xl border border-white/25 rounded-full px-3.5 py-1.5 shadow-[0_8px_32px_rgba(0,0,0,0.5)] animate-in fade-in">
                 <svg className="w-4 h-4 fill-zinc-400 shrink-0" viewBox="0 0 24 24">
@@ -265,7 +265,7 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
 
           {/* User Profile / Auth Button */}
           {user ? (
-            <div className="relative">
+            <div className="relative flex items-center">
               {(() => {
                 return (
                   <>

@@ -91,10 +91,13 @@ export function App() {
 
   useEffect(() => {
     refreshUserData();
+    const handleOpenAuthEvent = () => setIsAuthModalOpen(true);
+    window.addEventListener('ofmedia_open_auth', handleOpenAuthEvent);
     window.addEventListener('ofmedia_ratings_updated', refreshUserData);
     window.addEventListener('ofmedia_reviews_updated', refreshUserData);
     window.addEventListener('ofmedia_history_updated', refreshUserData);
     return () => {
+      window.removeEventListener('ofmedia_open_auth', handleOpenAuthEvent);
       window.removeEventListener('ofmedia_ratings_updated', refreshUserData);
       window.removeEventListener('ofmedia_reviews_updated', refreshUserData);
       window.removeEventListener('ofmedia_history_updated', refreshUserData);
@@ -459,6 +462,7 @@ export function App() {
               projects={PROJECTS_DATA}
               onOpenDetails={handleOpenDetails}
               onPlay={handlePlayProject}
+              onOpenAuth={() => setIsAuthModalOpen(true)}
             />
 
             {/* Genre Navigation System */}
@@ -931,7 +935,7 @@ export function App() {
         }}
         onOpenProfile={() => {
           if (user) {
-            setIsProfileModalOpen(true);
+            setIsProfileModalOpen((prev) => !prev);
           } else {
             setIsAuthModalOpen(true);
           }

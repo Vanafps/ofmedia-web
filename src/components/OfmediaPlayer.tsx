@@ -42,7 +42,7 @@ const parseDurationToSeconds = (durStr?: string): number => {
 // Modern Geometric Play SVG Icon - Optically Centered
 export const ModernPlayIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M8.5 5.5C8.5 4.7 9.4 4.2 10.1 4.6l10 6.5c0.7 0.4 0.7 1.4 0 1.8l-10 6.5c-0.7 0.4-1.6-0.1-1.6-0.9V5.5z" />
+    <path d="M8 5.14v13.72a1 1 0 0 0 1.55.83l11-6.86a1 1 0 0 0 0-1.66l-11-6.86A1 1 0 0 0 8 5.14z" />
   </svg>
 );
 
@@ -1006,7 +1006,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
         >
           <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#101012]/90 backdrop-blur-2xl border-2 border-white/25 flex items-center justify-center text-white shadow-[0_0_45px_rgba(255,92,0,0.5)] animate-center-pop">
             {flashFeedback.type === 'play' ? (
-              <ModernPlayIcon className="w-10 h-10 text-white ml-1" />
+              <ModernPlayIcon className="w-10 h-10 text-white" />
             ) : (
               <PauseIcon className="w-10 h-10 text-white" />
             )}
