@@ -6,6 +6,8 @@ import { getAllUserReviews, deleteMovieReview, type Review } from '../services/r
 import { PROJECTS_DATA, type Project } from '../data/projects';
 import { PlayIcon } from './PlayIcon';
 import { CustomSelect } from './ui/CustomSelect';
+import { getOfflineMovies, removeOfflineMovie, type OfflineMovie } from '../services/offlineStorageService';
+import { checkForAppUpdate, triggerApkDownload, CURRENT_APP_VERSION } from '../services/updateService';
 
 interface OfmediaProfileModalProps {
   isOpen: boolean;
@@ -24,7 +26,7 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
   onSelectProject,
   onPlayProject,
 }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'ratings' | 'reviews' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'downloads' | 'history' | 'ratings' | 'reviews' | 'settings'>('overview');
   const [displayName, setDisplayName] = useState('');
   const [selectedAvatar, setSelectedAvatar] = useState(user?.avatarIcon || 'popcorn');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -32,6 +34,9 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
   const [watchedProjects, setWatchedProjects] = useState<Project[]>([]);
   const [userRatings, setUserRatings] = useState<Record<string, number>>({});
   const [favoritesList, setFavoritesList] = useState<string[]>([]);
+  const [offlineMovies, setOfflineMovies] = useState<OfflineMovie[]>([]);
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState<string | null>(null);
 
   // Player Settings
   const [prefQuality, setPrefQuality] = useState(() => localStorage.getItem('ofmedia_pref_quality') || '1080p');
@@ -55,6 +60,7 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
 
     setUserRatings(getUserRatings());
     setUserReviews(getAllUserReviews(user?.uid));
+    setOfflineMovies(getOfflineMovies());
   };
 
   useEffect(() => {
@@ -137,18 +143,18 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
   const initialLetter = (currentDisplayName || user?.email || 'U')[0].toUpperCase();
 
   return (
-    <div data-lenis-prevent="true" className="fixed inset-0 z-50 bg-[#070709] overflow-y-auto custom-scrollbar animate-in fade-in duration-200 text-[#f4f4f5]">
+    <div data-lenis-prevent="true" className="fixed inset-0 z-50 bg-[#070709] overflow-y-auto custom-scrollbar animate-in fade-in duration-200 text-[#f4f4f5] pb-28 sm:pb-12">
       {/* Top Floating Navigation Header */}
       <div className="sticky top-0 left-0 right-0 z-40 px-4 sm:px-12 py-3.5 sm:py-5 glass-header flex items-center justify-between">
         <button
           onClick={onClose}
-          className="flex items-center gap-2 px-4 py-2 rounded-full glass-pill text-zinc-200 hover:text-white transition-all text-xs font-medium group shadow-lg hover:scale-105 active:scale-95"
-          title="Назад к каталогу (Esc)"
+          className="flex items-center gap-2 px-4 py-2 rounded-full glass-pill text-white transition-all text-xs font-semibold group shadow-lg hover:scale-105 active:scale-95 bg-[#ff5c00]/20 hover:bg-[#ff5c00] border border-[#ff5c00]/40"
+          title="Вернуться на главную (Esc)"
         >
           <svg className="w-4 h-4 fill-current group-hover:-translate-x-0.5 transition-transform" viewBox="0 0 24 24">
             <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
           </svg>
-          <span>Назад</span>
+          <span>← На главную</span>
         </button>
 
         <div className="flex items-center gap-3 px-3 py-1.5 rounded-full glass-pill shadow">
@@ -281,7 +287,8 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
         <div className="flex flex-wrap items-center gap-2 border-b border-white/10 pb-4">
           {[
             { id: 'overview', label: 'Обзор', count: null },
-            { id: 'history', label: 'История просмотров', count: watchedProjects.length },
+            { id: 'downloads', label: 'Оффлайн', count: offlineMovies.length },
+            { id: 'history', label: 'История', count: watchedProjects.length },
             { id: 'ratings', label: 'Оценки', count: ratedEntries.length },
             { id: 'reviews', label: 'Рецензии', count: userReviews.length },
             { id: 'settings', label: 'Настройки', count: null },
@@ -673,12 +680,79 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
           </div>
         )}
 
+        {/* TAB: OFFLINE DOWNLOADS */}
+        {activeTab === 'downloads' && (
+          <div className="space-y-6 animate-in fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="font-bold text-lg sm:text-xl text-white">Оффлайн загрузки</h2>
+                <p className="text-xs text-zinc-400 font-normal">
+                  Фильмы и серии, сохранённые на вашем устройстве для просмотра без интернета
+                </p>
+              </div>
+              {offlineMovies.length > 0 && (
+                <div className="text-xs text-zinc-400 glass-pill px-3.5 py-1.5 rounded-full w-fit">
+                  Всего занято: <span className="font-semibold text-[#ff5c00]">{offlineMovies.reduce((acc, m) => acc + (m.fileSizeMb || 0), 0)} МБ</span>
+                </div>
+              )}
+            </div>
+
+            {offlineMovies.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {offlineMovies.map((movie) => (
+                  <div key={movie.id} className="p-4 rounded-3xl glass-card space-y-3 flex flex-col justify-between">
+                    <div className="flex gap-3">
+                      <img
+                        src={movie.poster || movie.backdrop}
+                        alt={movie.title}
+                        className="w-20 aspect-video rounded-xl object-cover bg-zinc-800 shrink-0"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-bold text-sm text-white truncate">{movie.title}</h3>
+                        <p className="text-[11px] text-zinc-400 mt-0.5">{movie.year} • {movie.duration}</p>
+                        <p className="text-[10px] text-zinc-500 mt-1">Размер: ~{movie.fileSizeMb} МБ</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                      <button
+                        onClick={() => {
+                          onPlayProject(movie.project);
+                          onClose();
+                        }}
+                        className="flex-1 py-2 px-3 rounded-xl bg-[#ff5c00] hover:bg-[#e05200] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all active:scale-95 shadow"
+                      >
+                        <PlayIcon className="w-3.5 h-3.5 fill-current" />
+                        <span>Смотреть</span>
+                      </button>
+                      <button
+                        onClick={() => removeOfflineMovie(movie.id)}
+                        className="py-2 px-3 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-300 text-xs font-medium transition-colors"
+                        title="Удалить из памяти"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-12 text-center glass-card rounded-3xl space-y-3">
+                <div className="text-3xl">📥</div>
+                <div className="text-sm font-medium text-white">Нет загруженных фильмов</div>
+                <p className="text-xs text-zinc-400 font-normal max-w-sm mx-auto">
+                  Нажмите кнопку «Скачать оффлайн» на странице любого фильма, чтобы смотреть его в дороге без доступа к сети.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* TAB 5: SETTINGS */}
         {activeTab === 'settings' && (
           <div className="space-y-6 animate-in fade-in">
             <div>
-              <h2 className="font-bold text-lg text-white">Настройки плеера и воспроизведения</h2>
-              <p className="text-xs text-zinc-400 font-normal">Параметры видеопотока</p>
+              <h2 className="font-bold text-lg text-white">Настройки плеера и приложения</h2>
+              <p className="text-xs text-zinc-400 font-normal">Параметры видеопотока и обновлений</p>
             </div>
 
             <div className="space-y-4 text-xs">
@@ -717,6 +791,38 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
                   onChange={(e) => handleSaveSettings(prefQuality, e.target.checked)}
                   className="w-5 h-5 accent-[#ff5c00] rounded-lg cursor-pointer"
                 />
+              </div>
+
+              {/* App Version & Self Update Check without RuStore */}
+              <div className="p-5 rounded-3xl glass-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-white/10">
+                <div>
+                  <div className="font-medium text-sm text-white flex items-center gap-2">
+                    <span>Мобильное приложение OFMEDIA</span>
+                    <span className="px-2 py-0.5 rounded-md bg-[#ff5c00]/20 text-[#ff5c00] text-[10px] font-mono font-bold">v{CURRENT_APP_VERSION}</span>
+                  </div>
+                  <div className="text-xs text-zinc-400 font-normal mt-0.5">
+                    {updateMessage || 'Автономные обновления без магазинов приложений'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={isCheckingUpdate}
+                  onClick={async () => {
+                    setIsCheckingUpdate(true);
+                    setUpdateMessage('Проверка сервера обновлений...');
+                    const res = await checkForAppUpdate();
+                    setIsCheckingUpdate(false);
+                    if (res.updateAvailable && res.latestVersion) {
+                      setUpdateMessage(`Доступна новая версия ${res.latestVersion.versionName}! Загрузка APK...`);
+                      triggerApkDownload(res.latestVersion.apkUrl);
+                    } else {
+                      setUpdateMessage('У вас установлена последняя версия приложения.');
+                    }
+                  }}
+                  className="px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-[#ff5c00] hover:text-white text-zinc-200 text-xs font-semibold transition-all active:scale-95 shrink-0 shadow border border-white/15"
+                >
+                  {isCheckingUpdate ? 'Проверяем...' : 'Проверить обновления'}
+                </button>
               </div>
             </div>
           </div>

@@ -18,7 +18,12 @@ writeFileSync(join(distDir, '.nojekyll'), '');
 // Static routing support for /app/apk on GitHub Pages
 const appApkDir = join(distDir, 'app', 'apk');
 mkdirSync(appApkDir, { recursive: true });
-copyFileSync(join(distDir, 'index.html'), join(appApkDir, 'index.html'));
+const publicApkHtml = join(process.cwd(), 'public', 'app', 'apk', 'index.html');
+if (existsSync(publicApkHtml)) {
+  copyFileSync(publicApkHtml, join(appApkDir, 'index.html'));
+} else {
+  copyFileSync(join(distDir, 'index.html'), join(appApkDir, 'index.html'));
+}
 
 console.log('🌐 [OFMEDIA] Pushing to ofmedia-web.github.io...');
 
@@ -37,4 +42,12 @@ runGit('git remote add origin https://github.com/ofmedia-web/ofmedia-web.github.
 runGit('git add -A');
 runGit('git commit -m "deploy: update OFMEDIA mirror"');
 execSync('git push -f origin main', { cwd: distDir, stdio: 'inherit' });
+
+// Cleanup .git inside dist so it does not pollute subsequent builds or capacitor syncs
+try {
+  import('node:fs').then(fs => {
+    fs.rmSync(join(distDir, '.git'), { recursive: true, force: true });
+  });
+} catch {}
+
 console.log('✅ [OFMEDIA] Successfully published to https://ofmedia-web.github.io/');

@@ -24,6 +24,7 @@ import {
 import { PlayIcon } from './PlayIcon';
 import { Tooltip } from './ui/Tooltip';
 import { OfmediaMovieCard } from './OfmediaMovieCard';
+import { downloadMovieForOffline, isMovieOffline, removeOfflineMovie } from '../services/offlineStorageService';
 
 interface OfmediaDetailModalProps {
   project: Project | null;
@@ -78,6 +79,42 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
   const [showHistogram, setShowHistogram] = useState(false);
   const [isWatched, setIsWatched] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Offline Download State
+  const [isDownloaded, setIsDownloaded] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<number>(0);
+
+  useEffect(() => {
+    if (project) {
+      setIsDownloaded(isMovieOffline(project.id));
+    }
+  }, [project]);
+
+  const handleToggleDownload = async () => {
+    if (!project) return;
+    if (isDownloaded) {
+      removeOfflineMovie(project.id);
+      setIsDownloaded(false);
+      setToastMessage('Фильм удалён из оффлайн памяти');
+      setTimeout(() => setToastMessage(null), 2500);
+      return;
+    }
+
+    try {
+      setIsDownloading(true);
+      setDownloadProgress(15);
+      await downloadMovieForOffline(project, (pct) => setDownloadProgress(pct));
+      setIsDownloading(false);
+      setIsDownloaded(true);
+      setToastMessage('Фильм успешно скачан для оффлайн-просмотра!');
+      setTimeout(() => setToastMessage(null), 2500);
+    } catch {
+      setIsDownloading(false);
+      setToastMessage('Ошибка при загрузке');
+      setTimeout(() => setToastMessage(null), 2500);
+    }
+  };
 
   // Trailer Lightbox State
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
@@ -394,6 +431,33 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
               </svg>
               <span>Трейлер</span>
             </button>
+
+            {/* Offline Download Button */}
+            <Tooltip content={isDownloaded ? 'Скачано (нажмите для удаления)' : isDownloading ? `Скачивание: ${downloadProgress}%` : 'Скачать фильм для оффлайн-просмотра'} position="top">
+              <button
+                onClick={handleToggleDownload}
+                disabled={isDownloading}
+                className={`p-3.5 rounded-full border transition-all duration-200 glass-pill hover:scale-105 active:scale-95 shadow-lg flex items-center justify-center ${
+                  isDownloaded
+                    ? 'bg-[#ff5c00]/25 border-[#ff5c00] text-[#ff5c00] shadow-[#ff5c00]/25'
+                    : isDownloading
+                    ? 'bg-white/10 border-white/20 text-white animate-pulse'
+                    : 'text-zinc-200 hover:text-white'
+                }`}
+              >
+                {isDownloading ? (
+                  <span className="text-[10px] font-bold font-mono">{downloadProgress}%</span>
+                ) : isDownloaded ? (
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                    <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z" />
+                  </svg>
+                )}
+              </button>
+            </Tooltip>
 
             {/* Favorite Bookmark */}
             <Tooltip content={isFavorite ? 'В избранном' : 'Добавить в избранное'} position="top">

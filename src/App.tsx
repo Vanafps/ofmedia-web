@@ -21,6 +21,8 @@ import { subscribeToAuth, logoutUser, type UserProfile } from './services/fireba
 import { getUserRatings, getMovieRating } from './services/ratingService';
 import { getPersonalizedRecommendations, type RecommendedRow } from './services/recommendationService';
 import { getContinueWatchingProjects, type ContinueWatchingItem } from './services/watchHistoryService';
+import { checkAndHandleVkRedirect } from './services/vkIdService';
+import { checkForAppUpdate, triggerApkDownload, type AppVersionInfo } from './services/updateService';
 
 export function App() {
   const isApkDownloadRoute = typeof window !== 'undefined' && (
@@ -83,6 +85,8 @@ export function App() {
   }, []);
 
   const [showAuthBanner, setShowAuthBanner] = useState<boolean>(false);
+  const [updateInfo, setUpdateInfo] = useState<AppVersionInfo | null>(null);
+  const [showUpdateModal, setShowUpdateModal] = useState<boolean>(false);
 
   useEffect(() => {
     // Show auth prompt to unauthenticated visitors after 5 seconds
@@ -145,6 +149,20 @@ export function App() {
     const unsub = subscribeToAuth((u) => {
       setUser(u);
     });
+
+    // Check VK ID redirect return from OAuth
+    checkAndHandleVkRedirect().then((vkUser) => {
+      if (vkUser) setUser(vkUser);
+    });
+
+    // Check for APK updates on mobile / web
+    checkForAppUpdate().then((res) => {
+      if (res.updateAvailable && res.latestVersion) {
+        setUpdateInfo(res.latestVersion);
+        setShowUpdateModal(true);
+      }
+    });
+
     return () => {
       if (typeof unsub === 'function') unsub();
     };
@@ -792,14 +810,54 @@ export function App() {
         </div>
       )}
 
+      {/* In-App Update Modal */}
+      {showUpdateModal && updateInfo && (
+        <div className="fixed inset-0 z-[130] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md bg-[#0e0e14]/95 backdrop-blur-2xl border border-white/20 rounded-3xl p-6 sm:p-7 shadow-[0_25px_70px_rgba(0,0,0,0.95)] z-10 space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-[#ff5c00]/20 border border-[#ff5c00]/30 flex items-center justify-center text-2xl shadow-inner shrink-0">
+                ⚡
+              </div>
+              <div>
+                <h3 className="font-heading font-bold text-lg text-white">Доступно обновление OFMEDIA</h3>
+                <p className="text-xs text-[#ff5c00] font-mono font-semibold">Версия {updateInfo.versionName}</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-white/[0.04] border border-white/10 text-xs text-zinc-300 space-y-1.5 whitespace-pre-line font-normal leading-relaxed">
+              <div className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-1">Что нового:</div>
+              {updateInfo.releaseNotes}
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                onClick={() => {
+                  triggerApkDownload(updateInfo.apkUrl);
+                  setShowUpdateModal(false);
+                }}
+                className="flex-1 py-3 px-4 rounded-xl bg-[#ff5c00] hover:bg-[#e05200] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-lg shadow-[#ff5c00]/30 transition-all active:scale-95"
+              >
+                <span>📥</span>
+                <span>Скачать и обновить APK</span>
+              </button>
+              <button
+                onClick={() => setShowUpdateModal(false)}
+                className="py-3 px-4 rounded-xl glass-pill text-zinc-400 hover:text-white text-xs font-medium transition-colors"
+              >
+                Позже
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Bottom Navigation Bar */}
       <OfmediaMobileNav
         activeTab={activeTab}
         setActiveTab={handleSelectTab}
         favoritesCount={favorites.length}
         onOpenSearch={() => {
-          const btn = document.querySelector('header button[title="Поиск фильмов и актёров"]') as HTMLButtonElement;
-          if (btn) btn.click();
+          window.dispatchEvent(new CustomEvent('ofmedia_open_search'));
         }}
         onOpenProfile={() => {
           if (user) {
@@ -809,6 +867,14 @@ export function App() {
           }
         }}
         isLoggedIn={!!user}
+        isProfileOpen={isProfileModalOpen}
+        onGoHome={() => {
+          setIsProfileModalOpen(false);
+          setIsDetailModalOpen(false);
+          setIsAuthModalOpen(false);
+          setIsActorModalOpen(false);
+          setActiveTab('main');
+        }}
       />
 
       {/* Desktop Footer */}

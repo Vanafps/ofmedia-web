@@ -71,7 +71,7 @@ export const OfmediaCardRow: React.FC<OfmediaCardRowProps> = ({
   };
 
   return (
-    <section className="space-y-1 py-1 relative group/section">
+    <section className="py-2 sm:py-3 relative group/section">
       {/* Row Header */}
       <div className="flex items-end justify-between px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto">
         <div>
@@ -121,14 +121,14 @@ export const OfmediaCardRow: React.FC<OfmediaCardRowProps> = ({
         </div>
       </div>
 
-      {/* Swipe / Drag Cards Track (with vertical breathing room for floating hover expansion) */}
+      {/* Swipe / Drag Cards Track */}
       <div
         ref={rowRef}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUpOrLeave}
         onMouseLeave={handleMouseUpOrLeave}
-        className={`flex items-start gap-4 sm:gap-5 overflow-x-auto px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto pt-5 pb-28 -mt-2 -mb-24 select-none transition-cursor duration-150 scroll-smooth ${
+        className={`flex items-start gap-4 sm:gap-5 overflow-x-auto px-4 sm:px-6 lg:px-8 max-w-[1440px] mx-auto pt-2 pb-3 select-none no-scrollbar [&::-webkit-scrollbar]:hidden transition-cursor duration-150 scroll-smooth ${
           isDragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}

@@ -52,8 +52,17 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
     };
+    const handleGlobalOpenSearch = () => {
+      setIsSearchOpen(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('ofmedia_open_search', handleGlobalOpenSearch);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('ofmedia_open_search', handleGlobalOpenSearch);
+    };
   }, []);
 
   const queryNorm = searchQuery.trim().toLowerCase();
@@ -161,7 +170,7 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
               <Tooltip content="Поиск фильмов и актёров" position="bottom">
                 <button
                   onClick={() => setIsSearchOpen(true)}
-                  className="p-2.5 rounded-full glass-pill text-zinc-200 hover:text-white transition-all shadow-md hover:scale-105 active:scale-95"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full glass-pill text-zinc-200 hover:text-white transition-all shadow-md hover:scale-105 active:scale-95 flex items-center justify-center"
                 >
                   <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                     <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z" />
@@ -263,7 +272,7 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
                   <>
                     <button
                       onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                      className="flex items-center gap-2 p-1 sm:p-1.5 sm:pr-3.5 rounded-full glass-pill text-white transition-all shadow-lg hover:scale-102 active:scale-95"
+                      className="h-9 sm:h-10 flex items-center gap-2 p-1 sm:p-1.5 sm:pr-3.5 rounded-full glass-pill text-white transition-all shadow-lg hover:scale-102 active:scale-95"
                     >
                       {avatar ? (
                         <div className={`w-7 h-7 rounded-full bg-gradient-to-tr ${avatar.bg} flex items-center justify-center text-sm shadow-inner shrink-0`}>
@@ -348,7 +357,7 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
     ) : (
             <button
               onClick={onOpenAuth}
-              className="px-4 py-2 rounded-full font-medium text-xs bg-[#ff5c00] hover:bg-[#e05200] text-white shadow-lg shadow-[#ff5c00]/30 hover:scale-103 active:scale-95 transition-all flex items-center gap-1.5"
+              className="h-9 sm:h-10 px-4 rounded-full font-medium text-xs bg-[#ff5c00] hover:bg-[#e05200] text-white shadow-lg shadow-[#ff5c00]/30 hover:scale-103 active:scale-95 transition-all flex items-center justify-center gap-1.5"
             >
               <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />

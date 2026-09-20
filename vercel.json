@@ -7,6 +7,10 @@
       "destination": "/api/"
     },
     {
+      "source": "/app/apk",
+      "destination": "/app/apk/index.html"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

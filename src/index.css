@@ -1,6 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Caveat:wght@700&family=Dela+Gothic+One&family=Kelly+Slab&family=Marck+Script&family=Neucha&family=Ruslan+Display&family=Russo+One&family=Unbounded:ital,wght@1,800;1,900&display=swap');
 @import "tailwindcss";
 
+html, body, #root {
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  overscroll-behavior-x: none;
+  -webkit-overflow-scrolling: touch;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -608,6 +615,10 @@ input[type=range].slider-orange::-webkit-slider-thumb {
 .animate-ribbon-right:hover {
   animation-play-state: paused;
 }
-
-
-
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

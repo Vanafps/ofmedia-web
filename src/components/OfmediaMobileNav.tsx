@@ -7,6 +7,8 @@ interface OfmediaMobileNavProps {
   onOpenSearch: () => void;
   onOpenProfile: () => void;
   isLoggedIn: boolean;
+  isProfileOpen?: boolean;
+  onGoHome: () => void;
 }
 
 export const OfmediaMobileNav: React.FC<OfmediaMobileNavProps> = ({
@@ -16,17 +18,20 @@ export const OfmediaMobileNav: React.FC<OfmediaMobileNavProps> = ({
   onOpenSearch,
   onOpenProfile,
   isLoggedIn,
+  isProfileOpen = false,
+  onGoHome,
 }) => {
   return (
-    <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0a0a0f]/80 backdrop-blur-3xl border-t border-white/15 px-4 py-2 flex items-center justify-around select-none shadow-[0_-8px_30px_rgba(0,0,0,0.7)]">
+    <div className="sm:hidden fixed bottom-0 left-0 right-0 z-[70] bg-[#0a0a0f]/90 backdrop-blur-3xl border-t border-white/15 px-4 py-2 flex items-center justify-around select-none shadow-[0_-8px_30px_rgba(0,0,0,0.85)]">
       {/* 1. Главная */}
       <button
         onClick={() => {
+          onGoHome();
           setActiveTab('main');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
-        className={`flex flex-col items-center gap-1 p-1 transition-colors ${
-          activeTab === 'main' ? 'text-[#ff5c00]' : 'text-zinc-400 hover:text-white'
+        className={`flex flex-col items-center gap-1 p-1 transition-all active:scale-90 ${
+          activeTab === 'main' && !isProfileOpen ? 'text-[#ff5c00]' : 'text-zinc-400 hover:text-white'
         }`}
       >
         <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
@@ -37,8 +42,11 @@ export const OfmediaMobileNav: React.FC<OfmediaMobileNavProps> = ({
 
       {/* 2. Поиск */}
       <button
-        onClick={onOpenSearch}
-        className="flex flex-col items-center gap-1 p-1 text-zinc-400 hover:text-white transition-colors"
+        onClick={() => {
+          onGoHome();
+          onOpenSearch();
+        }}
+        className="flex flex-col items-center gap-1 p-1 text-zinc-400 hover:text-white transition-all active:scale-90"
       >
         <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
           <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z" />
@@ -49,11 +57,12 @@ export const OfmediaMobileNav: React.FC<OfmediaMobileNavProps> = ({
       {/* 3. Моё (Медиатека) */}
       <button
         onClick={() => {
+          onGoHome();
           setActiveTab('favorites');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
-        className={`relative flex flex-col items-center gap-1 p-1 transition-colors ${
-          activeTab === 'favorites' ? 'text-[#ff5c00]' : 'text-zinc-400 hover:text-white'
+        className={`relative flex flex-col items-center gap-1 p-1 transition-all active:scale-90 ${
+          activeTab === 'favorites' && !isProfileOpen ? 'text-[#ff5c00]' : 'text-zinc-400 hover:text-white'
         }`}
       >
         <div className="relative">
@@ -72,7 +81,9 @@ export const OfmediaMobileNav: React.FC<OfmediaMobileNavProps> = ({
       {/* 4. Профиль / Личный кабинет */}
       <button
         onClick={onOpenProfile}
-        className="flex flex-col items-center gap-1 p-1 text-zinc-400 hover:text-white transition-colors"
+        className={`flex flex-col items-center gap-1 p-1 transition-all active:scale-90 ${
+          isProfileOpen ? 'text-[#ff5c00]' : 'text-zinc-400 hover:text-white'
+        }`}
       >
         <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
           <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />

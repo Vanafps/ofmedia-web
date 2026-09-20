@@ -38,10 +38,18 @@ const parseDurationToSeconds = (durStr?: string): number => {
   return Number(durStr) || 0;
 };
 
-// Modern Geometric Play SVG Icon - Optically & Mathematically Centered at (12, 12)
+// Modern Geometric Play SVG Icon - Optically Centered
 export const ModernPlayIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M8.8 5.85C8.8 4.95 9.8 4.4 10.55 4.9l9.3 6.15c.7.46.7 1.54 0 2L10.55 19.2c-.75.5-1.75-.05-1.75-.85V5.85z" />
+    <path d="M8.5 5.5C8.5 4.7 9.4 4.2 10.1 4.6l10 6.5c0.7 0.4 0.7 1.4 0 1.8l-10 6.5c-0.7 0.4-1.6-0.1-1.6-0.9V5.5z" />
+  </svg>
+);
+
+// Picture-in-Picture Icon
+export const PipIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="4" width="20" height="16" rx="2" />
+    <rect x="12" y="11" width="8" height="7" rx="1.5" fill="currentColor" fillOpacity="0.4" />
   </svg>
 );
 
@@ -277,6 +285,17 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
   const [hoverTime, setHoverTime] = useState<number | null>(null);
   const [hoverPos, setHoverPos] = useState<number>(0);
   const [trackWidth, setTrackWidth] = useState<number>(800);
+
+  // Gesture & PiP States
+  const [doubleTapFeedback, setDoubleTapFeedback] = useState<{
+    side: 'left' | 'right';
+    count: number;
+  } | null>(null);
+  const lastTapRef = useRef<{ time: number; x: number; side: 'left' | 'right' }>({ time: 0, x: 0, side: 'left' });
+  const doubleTapTimerRef = useRef<any>(null);
+  const singleTapTimerRef = useRef<any>(null);
+  const [isPipSupported, setIsPipSupported] = useState(false);
+  const [isPipActive, setIsPipActive] = useState(false);
 
   // Storyboard Sprite Sheet Hover Frame Preview (Instant 60FPS scrubber thumbnails)
   const storyboardUrl = (currentEpisode as any).storyboard || project.storyboard || `/storyboards/${project.id}.webp`;
@@ -784,14 +803,100 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     setHoverTime(targetTime);
   };
 
-  const toggleFullscreen = () => {
-    if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch(() => {});
-      setIsFullscreen(true);
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      setIsPipSupported('pictureInPictureEnabled' in document);
+    }
+  }, []);
+
+  const togglePictureInPicture = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        setIsPipActive(false);
+      } else {
+        await video.requestPictureInPicture();
+        setIsPipActive(true);
+      }
+    } catch (err) {
+      console.warn('Picture in picture error:', err);
+    }
+  };
+
+  const toggleFullscreen = async () => {
+    const container = containerRef.current;
+    const video = videoRef.current;
+    if (!container) return;
+
+    try {
+      if (!document.fullscreenElement && !(document as any).webkitFullscreenElement) {
+        if (container.requestFullscreen) {
+          await container.requestFullscreen();
+        } else if ((container as any).webkitRequestFullscreen) {
+          await (container as any).webkitRequestFullscreen();
+        } else if (video && (video as any).webkitEnterFullscreen) {
+          (video as any).webkitEnterFullscreen();
+        }
+        setIsFullscreen(true);
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          await (document as any).webkitExitFullscreen();
+        }
+        setIsFullscreen(false);
+      }
+    } catch (e) {
+      console.warn('Fullscreen toggle error:', e);
+      setIsFullscreen((prev) => !prev);
+    }
+  };
+
+  const handleContainerTap = (e: React.MouseEvent | React.TouchEvent) => {
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const clientX = 'touches' in e
+      ? ((e as React.TouchEvent).touches[0] || (e as any).changedTouches?.[0])?.clientX
+      : (e as React.MouseEvent).clientX;
+    if (clientX === undefined) return;
+
+    const side = clientX < rect.left + rect.width / 2 ? 'left' : 'right';
+    const now = Date.now();
+
+    if (now - lastTapRef.current.time < 350 && lastTapRef.current.side === side) {
+      // Double Tap detected!
+      if (singleTapTimerRef.current) {
+        clearTimeout(singleTapTimerRef.current);
+        singleTapTimerRef.current = null;
+      }
+      if (doubleTapTimerRef.current) clearTimeout(doubleTapTimerRef.current);
+
+      if (side === 'left') {
+        skip(-10);
+      } else {
+        skip(10);
+      }
+
+      setDoubleTapFeedback((prev) => ({
+        side,
+        count: prev && prev.side === side ? prev.count + 10 : 10,
+      }));
+
+      doubleTapTimerRef.current = setTimeout(() => {
+        setDoubleTapFeedback(null);
+      }, 700);
+
+      lastTapRef.current = { time: 0, x: clientX, side };
     } else {
-      document.exitFullscreen().catch(() => {});
-      setIsFullscreen(false);
+      lastTapRef.current = { time: now, x: clientX, side };
+      // Single tap: toggle play/pause after delay if not followed by second tap
+      if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
+      singleTapTimerRef.current = setTimeout(() => {
+        togglePlay();
+      }, 250);
     }
   };
 
@@ -881,7 +986,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
   return (
     <div
       ref={containerRef}
-      onClick={togglePlay}
+      onClick={handleContainerTap}
       className={`fixed inset-0 z-[100] bg-black flex items-center justify-center select-none ${
         !showControls && isPlaying ? 'cursor-none' : 'cursor-default'
       }`}
@@ -898,6 +1003,28 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
       {isBuffering && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm pointer-events-none z-10 animate-in fade-in duration-200">
           <div className="w-14 h-14 border-3 border-[#ff5c00]/30 border-t-[#ff5c00] rounded-full animate-spin shadow-[0_0_20px_rgba(255,92,0,0.5)]" />
+        </div>
+      )}
+
+      {/* DOUBLE TAP SEEK FEEDBACK OVERLAYS */}
+      {doubleTapFeedback && (
+        <div
+          className={`absolute top-0 bottom-0 ${
+            doubleTapFeedback.side === 'left' ? 'left-0 rounded-r-3xl' : 'right-0 rounded-l-3xl'
+          } w-1/3 flex items-center justify-center bg-black/40 backdrop-blur-xs pointer-events-none z-30 animate-in fade-in zoom-in-95 duration-200`}
+        >
+          <div className="flex flex-col items-center gap-2 text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
+            <div className="w-16 h-16 rounded-full bg-black/70 border border-white/25 flex items-center justify-center shadow-2xl">
+              {doubleTapFeedback.side === 'left' ? (
+                <Rewind10Icon className="w-8 h-8 text-[#ff5c00]" />
+              ) : (
+                <Forward10Icon className="w-8 h-8 text-[#ff5c00]" />
+              )}
+            </div>
+            <span className="text-sm font-bold tracking-wider font-mono">
+              {doubleTapFeedback.side === 'left' ? `-${doubleTapFeedback.count} сек` : `+${doubleTapFeedback.count} сек`}
+            </span>
+          </div>
         </div>
       )}
 
@@ -982,7 +1109,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
           <div
             data-lenis-prevent="true"
             onWheel={(e) => e.stopPropagation()}
-            className="absolute left-4 sm:left-6 bottom-20 sm:bottom-24 bg-[#14141a]/96 backdrop-blur-2xl border border-white/20 rounded-2xl sm:rounded-3xl p-3.5 sm:p-4 min-w-[290px] max-w-[330px] shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(255,92,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.2)] z-30 animate-settings-pop text-white transition-all overflow-hidden"
+            className="absolute left-2 sm:left-6 bottom-16 sm:bottom-24 bg-[#14141a]/96 backdrop-blur-2xl border border-white/20 rounded-2xl sm:rounded-3xl p-3 sm:p-4 w-[280px] sm:w-[320px] max-h-[calc(100vh-4.5rem)] overflow-y-auto custom-scrollbar shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(255,92,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.2)] z-30 animate-settings-pop text-white transition-all"
           >
             {settingsSubView === 'main' && (
               <div className="flex flex-col py-1 space-y-1 animate-settings-slide-back">
@@ -1366,13 +1493,13 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
         </div>
 
         {/* 2. CONTROLS BAR */}
-        <div className="flex items-center justify-between gap-2 sm:gap-4 text-zinc-100">
+        <div className="flex items-center justify-between gap-1.5 sm:gap-4 text-zinc-100 min-w-0">
           {/* Left Controls: Play, Skip 10s SVGs, Okko Settings Button, Time */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 overflow-hidden">
             {/* Play/Pause Button - Optically Centered with Spring Scale Interaction */}
             <button
               onClick={togglePlay}
-              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-90 hover:scale-105 transition-all duration-150 ${glassBtnClass}`}
+              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-90 hover:scale-105 transition-all duration-150 shrink-0 ${glassBtnClass}`}
               title={isPlaying ? 'Пауза (Пробел)' : 'Воспроизведение (Пробел)'}
             >
               {isPlaying ? (
@@ -1385,19 +1512,19 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
             {/* Skip -10s with Interactive Rotation Micro-Animation */}
             <button
               onClick={() => skip(-10)}
-              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-90 active:-rotate-20 hover:scale-105 transition-all duration-150 ${glassBtnClass} group/rewind`}
+              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-90 active:-rotate-20 hover:scale-105 transition-all duration-150 shrink-0 ${glassBtnClass} group/rewind`}
               title="Назад на 10 сек (←)"
             >
-              <Rewind10Icon className="w-5 h-5 text-zinc-100 group-hover/rewind:text-white transition-colors" />
+              <Rewind10Icon className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-100 group-hover/rewind:text-white transition-colors" />
             </button>
 
             {/* Skip +10s with Interactive Rotation Micro-Animation */}
             <button
               onClick={() => skip(10)}
-              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-90 active:rotate-20 hover:scale-105 transition-all duration-150 ${glassBtnClass} group/forward`}
+              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-90 active:rotate-20 hover:scale-105 transition-all duration-150 shrink-0 ${glassBtnClass} group/forward`}
               title="Вперёд на 10 сек (→)"
             >
-              <Forward10Icon className="w-5 h-5 text-zinc-100 group-hover/forward:text-white transition-colors" />
+              <Forward10Icon className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-100 group-hover/forward:text-white transition-colors" />
             </button>
 
             {/* Unified Okko Settings Button [ ⚙ Настройки ] / [ ✕ Настройки ] with 90deg Rotation Transition */}
@@ -1406,7 +1533,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
                 setShowSettingsMenu((prev) => !prev);
                 setSettingsSubView('main');
               }}
-              className={`h-10 px-3.5 rounded-full flex items-center gap-2 text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer active:scale-95 ${
+              className={`h-8 sm:h-10 px-2 sm:px-3.5 rounded-full flex items-center gap-1.5 sm:gap-2 text-xs font-semibold tracking-wide transition-all duration-200 cursor-pointer active:scale-95 shrink-0 ${
                 showSettingsMenu
                   ? 'bg-white/25 border border-white/40 text-white shadow-[0_0_20px_rgba(255,255,255,0.25)] ring-2 ring-white/20'
                   : glassBtnClass
@@ -1415,24 +1542,24 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
             >
               <span className={`inline-flex transition-transform duration-300 ${showSettingsMenu ? 'rotate-90' : 'rotate-0'}`}>
                 {showSettingsMenu ? (
-                  <span className="text-sm font-bold leading-none">✕</span>
+                  <span className="text-xs sm:text-sm font-bold leading-none">✕</span>
                 ) : (
-                  <OkkoSettingsIcon className="w-4 h-4 text-zinc-200" />
+                  <OkkoSettingsIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-200" />
                 )}
               </span>
-              <span>Настройки</span>
+              <span className="hidden sm:inline">Настройки</span>
             </button>
 
             {/* Time Stamp (Click to switch current / remaining time) */}
             <button
               onClick={() => setShowRemainingTime((r) => !r)}
-              className="text-xs font-medium text-zinc-300 hover:text-white px-2 py-1 rounded-md hover:bg-white/10 transition-colors ml-0.5 cursor-pointer"
+              className="text-[11px] sm:text-xs font-medium text-zinc-300 hover:text-white px-1.5 py-1 rounded-md hover:bg-white/10 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
               title="Нажмите для переключения формата времени"
             >
               {showRemainingTime ? (
                 <span>
                   -{formatTime(Math.max(0, effectiveDuration - currentTime))}
-                  <span className="text-zinc-500 ml-1">/ {formatTime(effectiveDuration)}</span>
+                  <span className="text-zinc-500 ml-1 hidden xs:inline">/ {formatTime(effectiveDuration)}</span>
                 </span>
               ) : (
                 <span>
@@ -1444,22 +1571,22 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
             </button>
           </div>
 
-          {/* Right Controls: Volume Capsule & Fullscreen Button */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          {/* Right Controls: Volume Capsule, PiP, Fullscreen */}
+          <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
             {/* Volume Control Unified Frosted Glass Capsule */}
-            <div className="flex items-center h-10 px-3 rounded-full backdrop-blur-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/20 transition-all duration-200 gap-2.5 shadow-lg shadow-black/20 group/volume">
+            <div className="flex items-center h-8 sm:h-10 px-2 sm:px-3 rounded-full backdrop-blur-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/20 transition-all duration-200 gap-1.5 sm:gap-2.5 shadow-lg shadow-black/20 group/volume">
               <button
                 onClick={() => setIsMuted((m) => !m)}
-                className="w-5 h-5 flex items-center justify-center text-zinc-100 hover:text-white transition-transform active:scale-85 cursor-pointer"
+                className="w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-zinc-100 hover:text-white transition-transform active:scale-85 cursor-pointer"
                 title={isMuted ? 'Включить звук (M)' : 'Выключить звук (M)'}
               >
-                <SpeakerVolumeIcon isMuted={isMuted} volume={volume} className="w-4 h-4 text-white" />
+                <SpeakerVolumeIcon isMuted={isMuted} volume={volume} className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </button>
 
               {/* Volume Track inside Unified Capsule */}
-              <div className="relative w-16 sm:w-20 h-5 flex items-center cursor-pointer">
+              <div className="relative w-12 sm:w-20 h-4 sm:h-5 flex items-center cursor-pointer">
                 {/* Background Track */}
-                <div className="w-full h-1.5 rounded-full bg-white/20 overflow-hidden relative pointer-events-none">
+                <div className="w-full h-1 sm:h-1.5 rounded-full bg-white/20 overflow-hidden relative pointer-events-none">
                   <div
                     className="absolute top-0 bottom-0 left-0 bg-gradient-to-r from-[#ff5c00] to-[#ff7a29] rounded-full shadow-[0_0_8px_rgba(255,92,0,0.8)]"
                     style={{ width: `${(isMuted ? 0 : volume) * 100}%` }}
@@ -1482,19 +1609,32 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
 
                 {/* Centered Thumb Knob */}
                 <div
-                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-white border-2 border-[#ff5c00] shadow-[0_0_8px_rgba(255,92,0,1)] pointer-events-none transition-transform duration-100 group-hover/volume:scale-110"
+                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-white border border-[#ff5c00] sm:border-2 shadow-[0_0_8px_rgba(255,92,0,1)] pointer-events-none transition-transform duration-100 group-hover/volume:scale-110"
                   style={{ left: `${(isMuted ? 0 : volume) * 100}%` }}
                 />
               </div>
             </div>
 
+            {/* Picture-in-Picture Button */}
+            {isPipSupported && (
+              <button
+                onClick={togglePictureInPicture}
+                className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-90 hover:scale-105 transition-all duration-150 ${glassBtnClass} ${
+                  isPipActive ? 'bg-[#ff5c00]/30 border-[#ff5c00]' : ''
+                }`}
+                title={isPipActive ? 'Вернуть видео в окно' : 'Картинка в картинке (PiP)'}
+              >
+                <PipIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+              </button>
+            )}
+
             {/* Modern Fullscreen Button */}
             <button
               onClick={toggleFullscreen}
-              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-90 hover:scale-105 transition-all duration-150 ${glassBtnClass}`}
+              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-90 hover:scale-105 transition-all duration-150 ${glassBtnClass}`}
               title={isFullscreen ? 'Выйти из полноэкранного режима (F)' : 'Полноэкранный режим (F)'}
             >
-              <ModernFullscreenIcon isFullscreen={isFullscreen} className="w-4 h-4 text-white" />
+              <ModernFullscreenIcon isFullscreen={isFullscreen} className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
             </button>
           </div>
         </div>

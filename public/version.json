@@ -1,0 +1,9 @@
+{
+  "versionCode": 2,
+  "versionName": "1.0.1",
+  "minVersionCode": 1,
+  "apkUrl": "https://ofmedia.vercel.app/app/apk",
+  "apkDirectUrl": "https://ofmedia.vercel.app/ofmedia-latest.apk",
+  "releaseNotes": "• Оптимизация плеера для горизонтального экрана\n• Полноэкранный режим и режим Картинка в картинке (PiP)\n• Жесты перемотки двойным тапом (+/- 10 сек)\n• Скачивание фильмов для оффлайн-просмотра\n• Авторизация через официальный VK ID SDK\n• Исправление навигации и отскока страницы",
+  "releaseDate": "2026-09-20"
+}
