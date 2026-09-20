@@ -484,8 +484,8 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-[#070709] text-zinc-100 flex flex-col selection:bg-[#ff5c00] selection:text-white pb-16 sm:pb-0">
-      {/* Header with Profile Modal Access (hidden when viewing standalone modal or player) */}
-      {!isPlayerOpen && !isDetailModalOpen && !isActorModalOpen && (
+      {/* Header with Profile Modal Access (hidden when viewing standalone modal, profile, or player) */}
+      {!isPlayerOpen && !isDetailModalOpen && !isActorModalOpen && !isProfileModalOpen && (
         <OfmediaHeader
           activeTab={activeTab}
           setActiveTab={handleSelectTab}

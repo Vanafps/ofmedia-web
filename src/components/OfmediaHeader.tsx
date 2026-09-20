@@ -3,7 +3,6 @@ import type { Project } from '../data/projects';
 import type { Actor } from '../data/actors';
 import { ACTORS_DATA } from '../data/actors';
 import type { UserProfile } from '../services/firebase';
-import { getUserRatings } from '../services/ratingService';
 
 interface OfmediaHeaderProps {
   activeTab: 'main' | 'search' | 'favorites';
@@ -15,7 +14,7 @@ interface OfmediaHeaderProps {
   user: UserProfile | null;
   onOpenAuth: () => void;
   onOpenProfile: () => void;
-  onLogout: () => void;
+  onLogout?: () => void;
 }
 
 export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
@@ -28,23 +27,10 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
   user,
   onOpenAuth,
   onOpenProfile,
-  onLogout,
 }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
-  const [userRatingsCount, setUserRatingsCount] = useState(0);
-
-  useEffect(() => {
-    const updateCount = () => {
-      const r = getUserRatings();
-      setUserRatingsCount(Object.keys(r).length);
-    };
-    updateCount();
-    window.addEventListener('ofmedia_ratings_updated', updateCount);
-    return () => window.removeEventListener('ofmedia_ratings_updated', updateCount);
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -276,98 +262,30 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
 
           {/* User Profile / Auth Button */}
           {user ? (
-            <div className="relative flex items-center">
-              {(() => {
-                return (
-                  <>
-                    <button
-                      onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                      className="h-9 sm:h-10 flex items-center gap-2 p-1 sm:p-1.5 sm:pr-3.5 rounded-full glass-pill text-white transition-all shadow-lg hover:scale-102 active:scale-95"
-                    >
-                      {user.photoURL ? (
-                        <img
-                          src={user.photoURL}
-                          alt={user.displayName || ''}
-                          className="w-7 h-7 rounded-full object-cover border border-white/25 shadow-sm shrink-0"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLElement).style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-[#ff5c00] text-white font-semibold text-xs flex items-center justify-center shadow shrink-0">
-                          {(user.displayName || user.email || 'U')[0].toUpperCase()}
-                        </div>
-                      )}
-                      <span className="text-xs font-medium max-w-[90px] truncate hidden md:block">
-                        {user.displayName || user.email?.split('@')[0]}
-                      </span>
-                      <svg className="w-3.5 h-3.5 fill-zinc-400 hidden sm:block" viewBox="0 0 24 24">
-                        <path d="M7 10l5 5 5-5z" />
-                      </svg>
-                    </button>
-
-                    {/* Profile Dropdown with Hardware-Accelerated Frosted Glass */}
-                    {isProfileDropdownOpen && (
-                      <div className="absolute right-0 mt-3 w-72 glass-dropdown rounded-3xl p-4 z-[110] space-y-3.5 animate-in fade-in zoom-in-95 shadow-2xl">
-                        <div className="flex items-center gap-3.5 pb-3.5 border-b border-white/10">
-                          {user.photoURL ? (
-                            <img
-                              src={user.photoURL}
-                              alt={user.displayName || ''}
-                              className="w-11 h-11 rounded-2xl object-cover border border-white/25 shrink-0 shadow-md"
-                            />
-                          ) : (
-                            <div className="w-11 h-11 rounded-2xl bg-[#ff5c00] text-white font-bold text-sm flex items-center justify-center shadow shrink-0 border border-white/20">
-                              {(user.displayName || user.email || 'U')[0].toUpperCase()}
-                            </div>
-                          )}
-                          <div className="min-w-0 flex-1">
-                            <div className="text-sm font-semibold text-white truncate">
-                              {user.displayName || 'Пользователь'}
-                            </div>
-                            <div className="text-[11px] text-zinc-400 font-normal truncate">
-                              {user.username || user.email || 'Авторизован'}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-1.5 text-xs">
-                          <button
-                            onClick={() => {
-                              onOpenProfile();
-                              setIsProfileDropdownOpen(false);
-                            }}
-                            className="w-full py-2.5 px-3.5 rounded-2xl bg-white/[0.06] hover:bg-[#ff5c00] hover:text-white text-zinc-200 text-xs font-medium transition-all text-left flex items-center justify-between border border-white/10 hover:border-[#ff5c00] shadow-sm hover:scale-102 active:scale-98"
-                          >
-                            <span>Личный кабинет и настройки</span>
-                            <span className="font-bold">→</span>
-                          </button>
-                          <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-black/40 border border-white/5 text-zinc-300 text-[11px]">
-                            <span>Мои оценки:</span>
-                            <span className="font-semibold text-[#ff5c00]">{userRatingsCount}</span>
-                          </div>
-                          <div className="flex items-center justify-between px-3.5 py-2 rounded-xl bg-black/40 border border-white/5 text-zinc-300 text-[11px]">
-                            <span>В закладках:</span>
-                            <span className="font-semibold text-[#ff5c00]">{favoritesCount}</span>
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() => {
-                            onLogout();
-                            setIsProfileDropdownOpen(false);
-                          }}
-                          className="w-full py-2.5 px-3 rounded-2xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/20 text-red-300 hover:text-red-200 text-xs font-medium transition-colors text-center active:scale-98"
-                        >
-                          Выйти из аккаунта
-                        </button>
-                      </div>
-                    )}
-            </>
-          );
-        })()}
-      </div>
-    ) : (
+            <button
+              onClick={onOpenProfile}
+              className="h-9 sm:h-10 flex items-center gap-2 p-1 sm:p-1.5 sm:pr-3.5 rounded-full glass-pill text-white transition-all shadow-lg hover:scale-102 active:scale-95 cursor-pointer border border-white/15 hover:border-[#ff5c00]/50"
+              title="Личный кабинет и настройки"
+            >
+              {user.photoURL ? (
+                <img
+                  src={user.photoURL}
+                  alt={user.displayName || ''}
+                  className="w-7 h-7 rounded-full object-cover border border-white/25 shadow-sm shrink-0"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-[#ff5c00] text-white font-semibold text-xs flex items-center justify-center shadow shrink-0">
+                  {(user.displayName || user.email || 'U')[0].toUpperCase()}
+                </div>
+              )}
+              <span className="text-xs font-medium max-w-[110px] truncate hidden md:block">
+                {user.displayName || user.email?.split('@')[0]}
+              </span>
+            </button>
+          ) : (
             <button
               onClick={onOpenAuth}
               className="h-9 sm:h-10 px-4 rounded-full font-medium text-xs bg-[#ff5c00] hover:bg-[#e05200] text-white shadow-lg shadow-[#ff5c00]/30 hover:scale-103 active:scale-95 transition-all flex items-center justify-center gap-1.5"
