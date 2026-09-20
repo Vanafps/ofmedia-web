@@ -1,4 +1,4 @@
-﻿import { execSync } from 'node:child_process';
+import { execSync } from 'node:child_process';
 import { copyFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -16,15 +16,20 @@ if (existsSync(public404)) {
 writeFileSync(join(distDir, '.nojekyll'), '');
 
 console.log('🌐 [OFMEDIA] Pushing to ofmedia-web.github.io...');
-const gitCommands = [
-  'git init',
-  'git branch -M main',
-  'git remote remove origin || true',
-  'git remote add origin https://github.com/ofmedia-web/ofmedia-web.github.io.git',
-  'git add -A',
-  'git commit -m "deploy: update OFMEDIA mirror"',
-  'git push -f origin main'
-].join(' && ');
 
-execSync(gitCommands, { cwd: distDir, stdio: 'inherit' });
+const runGit = (cmd) => {
+  try {
+    return execSync(cmd, { cwd: distDir, stdio: 'pipe' });
+  } catch (e) {
+    return null;
+  }
+};
+
+runGit('git init');
+runGit('git branch -M main');
+runGit('git remote remove origin');
+runGit('git remote add origin https://github.com/ofmedia-web/ofmedia-web.github.io.git');
+runGit('git add -A');
+runGit('git commit -m "deploy: update OFMEDIA mirror"');
+execSync('git push -f origin main', { cwd: distDir, stdio: 'inherit' });
 console.log('✅ [OFMEDIA] Successfully published to https://ofmedia-web.github.io/');

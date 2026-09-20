@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   loginWithEmail,
   registerWithEmail,
@@ -6,7 +6,7 @@ import {
   CINEMA_AVATARS,
   type UserProfile,
 } from '../services/firebase';
-import { loginWithVkId } from '../services/vkIdService';
+import { loginWithVkId, renderVkOneTap } from '../services/vkIdService';
 
 interface OfmediaAuthModalProps {
   isOpen: boolean;
@@ -27,6 +27,16 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const oneTapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen || !oneTapRef.current) return;
+    renderVkOneTap(oneTapRef.current, (user) => {
+      onSuccess(user);
+      onClose();
+    });
+  }, [isOpen, onSuccess, onClose]);
 
   if (!isOpen) return null;
 
@@ -274,7 +284,10 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
           <div className="flex-1 h-px bg-white/10" />
         </div>
 
-        {/* Alternative Actions: Guest & Google */}
+        {/* Official VK ID OneTap Container */}
+        <div ref={oneTapRef} className="w-full flex justify-center empty:hidden" />
+
+        {/* Alternative Actions: Guest & Direct VK Login */}
         <div className="grid grid-cols-2 gap-2.5">
           <button
             type="button"

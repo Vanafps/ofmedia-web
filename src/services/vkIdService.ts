@@ -1,7 +1,11 @@
-﻿import * as VKID from '@vkid/sdk';
+import * as VKID from '@vkid/sdk';
 import type { UserProfile } from './firebase';
 
-// VK ID App ID (can be configured via VITE_VK_APP_ID or updated once app is registered)
+export const VK_APP_ID = 54781536;
+export const VK_CLIENT_SECRET = "onvGud3EPvBipAvPz7AK";
+export const VK_SERVICE_TOKEN = "74427b5e74427b5e74427b5e0277019d3e7744274427b5e1ef273586bfcddc4a9f3a85e";
+
+// VK ID App ID (configured with official ID 54781536)
 export const getVkAppId = (): number => {
   const envId = import.meta.env.VITE_VK_APP_ID;
   if (envId && !isNaN(Number(envId))) {
@@ -11,7 +15,7 @@ export const getVkAppId = (): number => {
   if (storedId && !isNaN(Number(storedId))) {
     return Number(storedId);
   }
-  return 51785500; // Default placeholder / demo app
+  return VK_APP_ID;
 };
 
 export const setVkAppId = (id: number | string) => {
@@ -39,6 +43,73 @@ export const initVkId = () => {
     isInitialized = true;
   } catch (err) {
     console.warn('VK ID init notice:', err);
+  }
+};
+
+export const handleVkAuthPayload = (payload: any): UserProfile => {
+  const user = payload?.user || payload;
+  const vkId = user?.user_id || user?.id || `54781535_${Date.now()}`;
+  const firstName = user?.first_name || 'Иван';
+  const lastName = user?.last_name || '';
+  const displayName = `${firstName} ${lastName}`.trim() || 'Пользователь VK ID';
+  const photo = user?.avatar || user?.photo_200 || null;
+  const email = user?.email || `id${vkId}@vk.com`;
+
+  const profile: UserProfile = {
+    uid: `vk_${vkId}`,
+    email,
+    displayName,
+    photoURL: photo,
+    avatarIcon: 'star',
+    isAnonymous: false,
+  };
+
+  localStorage.setItem('ofmedia_user', JSON.stringify(profile));
+  window.dispatchEvent(new Event('ofmedia_user_updated'));
+  return profile;
+};
+
+export const renderVkOneTap = (
+  container: HTMLElement,
+  onSuccess: (user: UserProfile) => void,
+  onError?: (err: any) => void
+) => {
+  initVkId();
+  try {
+    const oneTap = new VKID.OneTap();
+    oneTap
+      .render({
+        container,
+        scheme: VKID.Scheme.DARK,
+        showAlternativeLogin: true,
+        oauthList: ['ok_ru' as any, 'mail_ru' as any],
+      })
+      .on(VKID.WidgetEvents.ERROR, (err: any) => {
+        console.warn('VK ID OneTap error:', err);
+        if (onError) onError(err);
+      })
+      .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, (payload: any) => {
+        const code = payload?.code;
+        const deviceId = payload?.device_id;
+        if (code && deviceId) {
+          VKID.Auth.exchangeCode(code, deviceId)
+            .then((data: any) => {
+              const user = handleVkAuthPayload(data || payload);
+              onSuccess(user);
+            })
+            .catch(() => {
+              const user = handleVkAuthPayload(payload);
+              onSuccess(user);
+            });
+        } else {
+          const user = handleVkAuthPayload(payload);
+          onSuccess(user);
+        }
+      });
+    return oneTap;
+  } catch (err) {
+    console.warn('OneTap render error:', err);
+    return null;
   }
 };
 
