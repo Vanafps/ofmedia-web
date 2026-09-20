@@ -27,6 +27,9 @@ const publicApkHtml = join(process.cwd(), 'public', 'app', 'apk', 'index.html');
 if (existsSync(publicApkHtml)) {
   copyFileSync(publicApkHtml, join(appApkDir, 'index.html'));
   copyFileSync(publicApkHtml, join(apkDir, 'index.html'));
+} else {
+  copyFileSync(join(distDir, 'index.html'), join(appApkDir, 'index.html'));
+  copyFileSync(join(distDir, 'index.html'), join(apkDir, 'index.html'));
 }
 copyFileSync(join(distDir, 'index.html'), join(appDir, 'index.html'));
 

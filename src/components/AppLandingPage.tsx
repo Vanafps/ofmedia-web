@@ -31,7 +31,9 @@ export const AppLandingPage: React.FC = () => {
       <main className="relative z-10 flex-1 max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-16 flex flex-col items-center text-center space-y-8 sm:space-y-12">
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#ff5c00]/15 border border-[#ff5c00]/30 text-xs font-semibold text-[#ff5c00] animate-in fade-in duration-300">
-          <span className="text-base">📱</span>
+          <svg className="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 18h.01M8 2h8a2 2 0 012 2v16a2 2 0 01-2 2H8a2 2 0 01-2-2V4a2 2 0 012-2z" />
+          </svg>
           <span>Официальное приложение для Android</span>
         </div>
 
@@ -121,23 +123,39 @@ export const AppLandingPage: React.FC = () => {
             Преимущества мобильного приложения
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-center">
-            <div className="p-4 rounded-2xl bg-[#121214] border border-white/10 space-y-2">
-              <span className="text-2xl">📥</span>
+            <div className="p-4 rounded-2xl bg-[#121214] border border-white/10 space-y-2 flex flex-col items-center">
+              <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[#ff5c00]">
+                <svg className="w-5 h-5 fill-none stroke-current" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              </div>
               <div className="font-semibold text-xs text-white">Оффлайн</div>
               <p className="text-[11px] text-zinc-400">Сохраняйте в память</p>
             </div>
-            <div className="p-4 rounded-2xl bg-[#121214] border border-white/10 space-y-2">
-              <span className="text-2xl">📺</span>
+            <div className="p-4 rounded-2xl bg-[#121214] border border-white/10 space-y-2 flex flex-col items-center">
+              <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[#ff5c00]">
+                <svg className="w-5 h-5 fill-none stroke-current" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+              </div>
               <div className="font-semibold text-xs text-white">PiP режим</div>
               <p className="text-[11px] text-zinc-400">Кино поверх окон</p>
             </div>
-            <div className="p-4 rounded-2xl bg-[#121214] border border-white/10 space-y-2">
-              <span className="text-2xl">⚡</span>
+            <div className="p-4 rounded-2xl bg-[#121214] border border-white/10 space-y-2 flex flex-col items-center">
+              <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[#ff5c00]">
+                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                </svg>
+              </div>
               <div className="font-semibold text-xs text-white">Плавность</div>
               <p className="text-[11px] text-zinc-400">Стабильные 60 FPS</p>
             </div>
-            <div className="p-4 rounded-2xl bg-[#121214] border border-white/10 space-y-2">
-              <span className="text-2xl">🍿</span>
+            <div className="p-4 rounded-2xl bg-[#121214] border border-white/10 space-y-2 flex flex-col items-center">
+              <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-[#ff5c00]">
+                <svg className="w-5 h-5 fill-none stroke-current" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                </svg>
+              </div>
               <div className="font-semibold text-xs text-white">Без рекламы</div>
               <p className="text-[11px] text-zinc-400">Мгновенный старт</p>
             </div>

@@ -8,6 +8,7 @@ import {
   type UserProfile,
 } from '../services/firebase';
 import { renderVkOneTap, loginWithVkId } from '../services/vkIdService';
+import { CinemaAvatarIcon } from './CinemaAvatarIcon';
 
 interface OfmediaAuthModalProps {
   isOpen: boolean;
@@ -122,21 +123,23 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
             className="fixed inset-0 bg-black/80 backdrop-blur-2xl"
           />
 
-          {/* Modal Window: Pure Cinematic Dark (No Blue Cast) */}
+          {/* Modal Window: Pure Cinematic Dark */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.94, y: 16 }}
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.94, y: 16 }}
-            transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 320 }}
             className="relative w-full max-w-md bg-[#101012] border border-white/12 rounded-3xl p-6 sm:p-8 shadow-[0_30px_90px_rgba(0,0,0,0.95),0_0_1px_rgba(255,255,255,0.2)] z-10 space-y-5"
           >
             {/* Close Button */}
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white flex items-center justify-center transition-colors text-xs"
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white flex items-center justify-center transition-colors text-xs cursor-pointer"
               title="Закрыть (Esc)"
             >
-              ✕
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </button>
 
             {/* Header */}
@@ -156,15 +159,15 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
               </p>
             </div>
 
-            {/* Tab Switcher */}
-            <div className="flex p-1 bg-[#18181b] rounded-2xl border border-white/8">
+            {/* Tab Switcher with Guest on the side */}
+            <div className="flex p-1 bg-[#18181b] rounded-2xl border border-white/8 gap-1">
               <button
                 type="button"
                 onClick={() => {
                   setTab('login');
                   setError(null);
                 }}
-                className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all ${
+                className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                   tab === 'login'
                     ? 'bg-[#ff5c00] text-white shadow-md shadow-[#ff5c00]/30'
                     : 'text-zinc-400 hover:text-white'
@@ -178,7 +181,7 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
                   setTab('register');
                   setError(null);
                 }}
-                className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all ${
+                className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                   tab === 'register'
                     ? 'bg-[#ff5c00] text-white shadow-md shadow-[#ff5c00]/30'
                     : 'text-zinc-400 hover:text-white'
@@ -186,12 +189,25 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
               >
                 Регистрация
               </button>
+              <button
+                type="button"
+                onClick={handleGuestLogin}
+                disabled={loading}
+                className="px-3 py-2 text-xs font-medium rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer whitespace-nowrap"
+                title="Продолжить просмотр без создания профиля"
+              >
+                Как гость
+              </button>
             </div>
 
             {/* Error Alert */}
             {error && (
               <div className="p-3 rounded-2xl bg-red-500/15 border border-red-500/30 text-xs text-red-300 flex items-start gap-2 animate-in fade-in">
-                <span className="shrink-0 mt-0.5">⚠️</span>
+                <svg className="w-4 h-4 text-red-400 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" strokeLinecap="round" />
+                  <circle cx="12" cy="16" r="1" fill="currentColor" />
+                </svg>
                 <span>{error}</span>
               </div>
             )}
@@ -225,14 +241,14 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
                           key={av.id}
                           type="button"
                           onClick={() => setSelectedAvatar(av.id)}
-                          className={`p-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all border ${
+                          className={`p-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all border cursor-pointer ${
                             selectedAvatar === av.id
                               ? 'border-[#ff5c00] bg-[#ff5c00]/20 scale-105 shadow-md shadow-[#ff5c00]/30'
                               : 'border-white/10 bg-white/5 hover:border-white/20'
                           }`}
                           title={av.label}
                         >
-                          <span className="text-xl">{av.emoji}</span>
+                          <CinemaAvatarIcon id={av.id} className="w-5 h-5 text-white" />
                         </button>
                       ))}
                     </div>
@@ -272,7 +288,7 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
                         }
                         setError('Для сброса пароля зарегистрируйте аккаунт заново или войдите как гость.');
                       }}
-                      className="text-[11px] text-zinc-400 hover:text-[#ff5c00] transition-colors"
+                      className="text-[11px] text-zinc-400 hover:text-[#ff5c00] transition-colors cursor-pointer"
                     >
                       Забыли пароль?
                     </button>
@@ -291,10 +307,20 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors text-xs"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-white transition-colors cursor-pointer"
                     title={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
                   >
-                    {showPassword ? '👁️' : '🔒'}
+                    {showPassword ? (
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                        <line x1="1" y1="1" x2="23" y2="23" strokeLinecap="round" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
                   </button>
                 </div>
               </div>
@@ -316,33 +342,16 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
               <div className="flex-1 h-px bg-white/10" />
             </div>
 
-            {/* Single Official VK ID OneTap Container */}
-            <div
-              ref={oneTapRef}
-              className="w-full min-h-[44px] flex items-center justify-center empty:hidden"
-            />
-
-            {/* Direct VK ID Fallback Button (visible if OneTap iframe fails to mount) */}
+            {/* Single Unified VK ID Button (Direct & Reliable, Zero Duplicate) */}
             <button
               type="button"
               onClick={() => loginWithVkId()}
-              className="w-full py-2.5 px-4 rounded-xl bg-[#0077FF]/15 hover:bg-[#0077FF]/25 border border-[#0077FF]/30 text-white text-xs font-semibold flex items-center justify-center gap-2.5 transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
+              className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 hover:border-white/25 text-white text-xs font-semibold flex items-center justify-center gap-2.5 transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer shadow-md"
             >
-              <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 fill-[#ff5c00]" viewBox="0 0 24 24">
                 <path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.408 0 15.684 0zm3.602 17.502h-1.782c-.675 0-.882-.537-2.096-1.758-1.058-1.03-1.528-1.162-1.788-1.162-.366 0-.472.105-.472.61v1.65c0 .44-.14.71-1.303.71-1.922 0-4.053-1.164-5.558-3.33-2.268-3.197-2.888-5.61-2.888-6.108 0-.27.106-.52.61-.52h1.782c.453 0 .62.208.795.7 1.012 2.94 2.705 5.518 3.402 5.518.263 0 .384-.12.384-.783V11.23c-.08-.985-.576-1.07-.576-1.42 0-.175.148-.35.39-.35h2.46c.334 0 .452.176.452.574v3.522c0 .383.167.51.278.51.222 0 .408-.127.818-.538 1.258-1.412 2.158-3.52 2.158-3.52.12-.262.33-.548.784-.548h1.783c.537 0 .652.278.537.66-.214.992-2.3 3.938-2.39 4.07-.202.29-.278.42 0 .794.198.27 1.756 1.71 2.213 2.502.457.79.255 1.066-.43 1.066z" />
               </svg>
               <span>Войти через VK ID</span>
-            </button>
-
-            {/* Alternative: Guest login */}
-            <button
-              type="button"
-              onClick={handleGuestLogin}
-              disabled={loading}
-              className="w-full py-2.5 px-4 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/8 text-zinc-400 hover:text-white text-xs font-medium flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer"
-            >
-              <span>🍿</span>
-              <span>Продолжить просмотр как гость</span>
             </button>
           </motion.div>
         </div>

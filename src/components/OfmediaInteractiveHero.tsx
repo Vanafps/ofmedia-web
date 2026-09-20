@@ -9,14 +9,6 @@ interface OfmediaInteractiveHeroProps {
   onScrollToCatalog?: () => void;
 }
 
-const PLATFORM_EVENTS = [
-  { tag: 'СКОРО', title: '«Новый Год в Москве 2» • Премьера продолжения', icon: '🔥', date: 'Зима 2026' },
-  { tag: 'ЭКСКЛЮЗИВ', title: 'Оригинальный фильм «Налим» в 4K Ultra HD', icon: '🎬', date: 'Уже в эфире' },
-  { tag: 'ОБНОВЛЕНИЕ', title: 'Android приложение OFMEDIA с оффлайн-просмотром', icon: '⚡', date: 'Версия 1.0.1' },
-  { tag: 'ВК АЙДИ', title: 'Вход в кинотеатр в один клик через VK ID', icon: '⭐', date: 'Интеграция' },
-  { tag: 'ФИЛЬМОГРАФИЯ', title: 'Карточки всех создателей и актёров', icon: '✨', date: 'Новинка' },
-];
-
 export const OfmediaInteractiveHero: React.FC<OfmediaInteractiveHeroProps> = ({
   projects,
   onOpenDetails,
@@ -26,14 +18,6 @@ export const OfmediaInteractiveHero: React.FC<OfmediaInteractiveHeroProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [lerpPos, setLerpPos] = useState({ x: 0, y: 0 });
-  const [currentEventIdx, setCurrentEventIdx] = useState(0);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentEventIdx((prev) => (prev + 1) % PLATFORM_EVENTS.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Smooth mouse parallax lerp loop
   useEffect(() => {
@@ -138,21 +122,7 @@ export const OfmediaInteractiveHero: React.FC<OfmediaInteractiveHeroProps> = ({
             transform: `translate3d(${lerpPos.x * -12}px, ${lerpPos.y * -8}px, 0)`,
           }}
         >
-          {/* Dynamic Events / Premieres Ticker */}
-          <div className="flex items-center gap-2">
-            <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.1] border border-white/15 backdrop-blur-xl w-fit shadow-xl transition-all duration-300">
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-[#ff5c00]/20 text-[#ff5c00] text-xs font-bold shrink-0">
-                {PLATFORM_EVENTS[currentEventIdx].icon}
-              </span>
-              <span className="text-[10px] sm:text-[11px] font-bold tracking-wider text-[#ff5c00] uppercase shrink-0">
-                {PLATFORM_EVENTS[currentEventIdx].tag}
-              </span>
-              <span className="text-zinc-500 text-xs">•</span>
-              <span key={currentEventIdx} className="text-[11px] sm:text-xs font-medium text-zinc-200 tracking-tight animate-in fade-in slide-in-from-right-3 duration-300 truncate max-w-[240px] sm:max-w-sm">
-                {PLATFORM_EVENTS[currentEventIdx].title}
-              </span>
-            </div>
-          </div>
+
 
           {/* Grand Heading: 'ТВОЙ НОВЫЙ' in Bebas Neue + OFMEDIA Logo */}
           <div className="space-y-1 sm:space-y-2">

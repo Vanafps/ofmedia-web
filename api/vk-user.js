@@ -1,4 +1,4 @@
-﻿const VK_SERVICE_TOKEN = '74427b5e74427b5e74427b5e0277019d3e7744274427b5e1ef273586bfcddc4a9f3a85e';
+const VK_SERVICE_TOKEN = '74427b5e74427b5e74427b5e0277019d3e7744274427b5e1ef273586bfcddc4a9f3a85e';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const vkApiUrl = 'https://api.vk.com/method/users.get?user_ids=' + encodeURIComponent(userId) + '&fields=photo_200,first_name,last_name,sex&access_token=' + encodeURIComponent(token) + '&v=5.131';
+    const vkApiUrl = 'https://api.vk.com/method/users.get?user_ids=' + encodeURIComponent(userId) + '&fields=photo_200,first_name,last_name,sex,domain,screen_name&access_token=' + encodeURIComponent(token) + '&v=5.131';
     const response = await fetch(vkApiUrl);
     const data = await response.json();
 
@@ -34,6 +34,7 @@ export default async function handler(req, res) {
         firstName: user.first_name,
         lastName: user.last_name,
         photo: user.photo_200,
+        username: user.domain || user.screen_name || '',
         displayName: (user.first_name + ' ' + (user.last_name || '')).trim()
       }));
     }

@@ -322,7 +322,10 @@ export function App() {
   };
 
   const handleSelectGenre = (genre: string) => {
+    setIsDetailModalOpen(false);
+    setSelectedProject(null);
     setActiveTab('main');
+    window.history.pushState(null, '', '/');
     const gLower = genre.toLowerCase();
     if (gLower.includes('ком')) {
       setSelectedCategory('comedy');
@@ -332,6 +335,8 @@ export function App() {
       setSelectedCategory('shows');
     } else if (gLower.includes('приключ') || gLower.includes('влог') || gLower.includes('экскурс')) {
       setSelectedCategory('adventure');
+    } else if (gLower.includes('нов')) {
+      setSelectedCategory('new');
     } else {
       setSelectedCategory('none');
     }
@@ -709,8 +714,11 @@ export function App() {
                           />
                           <div className="px-3.5 py-2 rounded-xl bg-[#08080a] border border-white/10 flex items-center justify-between text-xs">
                             <span className="text-zinc-400">Ваша оценка:</span>
-                            <span className="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-[#ff5c00]/20 text-[#ff5c00] border border-[#ff5c00]/30 shadow-[0_0_10px_rgba(255,92,0,0.2)]">
-                              ★ {userScore} / 10
+                            <span className="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-[#ff5c00]/20 text-[#ff5c00] border border-[#ff5c00]/30 shadow-[0_0_10px_rgba(255,92,0,0.2)] inline-flex items-center gap-1">
+                              <svg className="w-3 h-3 fill-[#ff5c00]" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                              </svg>
+                              <span>{userScore} / 10</span>
                             </span>
                           </div>
                         </div>
@@ -720,7 +728,9 @@ export function App() {
                 ) : (
                   <div className="py-16 sm:py-20 text-center bg-[#101012] rounded-3xl border border-white/10 space-y-4 max-w-lg mx-auto p-6">
                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-[#ff5c00]">
-                      ★
+                      <svg className="w-6 h-6 fill-[#ff5c00]" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
                     </div>
                     <h3 className="font-heading font-medium text-base sm:text-lg text-white">Вы пока не оценили ни одного фильма</h3>
                     <p className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed font-normal">
@@ -805,13 +815,19 @@ export function App() {
           >
             <button
               onClick={handleDismissAuthBanner}
-              className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white flex items-center justify-center transition-colors text-xs"
+              className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white flex items-center justify-center transition-colors text-xs cursor-pointer"
               title="Закрыть"
             >
-              ✕
+              <svg className="w-3.5 h-3.5 fill-none stroke-current" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
             <div className="flex items-start gap-3">
-              <span className="text-2xl shrink-0 mt-0.5">🍿</span>
+              <div className="w-9 h-9 rounded-xl bg-[#ff5c00]/15 border border-[#ff5c00]/30 flex items-center justify-center text-[#ff5c00] shrink-0 mt-0.5 shadow-inner">
+                <svg className="w-5 h-5 fill-none stroke-current" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                </svg>
+              </div>
               <div className="space-y-1 pr-4">
                 <div className="font-heading font-bold text-xs sm:text-sm text-white">
                   Войдите в OFMEDIA
@@ -861,8 +877,10 @@ export function App() {
               className="relative w-full max-w-md bg-[#101012] border border-white/15 rounded-3xl p-6 sm:p-7 shadow-[0_30px_90px_rgba(0,0,0,0.95)] z-10 space-y-4"
             >
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-[#ff5c00]/20 border border-[#ff5c00]/30 flex items-center justify-center text-2xl shadow-inner shrink-0">
-                  ⚡
+                <div className="w-12 h-12 rounded-2xl bg-[#ff5c00]/20 border border-[#ff5c00]/30 flex items-center justify-center text-[#ff5c00] shadow-inner shrink-0">
+                  <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                  </svg>
                 </div>
                 <div>
                   <h3 className="font-heading font-bold text-lg text-white">Доступно обновление OFMEDIA</h3>
@@ -883,7 +901,9 @@ export function App() {
                   }}
                   className="flex-1 py-3 px-4 rounded-xl bg-[#ff5c00] hover:bg-[#e05200] text-white text-xs font-semibold flex items-center justify-center gap-2 shadow-lg shadow-[#ff5c00]/30 transition-all active:scale-95 cursor-pointer"
                 >
-                  <span>📥</span>
+                  <svg className="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
                   <span>Скачать и обновить APK</span>
                 </button>
                 <button
@@ -927,15 +947,17 @@ export function App() {
         }}
       />
 
-      {/* Footer & App promo: STRICTLY HIDDEN in Native Android App AND on Mobile screens */}
+      {/* Footer & App promo: Visible on website (desktop & mobile), STRICTLY HIDDEN in Native Android App */}
       {!isNativeAndroid() && (
-        <div className="hidden md:block">
+        <div className="w-full">
           {/* Mobile App Download Callout in Footer */}
           <section className="border-t border-white/8 bg-[#09090b] py-8 sm:py-10 text-white select-none">
             <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="flex items-center gap-4 text-center md:text-left">
-                <div className="w-12 h-12 rounded-2xl bg-[#ff5c00]/15 border border-[#ff5c00]/25 flex items-center justify-center text-2xl shrink-0 shadow-inner">
-                  📱
+                <div className="w-12 h-12 rounded-2xl bg-[#ff5c00]/15 border border-[#ff5c00]/25 flex items-center justify-center text-[#ff5c00] shrink-0 shadow-inner">
+                  <svg className="w-6 h-6 fill-none stroke-current" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 18h.01M8 2h8a2 2 0 012 2v16a2 2 0 01-2 2H8a2 2 0 01-2-2V4a2 2 0 012-2z" />
+                  </svg>
                 </div>
                 <div>
                   <h3 className="font-heading font-bold text-sm sm:text-base text-white">

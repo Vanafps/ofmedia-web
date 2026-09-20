@@ -49,8 +49,10 @@ export const OfmediaMobileAppNotice: React.FC = () => {
         >
           {/* Left Icon & Text */}
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-[#ff5c00]/20 border border-[#ff5c00]/30 flex items-center justify-center shrink-0 text-lg shadow-inner">
-              📱
+            <div className="w-10 h-10 rounded-xl bg-[#ff5c00]/20 border border-[#ff5c00]/30 flex items-center justify-center shrink-0 text-[#ff5c00] shadow-inner">
+              <svg className="w-5 h-5 fill-none stroke-current" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 18h.01M8 2h8a2 2 0 012 2v16a2 2 0 01-2 2H8a2 2 0 01-2-2V4a2 2 0 012-2z" />
+              </svg>
             </div>
             <div className="min-w-0">
               <div className="font-heading font-bold text-xs text-white leading-tight truncate">
@@ -72,10 +74,12 @@ export const OfmediaMobileAppNotice: React.FC = () => {
             </a>
             <button
               onClick={handleDismiss}
-              className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-zinc-400 hover:text-white flex items-center justify-center text-xs transition-colors"
+              className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-zinc-400 hover:text-white flex items-center justify-center text-xs transition-colors cursor-pointer"
               title="Закрыть"
             >
-              ✕
+              <svg className="w-3.5 h-3.5 fill-none stroke-current" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           </div>
         </motion.div>

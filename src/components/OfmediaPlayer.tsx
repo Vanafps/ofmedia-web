@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Hls from 'hls.js';
 import type { Project, Episode } from '../data/projects';
 import { saveWatchProgress, getWatchProgress } from '../services/watchHistoryService';
+import { SpeakerVolumeIcon } from './SpeakerVolumeIcon';
 
 interface OfmediaPlayerProps {
   project: Project;
@@ -182,45 +183,7 @@ export const SpeedometerIcon: React.FC<{ className?: string }> = ({ className = 
   </svg>
 );
 
-// Premium Cinematic Speaker Volume SVG Icon
-export const SpeakerVolumeIcon: React.FC<{ isMuted: boolean; volume: number; className?: string }> = ({
-  isMuted,
-  volume,
-  className = 'w-4 h-4',
-}) => {
-  if (isMuted || volume === 0) {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M11 4.7L6.6 8.5H3a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h3.6l4.4 3.8a.8.8 0 0 0 1.3-.6V5.3a.8.8 0 0 0-1.3-.6z" fill="currentColor" stroke="none" />
-        <line x1="22" y1="9" x2="16" y2="15" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-        <line x1="16" y1="9" x2="22" y2="15" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-      </svg>
-    );
-  }
-  if (volume > 0.6) {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M11 4.7L6.6 8.5H3a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h3.6l4.4 3.8a.8.8 0 0 0 1.3-.6V5.3a.8.8 0 0 0-1.3-.6z" fill="currentColor" stroke="none" />
-        <path d="M15.5 8.5a5 5 0 0 1 0 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none" />
-        <path d="M19 5.5a9.5 9.5 0 0 1 0 13" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none" />
-      </svg>
-    );
-  }
-  if (volume > 0.3) {
-    return (
-      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M11 4.7L6.6 8.5H3a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h3.6l4.4 3.8a.8.8 0 0 0 1.3-.6V5.3a.8.8 0 0 0-1.3-.6z" fill="currentColor" stroke="none" />
-        <path d="M15.5 8.5a5 5 0 0 1 0 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none" />
-      </svg>
-    );
-  }
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M11 4.7L6.6 8.5H3a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h3.6l4.4 3.8a.8.8 0 0 0 1.3-.6V5.3a.8.8 0 0 0-1.3-.6z" fill="currentColor" stroke="none" />
-      <path d="M14.5 10a3 3 0 0 1 0 4" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none" />
-    </svg>
-  );
-};
+export { SpeakerVolumeIcon } from './SpeakerVolumeIcon';
 
 // Fullscreen Expand / Compress SVG Icon
 export const ModernFullscreenIcon: React.FC<{ isFullscreen: boolean; className?: string }> = ({ isFullscreen, className = 'w-4 h-4' }) => (
@@ -892,10 +855,10 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
       lastTapRef.current = { time: 0, x: clientX, side };
     } else {
       lastTapRef.current = { time: now, x: clientX, side };
-      // Single tap: toggle play/pause after delay if not followed by second tap
+      // Single tap: toggle controls visibility after delay if not followed by second tap
       if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
       singleTapTimerRef.current = setTimeout(() => {
-        togglePlay();
+        setShowControls((prev) => !prev);
       }, 250);
     }
   };
@@ -1054,7 +1017,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
       {/* TOP HEADER */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`absolute top-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-b from-black/90 via-black/40 to-transparent flex items-center justify-between transition-all duration-300 z-20 ${
+        className={`absolute top-0 left-0 right-0 p-4 sm:p-6 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-[max(1rem,env(safe-area-inset-top))] bg-gradient-to-b from-black/90 via-black/40 to-transparent flex items-center justify-between transition-all duration-300 z-20 ${
           showControls ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
         }`}
       >
@@ -1064,7 +1027,9 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
             className={`w-10 h-10 rounded-full flex items-center justify-center ${glassBtnClass}`}
             title="Закрыть плеер (Esc)"
           >
-            ✕
+            <svg className="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
 
           <div className="flex flex-col justify-center">
@@ -1100,7 +1065,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
       {/* BOTTOM CONTROLS DOCK */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/95 via-black/60 to-transparent transition-all duration-300 z-20 ${
+        className={`absolute bottom-0 left-0 right-0 p-4 sm:p-6 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pb-[max(1rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/95 via-black/60 to-transparent transition-all duration-300 z-20 ${
           showControls ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
         }`}
       >
@@ -1109,7 +1074,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
           <div
             data-lenis-prevent="true"
             onWheel={(e) => e.stopPropagation()}
-            className="absolute left-2 sm:left-6 bottom-16 sm:bottom-24 bg-[#101012]/98 backdrop-blur-2xl border border-white/15 rounded-2xl sm:rounded-3xl p-3 sm:p-4 w-[280px] sm:w-[320px] max-h-[calc(100vh-4.5rem)] overflow-y-auto custom-scrollbar shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(255,92,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.15)] z-30 animate-settings-pop text-white transition-all"
+            className="absolute left-2 sm:left-6 bottom-16 sm:bottom-24 bg-[#101012]/98 backdrop-blur-2xl border border-white/15 rounded-2xl sm:rounded-3xl p-3 sm:p-4 w-[280px] sm:w-[320px] max-h-[min(380px,calc(100vh-5rem))] overflow-y-auto custom-scrollbar shadow-[0_24px_60px_rgba(0,0,0,0.95),0_0_35px_rgba(255,92,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.15)] z-30 animate-settings-pop text-white transition-all"
           >
             {settingsSubView === 'main' && (
               <div className="flex flex-col py-1 space-y-1 animate-settings-slide-back">
@@ -1527,7 +1492,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
               <Forward10Icon className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-100 group-hover/forward:text-white transition-colors" />
             </button>
 
-            {/* Unified Okko Settings Button [ ⚙ Настройки ] / [ ✕ Настройки ] with 90deg Rotation Transition */}
+            {/* Unified Okko Settings Button [ Settings ] with 90deg Rotation Transition */}
             <button
               onClick={() => {
                 setShowSettingsMenu((prev) => !prev);
@@ -1542,7 +1507,9 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
             >
               <span className={`inline-flex transition-transform duration-300 ${showSettingsMenu ? 'rotate-90' : 'rotate-0'}`}>
                 {showSettingsMenu ? (
-                  <span className="text-xs sm:text-sm font-bold leading-none">✕</span>
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-none stroke-current" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 ) : (
                   <OkkoSettingsIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-zinc-200" />
                 )}
@@ -1574,7 +1541,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
           {/* Right Controls: Volume Capsule, PiP, Fullscreen */}
           <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
             {/* Volume Control Unified Frosted Glass Capsule */}
-            <div className="flex items-center h-8 sm:h-10 px-2 sm:px-3 rounded-full backdrop-blur-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/20 transition-all duration-200 gap-1.5 sm:gap-2.5 shadow-lg shadow-black/20 group/volume">
+            <div className="flex items-center h-8 sm:h-10 w-8 sm:w-auto justify-center px-0 sm:px-3 rounded-full backdrop-blur-xl bg-white/10 hover:bg-white/15 border border-white/10 hover:border-white/20 transition-all duration-200 gap-0 sm:gap-2.5 shadow-lg shadow-black/20 group/volume">
               <button
                 onClick={() => setIsMuted((m) => !m)}
                 className="w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center text-zinc-100 hover:text-white transition-transform active:scale-85 cursor-pointer"
@@ -1583,8 +1550,8 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
                 <SpeakerVolumeIcon isMuted={isMuted} volume={volume} className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
               </button>
 
-              {/* Volume Track inside Unified Capsule */}
-              <div className="relative w-12 sm:w-20 h-4 sm:h-5 flex items-center cursor-pointer">
+              {/* Volume Track inside Unified Capsule - hidden on mobile so PiP and Fullscreen buttons fit */}
+              <div className="hidden sm:flex relative w-12 sm:w-20 h-4 sm:h-5 items-center cursor-pointer">
                 {/* Background Track */}
                 <div className="w-full h-1 sm:h-1.5 rounded-full bg-white/20 overflow-hidden relative pointer-events-none">
                   <div

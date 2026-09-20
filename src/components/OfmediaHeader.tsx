@@ -3,9 +3,7 @@ import type { Project } from '../data/projects';
 import type { Actor } from '../data/actors';
 import { ACTORS_DATA } from '../data/actors';
 import type { UserProfile } from '../services/firebase';
-import { CINEMA_AVATARS } from '../services/firebase';
 import { getUserRatings } from '../services/ratingService';
-import { Tooltip } from './ui/Tooltip';
 
 interface OfmediaHeaderProps {
   activeTab: 'main' | 'favorites';
@@ -109,7 +107,7 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
             />
           </button>
 
-          <nav className="hidden sm:flex items-center gap-1.5 p-1 rounded-full glass-pill text-sm font-medium">
+          <nav className="hidden md:flex items-center gap-1.5 p-1 rounded-full glass-pill text-sm font-medium">
             <button
               onClick={() => setActiveTab('main')}
               className={`relative px-4 py-1.5 rounded-full transition-all duration-200 ${
@@ -161,27 +159,29 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
                     setIsSearchOpen(false);
                     setSearchQuery('');
                   }}
-                  className="text-zinc-400 hover:text-white text-xs px-1"
+                  className="text-zinc-400 hover:text-white text-xs px-1 cursor-pointer flex items-center justify-center"
+                  title="Очистить и закрыть"
                 >
-                  ✕
+                  <svg className="w-3.5 h-3.5 fill-none stroke-current" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
             ) : (
-              <Tooltip content="Поиск фильмов и актёров" position="bottom">
-                <button
-                  onClick={() => setIsSearchOpen(true)}
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-full glass-pill text-zinc-200 hover:text-white transition-all shadow-md hover:scale-105 active:scale-95 flex items-center justify-center"
-                >
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                    <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z" />
-                  </svg>
-                </button>
-              </Tooltip>
+              <button
+                onClick={() => setIsSearchOpen(true)}
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full glass-pill text-zinc-200 hover:text-white transition-all shadow-md hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer"
+                title="Поиск фильмов и актёров"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 14z" />
+                </svg>
+              </button>
             )}
 
             {/* Smart Search Dropdown with Real Frosted Glass */}
             {isSearchOpen && searchQuery.trim().length > 0 && (
-              <div className="absolute right-0 mt-3 w-80 sm:w-96 glass-dropdown rounded-3xl p-3.5 z-[110] space-y-3 max-h-[80vh] overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95">
+              <div className="absolute right-0 mt-3 w-[calc(100vw-2rem)] max-w-sm sm:w-96 glass-dropdown rounded-3xl p-3.5 z-[110] space-y-3 max-h-[80vh] overflow-y-auto custom-scrollbar animate-in fade-in zoom-in-95 shadow-2xl">
                 {actorResults.length > 0 && (
                   <div className="space-y-1.5">
                     <div className="px-2.5 py-1 text-[11px] font-semibold text-[#ff5c00] uppercase tracking-wide flex items-center justify-between">
@@ -267,21 +267,23 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
           {user ? (
             <div className="relative">
               {(() => {
-                const avatar = user.avatarIcon ? CINEMA_AVATARS.find((a) => a.id === user.avatarIcon) : null;
                 return (
                   <>
                     <button
                       onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                       className="h-9 sm:h-10 flex items-center gap-2 p-1 sm:p-1.5 sm:pr-3.5 rounded-full glass-pill text-white transition-all shadow-lg hover:scale-102 active:scale-95"
                     >
-                      {avatar ? (
-                        <div className={`w-7 h-7 rounded-full bg-gradient-to-tr ${avatar.bg} flex items-center justify-center text-sm shadow-inner shrink-0`}>
-                          {avatar.emoji}
-                        </div>
-                      ) : user.photoURL ? (
-                        <img src={user.photoURL} alt={user.displayName || ''} className="w-7 h-7 rounded-full object-cover border border-white/20" />
+                      {user.photoURL ? (
+                        <img
+                          src={user.photoURL}
+                          alt={user.displayName || ''}
+                          className="w-7 h-7 rounded-full object-cover border border-white/25 shadow-sm shrink-0"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                          }}
+                        />
                       ) : (
-                        <div className="w-7 h-7 rounded-full bg-[#ff5c00] text-white font-semibold text-xs flex items-center justify-center shadow">
+                        <div className="w-7 h-7 rounded-full bg-[#ff5c00] text-white font-semibold text-xs flex items-center justify-center shadow shrink-0">
                           {(user.displayName || user.email || 'U')[0].toUpperCase()}
                         </div>
                       )}
@@ -297,12 +299,12 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
                     {isProfileDropdownOpen && (
                       <div className="absolute right-0 mt-3 w-72 glass-dropdown rounded-3xl p-4 z-[110] space-y-3.5 animate-in fade-in zoom-in-95 shadow-2xl">
                         <div className="flex items-center gap-3.5 pb-3.5 border-b border-white/10">
-                          {avatar ? (
-                            <div className={`w-11 h-11 rounded-2xl bg-gradient-to-tr ${avatar.bg} flex items-center justify-center text-2xl shadow-inner shrink-0 border border-white/20`}>
-                              {avatar.emoji}
-                            </div>
-                          ) : user.photoURL ? (
-                            <img src={user.photoURL} alt={user.displayName || ''} className="w-11 h-11 rounded-2xl object-cover border border-white/20 shrink-0 shadow" />
+                          {user.photoURL ? (
+                            <img
+                              src={user.photoURL}
+                              alt={user.displayName || ''}
+                              className="w-11 h-11 rounded-2xl object-cover border border-white/25 shrink-0 shadow-md"
+                            />
                           ) : (
                             <div className="w-11 h-11 rounded-2xl bg-[#ff5c00] text-white font-bold text-sm flex items-center justify-center shadow shrink-0 border border-white/20">
                               {(user.displayName || user.email || 'U')[0].toUpperCase()}
@@ -313,7 +315,7 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
                               {user.displayName || 'Пользователь'}
                             </div>
                             <div className="text-[11px] text-zinc-400 font-normal truncate">
-                              {user.email || 'Авторизован'}
+                              {user.username || user.email || 'Авторизован'}
                             </div>
                           </div>
                         </div>

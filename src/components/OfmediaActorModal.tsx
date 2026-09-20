@@ -79,7 +79,9 @@ export const OfmediaActorModal: React.FC<OfmediaActorModalProps> = ({
           className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-zinc-300 hover:text-white flex items-center justify-center transition-all cursor-pointer active:scale-90"
           title="Закрыть (Esc)"
         >
-          ✕
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </button>
       </div>
 

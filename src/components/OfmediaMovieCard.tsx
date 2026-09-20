@@ -4,8 +4,7 @@ import type { Project } from '../data/projects';
 import { getMovieRating } from '../services/ratingService';
 import { getWatchProgress, type WatchProgress } from '../services/watchHistoryService';
 import { PlayIcon } from './PlayIcon';
-import { SpeakerVolumeIcon } from './OfmediaPlayer';
-import { Tooltip } from './ui/Tooltip';
+import { SpeakerVolumeIcon } from './SpeakerVolumeIcon';
 import { mobileCenterTracker } from '../utils/mobileCenterTracker';
 
 export interface OfmediaMovieCardProps {
@@ -73,7 +72,6 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
     return localStorage.getItem('ofmedia_preview_sound') !== 'unmuted';
   });
 
-  const [isHovered, setIsHovered] = useState<boolean>(false);
   const [isTeaserActive, setIsTeaserActive] = useState<boolean>(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(false);
   const [previewProgress, setPreviewProgress] = useState<number>(0);
@@ -230,16 +228,21 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
     };
   }, []);
 
-  // Desktop hover: Card expands immediately, video trailer starts quickly after 700ms
+  // Desktop hover: Card preview with grace debounce so cursor movement never cancels trailer
+  const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleMouseEnter = () => {
     if (isDragging || isMobile) return;
-    setIsHovered(true);
+    if (leaveTimerRef.current) {
+      clearTimeout(leaveTimerRef.current);
+      leaveTimerRef.current = null;
+    }
     if (hoverTimerRef.current) {
       clearTimeout(hoverTimerRef.current);
     }
     hoverTimerRef.current = setTimeout(() => {
       setIsTeaserActive(true);
-    }, 700);
+    }, 350);
   };
 
   const handleMouseLeave = (e: React.MouseEvent) => {
@@ -253,32 +256,35 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
       hoverTimerRef.current = null;
     }
 
-    // Remember the exact playback timestamp when mouse leaves
-    if (videoRef.current && videoRef.current.currentTime > 0) {
-      try {
-        localStorage.setItem(
-          `ofmedia_card_trailer_pos_${project.id}`,
-          videoRef.current.currentTime.toString()
-        );
-      } catch {
-        // ignore storage errors
+    if (leaveTimerRef.current) {
+      clearTimeout(leaveTimerRef.current);
+    }
+
+    // 250ms grace period so moving over buttons or slight boundary touches never drops the trailer
+    leaveTimerRef.current = setTimeout(() => {
+      if (videoRef.current && videoRef.current.currentTime > 0) {
+        try {
+          localStorage.setItem(
+            `ofmedia_card_trailer_pos_${project.id}`,
+            videoRef.current.currentTime.toString()
+          );
+        } catch {}
       }
-    }
 
-    setIsHovered(false);
-    setIsTeaserActive(false);
-    setIsVideoPlaying(false);
-    setPreviewProgress(0);
+      setIsTeaserActive(false);
+      setIsVideoPlaying(false);
+      setPreviewProgress(0);
 
-    if (hlsRef.current) {
-      hlsRef.current.destroy();
-      hlsRef.current = null;
-    }
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.removeAttribute('src');
-      videoRef.current.load();
-    }
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      if (videoRef.current) {
+        videoRef.current.pause();
+        videoRef.current.removeAttribute('src');
+        videoRef.current.load();
+      }
+    }, 250);
   };
 
   // Re-sync with other card updates, ratings changes, and watch progress updates
@@ -519,217 +525,189 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
       </div>
 
       {/* ========================================================= */}
-      {/* 2. DESKTOP VIEW (>= md): Floating Card with Hover Drawer */}
+      {/* 2. DESKTOP VIEW (>= md): Non-clipping 16:9 Card with Inset Controls */}
       {/* ========================================================= */}
-      <div className="hidden md:block relative aspect-video w-full group">
-        <div
-          onClick={handleCardClick}
-          className={`absolute top-0 left-0 w-full rounded-2xl overflow-hidden bg-[#0a0a0c] border border-white/10 transition-all duration-300 ease-out origin-center ${
-            isHovered
-              ? 'scale-110 z-30 shadow-[0_25px_50px_rgba(0,0,0,0.95)] border-white/25 bg-[#101012]'
-              : ''
-          } group-hover:scale-110 group-hover:z-30 group-hover:shadow-[0_25px_50px_rgba(0,0,0,0.95)] group-hover:border-white/25 group-hover:bg-[#101012] cursor-pointer`}
-        >
-          {/* Poster Image Container */}
-          <div className="relative aspect-video w-full overflow-hidden bg-[#070709]">
-            <img
-              src={project.poster}
-              alt={project.title}
-              draggable={false}
-              className={`w-full h-full object-cover select-none transition-all duration-700 ease-out ${
-                isVideoPlaying ? 'opacity-0 scale-105' : 'opacity-100 scale-100 group-hover:scale-104'
-              }`}
+      <div
+        onClick={handleCardClick}
+        className="hidden md:block relative aspect-video w-full rounded-2xl overflow-hidden bg-[#0a0a0c] border border-white/10 hover:border-white/30 transition-all duration-300 ease-out cursor-pointer group shadow-lg hover:shadow-[0_20px_45px_rgba(0,0,0,0.9)] hover:scale-[1.03] z-10 hover:z-30"
+      >
+        {/* Poster Image */}
+        <img
+          src={project.poster}
+          alt={project.title}
+          draggable={false}
+          className={`w-full h-full object-cover select-none transition-all duration-500 ease-out ${
+            isVideoPlaying ? 'opacity-0 scale-105' : 'opacity-100 scale-100 group-hover:scale-103'
+          }`}
+        />
+
+        {/* Hover Video Intro Preview (starts after 350ms) */}
+        {isTeaserActive && (
+          <div
+            className={`absolute inset-0 overflow-hidden bg-black z-10 transition-opacity duration-500 ease-out ${
+              isVideoPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+          >
+            <video
+              ref={videoRef}
+              muted={isMuted}
+              loop
+              playsInline
+              autoPlay
+              onPlaying={() => setIsVideoPlaying(true)}
+              onTimeUpdate={(e) => {
+                const v = e.currentTarget;
+                if (v.duration) {
+                  const loopDuration = Math.min(v.duration, 45);
+                  setPreviewProgress(((v.currentTime % loopDuration) / loopDuration) * 100);
+                  try {
+                    localStorage.setItem(
+                      `ofmedia_card_trailer_pos_${project.id}`,
+                      v.currentTime.toString()
+                    );
+                  } catch {}
+                }
+              }}
+              className="w-full h-full object-cover"
             />
 
-            {/* Hover Video Intro Preview (starts after 700ms of hovering) */}
-            {isTeaserActive && (
-              <div
-                className={`absolute inset-0 overflow-hidden bg-black z-10 transition-opacity duration-700 ease-out ${
-                  isVideoPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                }`}
-              >
-                <video
-                  ref={videoRef}
-                  muted={isMuted}
-                  loop
-                  playsInline
-                  autoPlay
-                  onPlaying={() => setIsVideoPlaying(true)}
-                  onTimeUpdate={(e) => {
-                    const v = e.currentTarget;
-                    if (v.duration) {
-                      const loopDuration = Math.min(v.duration, 45);
-                      setPreviewProgress(((v.currentTime % loopDuration) / loopDuration) * 100);
-                      try {
-                        localStorage.setItem(
-                          `ofmedia_card_trailer_pos_${project.id}`,
-                          v.currentTime.toString()
-                        );
-                      } catch {}
-                    }
-                  }}
-                  className="w-full h-full object-cover"
-                />
-
-                {/* Teaser loop progress bar */}
-                {isVideoPlaying && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/20 z-20 pointer-events-none">
-                    <div
-                      className="h-full bg-[#ff5c00] transition-all duration-150 ease-linear"
-                      style={{ width: `${previewProgress}%` }}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Watch Progress Bar on Desktop Poster */}
-            {watchProgress && watchProgress.percentage > 0 && watchProgress.percentage < 95 && (
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/60 backdrop-blur-xs z-20 pointer-events-none overflow-hidden">
+            {/* Teaser loop progress bar */}
+            {isVideoPlaying && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/20 z-20 pointer-events-none">
                 <div
-                  className="h-full bg-[#ff5c00] rounded-r-full shadow-[0_0_8px_#ff5c00]"
-                  style={{ width: `${watchProgress.percentage}%` }}
+                  className="h-full bg-[#ff5c00] transition-all duration-150 ease-linear"
+                  style={{ width: `${previewProgress}%` }}
                 />
               </div>
             )}
+          </div>
+        )}
 
-            {/* Remaining Time Badge on Desktop Poster */}
-            {showRemainingBadge && watchProgress && watchProgress.duration > 0 && (
-              <div className="absolute top-2.5 right-2.5 z-20 pointer-events-none">
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-black/85 text-zinc-100 border border-white/15 backdrop-blur-md shadow-lg flex items-center">
-                  Осталось {remainingMinutes ?? Math.max(1, Math.ceil((watchProgress.duration - watchProgress.currentTime) / 60))} мин
-                </span>
-              </div>
-            )}
+        {/* Watch Progress Bar on Desktop Poster */}
+        {watchProgress && watchProgress.percentage > 0 && watchProgress.percentage < 95 && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/60 backdrop-blur-xs z-20 pointer-events-none overflow-hidden">
+            <div
+              className="h-full bg-[#ff5c00] rounded-r-full shadow-[0_0_8px_#ff5c00]"
+              style={{ width: `${watchProgress.percentage}%` }}
+            />
+          </div>
+        )}
 
-            {/* Sound Mute / Unmute Button on Hover when video is playing */}
-            {isTeaserActive && isVideoPlaying && (
-              <button
-                type="button"
-                onClick={toggleSound}
-                className="absolute top-2.5 right-2.5 z-30 w-8 h-8 rounded-full bg-black/75 hover:bg-black/95 backdrop-blur-md border border-white/20 hover:border-white/40 flex items-center justify-center text-white transition-all duration-200 cursor-pointer active:scale-90 shadow-xl group/sound animate-in fade-in zoom-in-95"
-                title={isMuted ? 'Включить звук' : 'Выключить звук'}
-                aria-label={isMuted ? 'Включить звук' : 'Выключить звук'}
-              >
-                <SpeakerVolumeIcon
-                  isMuted={isMuted}
-                  volume={isMuted ? 0 : 1}
-                  className="w-4 h-4 text-white group-hover/sound:scale-110 transition-transform duration-150"
-                />
-              </button>
-            )}
+        {/* Real Rating Badge top-left */}
+        {hasRealRating && (
+          <div className="absolute top-2.5 left-2.5 z-20 pointer-events-none">
+            <span
+              style={{
+                backgroundColor: ratingStats.colorHex,
+                color: ratingStats.colorInfo.tier === 'yellow' ? '#000000' : '#ffffff',
+                boxShadow: `0 0 10px ${ratingStats.colorHex}55`,
+              }}
+              className="font-semibold text-xs px-2 py-0.5 rounded-[4px] leading-none shrink-0 shadow-md backdrop-blur-xs"
+            >
+              {ratingStats.scoreFormatted}
+            </span>
+          </div>
+        )}
 
-            {/* Subtle Hover Specular Reflection Sweep */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20" />
+        {/* Remaining Time Badge top-right */}
+        {showRemainingBadge && watchProgress && watchProgress.duration > 0 && (
+          <div className="absolute top-2.5 right-2.5 z-20 pointer-events-none">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-black/85 text-zinc-100 border border-white/15 backdrop-blur-md shadow-lg flex items-center">
+              Осталось {remainingMinutes ?? Math.max(1, Math.ceil((watchProgress.duration - watchProgress.currentTime) / 60))} мин
+            </span>
+          </div>
+        )}
 
-            {/* Bottom subtle shadow transition to info drawer */}
-            <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-[#101012] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20" />
+        {/* Sound Mute / Unmute Button on Hover when video is playing */}
+        {isTeaserActive && isVideoPlaying && (
+          <button
+            type="button"
+            onClick={toggleSound}
+            className="absolute top-2.5 right-2.5 z-30 w-8 h-8 rounded-full bg-black/75 hover:bg-black/95 backdrop-blur-md border border-white/20 hover:border-white/40 flex items-center justify-center text-white transition-all duration-200 cursor-pointer active:scale-90 shadow-xl"
+            title={isMuted ? 'Включить звук' : 'Выключить звук'}
+            aria-label={isMuted ? 'Включить звук' : 'Выключить звук'}
+          >
+            <SpeakerVolumeIcon
+              isMuted={isMuted}
+              volume={isMuted ? 0 : 1}
+              className="w-4 h-4 text-white"
+            />
+          </button>
+        )}
+
+        {/* Inset Bottom Metadata & Action Buttons on Hover */}
+        <div className="absolute inset-x-0 bottom-0 p-3 pt-8 bg-gradient-to-t from-black/95 via-black/75 to-transparent z-25 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end gap-2 pointer-events-auto">
+          {/* Metadata Row */}
+          <div className="flex items-center gap-2 text-xs text-zinc-300 font-medium whitespace-nowrap overflow-hidden">
+            <span className="font-semibold text-white truncate max-w-[140px]">{project.title}</span>
+            <span className="text-zinc-400">•</span>
+            <span className="text-zinc-300">{project.year}</span>
+            <span className="text-zinc-400">•</span>
+            <span className="text-zinc-300 truncate">{primaryGenre}</span>
           </div>
 
-          {/* Hover Revealed Information Drawer (Okko layout) */}
-          <div className="max-h-0 opacity-0 py-0 px-3.5 group-hover:max-h-36 group-hover:py-3 group-hover:opacity-100 transition-all duration-300 ease-out overflow-hidden bg-[#101012] space-y-2.5 pointer-events-none group-hover:pointer-events-auto">
-            {/* Metadata Row */}
-            <div className="flex items-center gap-2.5 text-xs text-zinc-300 font-medium whitespace-nowrap overflow-hidden">
-              {hasRealRating && (
-                <span
-                  style={{
-                    backgroundColor: ratingStats.colorHex,
-                    color: ratingStats.colorInfo.tier === 'yellow' ? '#000000' : '#ffffff',
-                    boxShadow: `0 0 10px ${ratingStats.colorHex}55`,
-                  }}
-                  className="font-semibold text-xs px-1.5 py-0.5 rounded-[4px] leading-none shrink-0 transition-colors duration-200"
-                >
-                  {ratingStats.scoreFormatted}
-                </span>
-              )}
+          {/* Action Buttons Row */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onPlay(project);
+              }}
+              className="w-8 h-8 rounded-full bg-[#ff5c00] hover:bg-[#e05200] text-white flex items-center justify-center shadow-lg shadow-[#ff5c00]/40 hover:scale-110 active:scale-95 transition-all shrink-0 cursor-pointer"
+              title="Смотреть фильм"
+            >
+              <PlayIcon className="w-3.5 h-3.5 fill-white" />
+            </button>
 
-              <span className="text-zinc-200">{project.year}</span>
-              <span className="text-zinc-300 truncate max-w-[110px]">{primaryGenre}</span>
-              <span className="text-zinc-400 shrink-0">{project.duration}</span>
-            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite(project.id);
+              }}
+              className={`w-8 h-8 rounded-full border flex items-center justify-center hover:scale-105 active:scale-95 transition-all shrink-0 cursor-pointer ${
+                isFavorite
+                  ? 'border-[#ff5c00] bg-[#ff5c00] text-white shadow-[0_0_12px_rgba(255,92,0,0.5)]'
+                  : 'border-white/20 hover:border-white/40 bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white'
+              }`}
+              title={isFavorite ? 'Удалить из закладок' : 'Добавить в закладки'}
+            >
+              <svg
+                className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current' : 'fill-none stroke-current stroke-2'}`}
+                viewBox="0 0 24 24"
+              >
+                <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
 
-            {/* Action Buttons Row */}
-            <div className="flex items-center gap-2 pt-0.5">
-              <Tooltip content="Смотреть" position="top">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onPlay(project);
-                  }}
-                  className="w-9 h-9 rounded-full bg-[#ff5c00] hover:bg-[#e05200] text-white flex items-center justify-center shadow-lg shadow-[#ff5c00]/40 hover:scale-110 active:scale-95 transition-all duration-200 shrink-0 cursor-pointer"
-                >
-                  <PlayIcon className="w-3.5 h-3.5 fill-white" />
-                </button>
-              </Tooltip>
+            <button
+              onClick={handleToggleWatched}
+              className={`w-8 h-8 rounded-full border flex items-center justify-center hover:scale-105 active:scale-95 transition-all shrink-0 cursor-pointer ${
+                isWatched
+                  ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                  : 'border-white/20 hover:border-white/40 bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white'
+              }`}
+              title={isWatched ? 'Просмотрено (отменить)' : 'Отметить как просмотренное'}
+            >
+              <svg className="w-3.5 h-3.5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" strokeLinecap="round" strokeLinejoin="round" />
+                <circle cx="12" cy="12" r="3" className={isWatched ? 'fill-current' : ''} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
 
-              <Tooltip content={isFavorite ? 'Удалить из закладок' : 'Добавить в закладки'} position="top">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleFavorite(project.id);
-                  }}
-                  className={`w-9 h-9 rounded-full border flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shrink-0 cursor-pointer ${
-                    isFavorite
-                      ? 'border-[#ff5c00] bg-[#ff5c00] text-white shadow-[0_0_12px_rgba(255,92,0,0.5)]'
-                      : 'border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10 text-zinc-200 hover:text-white'
-                  }`}
-                >
-                  <svg
-                    className={`w-4 h-4 transition-transform ${isFavorite ? 'fill-current' : 'fill-none stroke-current stroke-2'}`}
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-              </Tooltip>
-
-              <Tooltip content={isWatched ? 'Просмотрено (отменить)' : 'Отметить как просмотренное'} position="top">
-                <button
-                  onClick={handleToggleWatched}
-                  className={`w-9 h-9 rounded-full border flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shrink-0 cursor-pointer ${
-                    isWatched
-                      ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
-                      : 'border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10 text-zinc-200 hover:text-white'
-                  }`}
-                >
-                  <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
-                    <path
-                      d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="3"
-                      className={isWatched ? 'fill-current' : ''}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </button>
-              </Tooltip>
-
-              <Tooltip content={isDisliked ? 'Не нравится (отменить)' : 'Не рекомендовать'} position="top">
-                <button
-                  onClick={handleToggleDislike}
-                  className={`w-9 h-9 rounded-full border flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200 shrink-0 cursor-pointer ${
-                    isDisliked
-                      ? 'border-red-500 bg-red-500/20 text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.3)]'
-                      : 'border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10 text-zinc-200 hover:text-white'
-                  }`}
-                >
-                  <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round" />
-                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </button>
-              </Tooltip>
-            </div>
+            <button
+              onClick={handleToggleDislike}
+              className={`w-8 h-8 rounded-full border flex items-center justify-center hover:scale-105 active:scale-95 transition-all shrink-0 cursor-pointer ${
+                isDisliked
+                  ? 'border-red-500 bg-red-500/20 text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.3)]'
+                  : 'border-white/20 hover:border-white/40 bg-white/10 hover:bg-white/20 text-zinc-200 hover:text-white'
+              }`}
+              title={isDisliked ? 'Не нравится (отменить)' : 'Не рекомендовать'}
+            >
+              <svg className="w-3.5 h-3.5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" strokeLinecap="round" strokeLinejoin="round" />
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>

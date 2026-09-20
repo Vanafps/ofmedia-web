@@ -54,6 +54,7 @@ export interface UserProfile {
   displayName: string | null;
   photoURL: string | null;
   avatarIcon?: string | null;
+  username?: string | null;
   isAnonymous?: boolean;
 }
 
@@ -68,12 +69,12 @@ export interface StoredAccount {
 }
 
 export const CINEMA_AVATARS = [
-  { id: 'popcorn', emoji: '🍿', label: 'Киноман', bg: 'from-orange-500 to-amber-600' },
-  { id: 'director', emoji: '🎬', label: 'Режиссёр', bg: 'from-red-500 to-amber-600' },
-  { id: 'camera', emoji: '🎥', label: 'Оператор', bg: 'from-blue-500 to-cyan-600' },
-  { id: 'star', emoji: '⭐', label: 'Звезда', bg: 'from-yellow-400 to-orange-500' },
-  { id: 'mask', emoji: '🎭', label: 'Актёр', bg: 'from-purple-500 to-pink-600' },
-  { id: 'sound', emoji: '🎧', label: 'Звукач', bg: 'from-emerald-500 to-teal-600' },
+  { id: 'popcorn', label: 'Киноман', bg: 'from-orange-500 to-amber-600' },
+  { id: 'director', label: 'Режиссёр', bg: 'from-red-500 to-amber-600' },
+  { id: 'camera', label: 'Оператор', bg: 'from-zinc-700 to-zinc-800' },
+  { id: 'star', label: 'Звезда', bg: 'from-amber-400 to-orange-500' },
+  { id: 'mask', label: 'Актёр', bg: 'from-rose-500 to-orange-600' },
+  { id: 'sound', label: 'Звукач', bg: 'from-emerald-500 to-teal-600' },
 ];
 
 export const getStoredAccounts = (): StoredAccount[] => {

@@ -2,7 +2,8 @@ import * as VKID from '@vkid/sdk';
 import { Capacitor } from '@capacitor/core';
 import type { UserProfile } from './firebase';
 
-export const VK_APP_ID = 54781535;
+export const VK_APP_ID_WEB = 54781535;
+export const VK_APP_ID_ANDROID = 54781536;
 export const VK_CLIENT_SECRET = 'onvGud3EPvBipAvPz7AK';
 export const VK_SERVICE_TOKEN = '74427b5e74427b5e74427b5e0277019d3e7744274427b5e1ef273586bfcddc4a9f3a85e';
 
@@ -27,7 +28,7 @@ export const getVkAppId = (): number => {
   if (storedId && !isNaN(Number(storedId))) {
     return Number(storedId);
   }
-  return VK_APP_ID;
+  return isNativeAndroid() ? VK_APP_ID_ANDROID : VK_APP_ID_WEB;
 };
 
 export const setVkAppId = (id: number | string) => {
@@ -36,8 +37,7 @@ export const setVkAppId = (id: number | string) => {
 };
 
 /**
- * The redirect URL registered in the VK ID Console for App 54781535.
- * Must match exactly to prevent VK "Ошибка загрузки" domain verification failure.
+ * The redirect URL registered in the VK ID Console.
  */
 export const getRedirectUrl = (): string => {
   return 'https://ofmedia-web.github.io/';
@@ -71,20 +71,25 @@ export const initVkId = () => {
 export const fetchVkUserProfile = async (
   userId: string | number,
   userAccessToken?: string
-): Promise<{ displayName: string; photoURL: string | null; firstName: string; lastName: string } | null> => {
+): Promise<{ displayName: string; photoURL: string | null; firstName: string; lastName: string; username?: string } | null> => {
   if (!userId) return null;
 
-  // 1. Try Vercel Serverless proxy first
+  // 1. Try Vercel Serverless proxy (handles CORS across GitHub Pages, localhost, and APK)
   try {
-    const res = await fetch(`/api/vk-user?user_id=${encodeURIComponent(userId)}&token=${encodeURIComponent(userAccessToken || '')}`);
+    const apiUrl = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')
+      ? `/api/vk-user?user_id=${encodeURIComponent(userId)}&token=${encodeURIComponent(userAccessToken || '')}`
+      : `https://ofmedia.vercel.app/api/vk-user?user_id=${encodeURIComponent(userId)}&token=${encodeURIComponent(userAccessToken || '')}`;
+
+    const res = await fetch(apiUrl);
     if (res.ok) {
       const data = await res.json();
-      if (data.displayName || data.firstName) {
+      if (data.displayName || data.firstName || data.photo) {
         return {
           displayName: data.displayName || `${data.firstName || ''} ${data.lastName || ''}`.trim(),
           photoURL: data.photo || null,
           firstName: data.firstName || '',
           lastName: data.lastName || '',
+          username: data.username || '',
         };
       }
     }
@@ -92,7 +97,7 @@ export const fetchVkUserProfile = async (
     // Fallback to JSONP
   }
 
-  // 2. Client JSONP fallback (works in all browsers without CORS restrictions)
+  // 2. Client JSONP fallback (works directly with VK API)
   return new Promise((resolve) => {
     if (typeof document === 'undefined') return resolve(null);
     const callbackName = `vk_cb_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
@@ -115,10 +120,11 @@ export const fetchVkUserProfile = async (
         const u = data.response[0];
         const displayName = `${u.first_name || ''} ${u.last_name || ''}`.trim();
         resolve({
-          displayName: displayName || `Пользователь VK (${userId})`,
+          displayName: displayName || `Пользователь (${userId})`,
           photoURL: u.photo_200 || null,
           firstName: u.first_name || '',
           lastName: u.last_name || '',
+          username: u.domain || u.screen_name || '',
         });
       } else {
         resolve(null);
@@ -126,7 +132,7 @@ export const fetchVkUserProfile = async (
     };
 
     const tokenToUse = userAccessToken || VK_SERVICE_TOKEN;
-    script.src = `https://api.vk.com/method/users.get?user_ids=${encodeURIComponent(userId)}&fields=photo_200,first_name,last_name&access_token=${encodeURIComponent(tokenToUse)}&v=5.131&callback=${callbackName}`;
+    script.src = `https://api.vk.com/method/users.get?user_ids=${encodeURIComponent(userId)}&fields=photo_200,first_name,last_name,domain,screen_name&access_token=${encodeURIComponent(tokenToUse)}&v=5.131&callback=${callbackName}`;
     script.onerror = () => {
       clearTimeout(timer);
       cleanup();
@@ -146,25 +152,45 @@ export const handleVkAuthPayload = async (payload: any): Promise<UserProfile> =>
   let lastName = user?.last_name || '';
   let photo = user?.avatar || user?.photo_200 || null;
 
-  // If name or photo missing, query VK API for real user data
-  if ((!firstName || !photo) && rawId) {
-    const realProfile = await fetchVkUserProfile(rawId, accessToken);
-    if (realProfile) {
-      firstName = realProfile.firstName || firstName;
-      lastName = realProfile.lastName || lastName;
-      photo = realProfile.photoURL || photo;
+  // Try decoding JWT id_token if provided by VK ID 2.0
+  try {
+    const idToken = payload?.id_token || user?.id_token;
+    if (idToken && typeof idToken === 'string' && idToken.includes('.')) {
+      const parts = idToken.split('.');
+      if (parts.length >= 2) {
+        const parsed = JSON.parse(atob(parts[1]));
+        firstName = firstName || parsed.first_name || parsed.given_name || '';
+        lastName = lastName || parsed.last_name || parsed.family_name || '';
+        photo = photo || parsed.avatar || parsed.picture || null;
+      }
     }
+  } catch {}
+
+  let username = user?.domain || user?.screen_name || '';
+
+  // Always fetch official profile if user ID exists to ensure real photo, name and username
+  if (rawId) {
+    try {
+      const realProfile = await fetchVkUserProfile(rawId, accessToken);
+      if (realProfile) {
+        firstName = realProfile.firstName || firstName;
+        lastName = realProfile.lastName || lastName;
+        photo = realProfile.photoURL || photo;
+        username = realProfile.username || username;
+      }
+    } catch {}
   }
 
-  const displayName = `${firstName} ${lastName}`.trim() || `Пользователь VK ID (${vkId})`;
-  const email = user?.email || payload?.email || `id${vkId}@vk.com`;
+  const displayName = `${firstName} ${lastName}`.trim() || (username ? `@${username}` : `Пользователь (${vkId})`);
+  const email = user?.email || payload?.email || (username ? `${username}@vk.com` : `id${vkId}@vk.com`);
 
   const profile: UserProfile = {
     uid: `vk_${vkId}`,
     email,
     displayName,
     photoURL: photo,
-    avatarIcon: 'star',
+    avatarIcon: null,
+    username: username ? (username.startsWith('@') ? username : `@${username}`) : null,
     isAnonymous: false,
   };
 

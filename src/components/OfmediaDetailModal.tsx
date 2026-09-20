@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Hls from 'hls.js';
-import type { Project, Episode } from '../data/projects';
+import type { Project, Episode, CastMember } from '../data/projects';
 import { PROJECTS_DATA } from '../data/projects';
 import type { Actor } from '../data/actors';
 import { getOrGenerateActor } from '../data/actors';
@@ -22,7 +22,6 @@ import {
   type ReviewType,
 } from '../services/reviewService';
 import { PlayIcon } from './PlayIcon';
-import { Tooltip } from './ui/Tooltip';
 import { OfmediaMovieCard } from './OfmediaMovieCard';
 import { downloadMovieForOffline, isMovieOffline, removeOfflineMovie } from '../services/offlineStorageService';
 
@@ -312,24 +311,25 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
       {/* Toast Notification with Glassmorphism */}
       {toastMessage && (
         <div className="fixed top-16 sm:top-20 left-1/2 -translate-x-1/2 z-[130] px-5 py-3 rounded-full glass-modal text-white text-xs font-medium shadow-2xl animate-in fade-in slide-in-from-top-4 duration-200 flex items-center gap-2">
-          <span className="text-[#ff5c00] font-bold">✓</span>
+          <svg className="w-4 h-4 text-[#ff5c00]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <polyline points="20 6 9 17 4 12" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* Top Floating Navigation Header */}
       <div className="fixed top-0 left-0 right-0 z-40 px-4 sm:px-12 py-3.5 sm:py-5 glass-header flex items-center justify-between pointer-events-none">
-        <Tooltip content="Назад к каталогу (Esc)" position="bottom">
-          <button
-            onClick={onClose}
-            className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-full glass-pill text-zinc-100 hover:text-white transition-all text-xs font-medium group shadow-xl hover:scale-105 active:scale-95"
-          >
-            <svg className="w-4 h-4 fill-current group-hover:-translate-x-0.5 transition-transform" viewBox="0 0 24 24">
-              <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
-            </svg>
-            <span>Назад</span>
-          </button>
-        </Tooltip>
+        <button
+          onClick={onClose}
+          className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-full glass-pill text-zinc-100 hover:text-white transition-all text-xs font-medium group shadow-xl hover:scale-105 active:scale-95 cursor-pointer"
+          title="Назад к каталогу (Esc)"
+        >
+          <svg className="w-4 h-4 fill-current group-hover:-translate-x-0.5 transition-transform" viewBox="0 0 24 24">
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+          </svg>
+          <span>Назад</span>
+        </button>
 
         <img
           src="/logos/ofmediawhite_clean.png"
@@ -392,8 +392,10 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
                 <span>{ratingData.scoreFormatted}</span>
               </div>
             ) : (
-              <div className="flex items-center gap-1 px-3 py-1 rounded-lg glass-pill text-zinc-200 text-xs font-medium shadow">
-                <span>★</span>
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg glass-pill text-zinc-200 text-xs font-medium shadow">
+                <svg className="w-3.5 h-3.5 fill-amber-400" viewBox="0 0 24 24">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
                 <span>Оценить</span>
               </div>
             )}
@@ -433,75 +435,71 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
             </button>
 
             {/* Offline Download Button */}
-            <Tooltip content={isDownloaded ? 'Скачано (нажмите для удаления)' : isDownloading ? `Скачивание: ${downloadProgress}%` : 'Скачать фильм для оффлайн-просмотра'} position="top">
-              <button
-                onClick={handleToggleDownload}
-                disabled={isDownloading}
-                className={`p-3.5 rounded-full border transition-all duration-200 glass-pill hover:scale-105 active:scale-95 shadow-lg flex items-center justify-center ${
-                  isDownloaded
-                    ? 'bg-[#ff5c00]/25 border-[#ff5c00] text-[#ff5c00] shadow-[#ff5c00]/25'
-                    : isDownloading
-                    ? 'bg-white/10 border-white/20 text-white animate-pulse'
-                    : 'text-zinc-200 hover:text-white'
-                }`}
-              >
-                {isDownloading ? (
-                  <span className="text-[10px] font-bold font-mono">{downloadProgress}%</span>
-                ) : isDownloaded ? (
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-                  </svg>
-                ) : (
-                  <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                    <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z" />
-                  </svg>
-                )}
-              </button>
-            </Tooltip>
+            <button
+              onClick={handleToggleDownload}
+              disabled={isDownloading}
+              title={isDownloaded ? 'Скачано (нажмите для удаления)' : isDownloading ? `Скачивание: ${downloadProgress}%` : 'Скачать фильм для оффлайн-просмотра'}
+              className={`p-3.5 rounded-full border transition-all duration-200 glass-pill hover:scale-105 active:scale-95 shadow-lg flex items-center justify-center cursor-pointer ${
+                isDownloaded
+                  ? 'bg-[#ff5c00]/25 border-[#ff5c00] text-[#ff5c00] shadow-[#ff5c00]/25'
+                  : isDownloading
+                  ? 'bg-white/10 border-white/20 text-white animate-pulse'
+                  : 'text-zinc-200 hover:text-white'
+              }`}
+            >
+              {isDownloading ? (
+                <span className="text-[10px] font-bold font-mono">{downloadProgress}%</span>
+              ) : isDownloaded ? (
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z" />
+                </svg>
+              )}
+            </button>
 
             {/* Favorite Bookmark */}
-            <Tooltip content={isFavorite ? 'В избранном' : 'Добавить в избранное'} position="top">
-              <button
-                onClick={() => onToggleFavorite(project.id)}
-                className={`p-3.5 rounded-full border transition-all duration-200 glass-pill hover:scale-105 active:scale-95 shadow-lg ${
-                  isFavorite
-                    ? 'bg-[#ff5c00]/25 border-[#ff5c00] text-[#ff5c00] shadow-[#ff5c00]/25'
-                    : 'text-zinc-200 hover:text-white'
-                }`}
-              >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z" />
-                </svg>
-              </button>
-            </Tooltip>
+            <button
+              onClick={() => onToggleFavorite(project.id)}
+              title={isFavorite ? 'В избранном' : 'Добавить в избранное'}
+              className={`p-3.5 rounded-full border transition-all duration-200 glass-pill hover:scale-105 active:scale-95 shadow-lg cursor-pointer ${
+                isFavorite
+                  ? 'bg-[#ff5c00]/25 border-[#ff5c00] text-[#ff5c00] shadow-[#ff5c00]/25'
+                  : 'text-zinc-200 hover:text-white'
+              }`}
+            >
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z" />
+              </svg>
+            </button>
 
             {/* Watched Eye Icon */}
-            <Tooltip content={isWatched ? 'Просмотрено (отменить)' : 'Отметить как просмотренное'} position="top">
-              <button
-                onClick={handleToggleWatched}
-                className={`p-3.5 rounded-full border transition-all duration-200 glass-pill hover:scale-105 active:scale-95 shadow-lg ${
-                  isWatched
-                    ? 'bg-[#ff5c00]/25 border-[#ff5c00] text-[#ff5c00] shadow-[#ff5c00]/25'
-                    : 'text-zinc-200 hover:text-white'
-                }`}
-              >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
-                </svg>
-              </button>
-            </Tooltip>
+            <button
+              onClick={handleToggleWatched}
+              title={isWatched ? 'Просмотрено (отменить)' : 'Отметить как просмотренное'}
+              className={`p-3.5 rounded-full border transition-all duration-200 glass-pill hover:scale-105 active:scale-95 shadow-lg cursor-pointer ${
+                isWatched
+                  ? 'bg-[#ff5c00]/25 border-[#ff5c00] text-[#ff5c00] shadow-[#ff5c00]/25'
+                  : 'text-zinc-200 hover:text-white'
+              }`}
+            >
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+              </svg>
+            </button>
 
             {/* Share Button */}
-            <Tooltip content="Поделиться ссылкой" position="top">
-              <button
-                onClick={handleShare}
-                className="p-3.5 rounded-full glass-pill text-zinc-200 hover:text-white transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg"
-              >
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z" />
-                </svg>
-              </button>
-            </Tooltip>
+            <button
+              onClick={handleShare}
+              title="Поделиться ссылкой"
+              className="p-3.5 rounded-full glass-pill text-zinc-200 hover:text-white transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg cursor-pointer"
+            >
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -566,50 +564,63 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-          {project.cast.map((member, idx) => {
-            const initials = member.name
-              .split(' ')
-              .map((n) => n[0])
-              .join('')
-              .slice(0, 2);
+          {(() => {
+            const allMembers: CastMember[] = [...project.cast];
+            (project.directors || []).forEach((dirName) => {
+              if (!allMembers.some((m) => m.name.toLowerCase() === dirName.toLowerCase())) {
+                allMembers.unshift({
+                  name: dirName,
+                  role: 'Режиссёр',
+                  isCreator: true,
+                });
+              }
+            });
 
-            const actorEntity = getOrGenerateActor(member, PROJECTS_DATA);
+            return allMembers.map((member, idx) => {
+              const initials = member.name
+                .split(' ')
+                .map((n: string) => n[0])
+                .join('')
+                .slice(0, 2);
 
-            return (
-              <div
-                key={idx}
-                onClick={() => {
-                  onOpenActor(actorEntity);
-                }}
-                className="p-3.5 sm:p-4 rounded-2xl glass-card hover:bg-white/[0.08] hover:border-[#ff5c00]/50 transition-all flex flex-col items-center text-center space-y-2 sm:space-y-3 group shadow-lg cursor-pointer hover:-translate-y-1"
-                title={`Открыть фильмографию: ${member.name}`}
-              >
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-900 border border-white/20 overflow-hidden flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow-md group-hover:scale-108 group-hover:border-[#ff5c00] transition-all shrink-0">
-                  {member.avatar ? (
-                    <img
-                      src={member.avatar}
-                      alt={member.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLElement).style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    initials
-                  )}
-                </div>
+              const actorEntity = getOrGenerateActor(member, PROJECTS_DATA);
 
-                <div className="space-y-0.5 w-full">
-                  <div className="text-xs sm:text-sm font-medium text-white group-hover:text-[#ff5c00] transition-colors truncate">
-                    {member.name}
+              return (
+                <div
+                  key={idx}
+                  onClick={() => {
+                    onOpenActor(actorEntity);
+                  }}
+                  className="p-3.5 sm:p-4 rounded-2xl glass-card hover:bg-white/[0.08] hover:border-[#ff5c00]/50 transition-all flex flex-col items-center text-center space-y-2 sm:space-y-3 group shadow-lg cursor-pointer hover:-translate-y-1"
+                  title={`Открыть фильмографию: ${member.name}`}
+                >
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-zinc-700 via-zinc-800 to-zinc-900 border border-white/20 overflow-hidden flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow-md group-hover:scale-108 group-hover:border-[#ff5c00] transition-all shrink-0">
+                    {member.avatar ? (
+                      <img
+                        src={member.avatar}
+                        alt={member.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      initials
+                    )}
                   </div>
-                  <div className="text-[10px] sm:text-[11px] text-zinc-400 font-normal truncate">
-                    {member.role}
+
+                  <div className="space-y-0.5 w-full">
+                    <div className="text-xs sm:text-sm font-medium text-white group-hover:text-[#ff5c00] transition-colors truncate">
+                      {member.name}
+                    </div>
+                    <div className="text-[10px] sm:text-[11px] text-zinc-400 font-normal truncate">
+                      {member.role}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            });
+          })()}
         </div>
       </div>
 
@@ -638,11 +649,14 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
                 </span>
                 {ratingData.userRating && (
                   <span
-                    className={`text-xs px-2.5 py-0.5 rounded font-semibold shadow ${
+                    className={`inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded font-semibold shadow ${
                       getStarColorInfo(ratingData.userRating).bgClass
                     }`}
                   >
-                    ★ {ratingData.userRating}
+                    <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                    <span>{ratingData.userRating}</span>
                   </span>
                 )}
               </div>
@@ -695,7 +709,9 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
                   }`}
                   title={`Оценить на ${star} (${getStarColorInfo(star).label})`}
                 >
-                  <span className="text-xs sm:text-base">★</span>
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current mx-auto" viewBox="0 0 24 24">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                  </svg>
                   <span className="block text-[9px] sm:text-[10px] font-normal opacity-85 mt-0.5">{star}</span>
                 </button>
               );
@@ -713,8 +729,11 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
 
                 return (
                   <div key={star} className="flex items-center gap-2.5 text-[11px]">
-                    <span className="w-5 text-right font-semibold" style={{ color: starColor.colorHex }}>
-                      {star}★
+                    <span className="w-7 text-right font-semibold inline-flex items-center justify-end gap-0.5" style={{ color: starColor.colorHex }}>
+                      <span>{star}</span>
+                      <svg className="w-2.5 h-2.5 fill-current" viewBox="0 0 24 24">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      </svg>
                     </span>
                     <div className="flex-1 h-2 rounded-full bg-zinc-800/80 overflow-hidden relative border border-white/5">
                       <div
@@ -926,8 +945,11 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
                             : 'Нейтральная'}
                         </span>
                         {rev.ratingScore && (
-                          <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getStarColorInfo(rev.ratingScore).bgClass}`}>
-                            ★ {rev.ratingScore}
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold ${getStarColorInfo(rev.ratingScore).bgClass}`}>
+                            <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                            <span>{rev.ratingScore}</span>
                           </span>
                         )}
                       </div>
@@ -1058,10 +1080,12 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
 
                 <button
                   onClick={() => setIsTrailerOpen(false)}
-                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white flex items-center justify-center transition-colors text-sm"
+                  className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-zinc-300 hover:text-white flex items-center justify-center transition-colors text-sm cursor-pointer"
                   title="Закрыть (Esc)"
                 >
-                  ✕
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 </button>
               </div>
             </div>

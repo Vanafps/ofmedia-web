@@ -6,6 +6,7 @@ import { getUserRatings } from '../services/ratingService';
 import { getAllUserReviews, deleteMovieReview, type Review } from '../services/reviewService';
 import { PROJECTS_DATA, type Project } from '../data/projects';
 import { PlayIcon } from './PlayIcon';
+import { CinemaAvatarIcon } from './CinemaAvatarIcon';
 import { CustomSelect } from './ui/CustomSelect';
 import { getOfflineMovies, removeOfflineMovie, type OfflineMovie } from '../services/offlineStorageService';
 import { checkForAppUpdate, triggerApkDownload, CURRENT_APP_VERSION } from '../services/updateService';
@@ -181,17 +182,24 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
           {/* Avatar & Meta */}
           <div className="flex flex-col sm:flex-row items-center sm:items-center gap-5 text-center sm:text-left">
             {(() => {
+              if (user?.photoURL) {
+                return (
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName || ''}
+                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-white/20 shrink-0 shadow-lg"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                );
+              }
               const currentAvatarObj = CINEMA_AVATARS.find((a) => a.id === user?.avatarIcon);
               if (currentAvatarObj) {
                 return (
-                  <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-tr ${currentAvatarObj.bg} flex items-center justify-center text-4xl sm:text-5xl shadow-lg border border-white/20 shrink-0`}>
-                    {currentAvatarObj.emoji}
+                  <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-tr ${currentAvatarObj.bg} flex items-center justify-center text-white shadow-lg border border-white/20 shrink-0`}>
+                    <CinemaAvatarIcon id={currentAvatarObj.id} className="w-10 h-10 text-white" />
                   </div>
-                );
-              }
-              if (user?.photoURL) {
-                return (
-                  <img src={user.photoURL} alt={user.displayName || ''} className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-white/20 shrink-0 shadow-lg" />
                 );
               }
               return (
@@ -202,9 +210,16 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
             })()}
 
             <div className="space-y-1.5">
-              <h1 className="font-bold text-2xl sm:text-3xl text-white tracking-tight">
-                {currentDisplayName}
-              </h1>
+              <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                <h1 className="font-bold text-2xl sm:text-3xl text-white tracking-tight">
+                  {currentDisplayName}
+                </h1>
+                {user?.username && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#ff5c00]/15 border border-[#ff5c00]/30 text-[#ff5c00] text-xs font-semibold">
+                    {user.username}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-zinc-400 font-normal">
                 {user?.email || 'Локальный профиль зрителя'}
               </p>
@@ -255,8 +270,8 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
                           : 'border-white/10 bg-white/5 hover:border-white/25 hover:bg-white/10'
                       }`}
                     >
-                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${av.bg} flex items-center justify-center text-xl shadow-inner mb-1`}>
-                        {av.emoji}
+                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${av.bg} flex items-center justify-center text-white shadow-inner mb-1`}>
+                        <CinemaAvatarIcon id={av.id} className="w-5 h-5 text-white" />
                       </div>
                       <span className="text-[10px] text-zinc-300 font-medium truncate max-w-full">{av.label}</span>
                     </button>
@@ -353,8 +368,11 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
                     <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
                   </svg>
                 </div>
-                <div className="font-bold text-2xl sm:text-3xl text-white">
-                  ★ {avgRating}
+                <div className="font-bold text-2xl sm:text-3xl text-white flex items-center gap-1.5">
+                  <svg className="w-5 h-5 fill-amber-400 shrink-0" viewBox="0 0 24 24">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                  </svg>
+                  <span>{avgRating}</span>
                 </div>
                 <div className="text-[11px] text-zinc-400 font-normal">
                   {ratedEntries.length} {ratedEntries.length === 1 ? 'оценка' : 'оценок'}
@@ -541,7 +559,9 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
                           className="w-8 h-8 rounded-full glass-pill text-zinc-400 hover:text-red-400 flex items-center justify-center transition-colors text-xs"
                           title="Удалить из истории"
                         >
-                          ✕
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
                         </button>
                       </div>
                     </div>
@@ -594,8 +614,11 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
                         </div>
                       </div>
 
-                      <div className="px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold text-sm shrink-0 shadow">
-                        ★ {score}
+                      <div className="px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold text-sm shrink-0 shadow flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 fill-emerald-400" viewBox="0 0 24 24">
+                          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                        <span>{score}</span>
                       </div>
                     </div>
                   );
@@ -649,7 +672,12 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
                               : 'Нейтральная'}
                           </span>
                           {rev.ratingScore && (
-                            <span className="text-xs font-bold text-emerald-400">★ {rev.ratingScore}</span>
+                            <span className="text-xs font-bold text-emerald-400 inline-flex items-center gap-1">
+                              <svg className="w-3 h-3 fill-emerald-400" viewBox="0 0 24 24">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                              </svg>
+                              <span>{rev.ratingScore}</span>
+                            </span>
                           )}
                         </div>
 
@@ -734,10 +762,12 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
                       </button>
                       <button
                         onClick={() => removeOfflineMovie(movie.id)}
-                        className="py-2 px-3 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-300 text-xs font-medium transition-colors"
+                        className="py-2 px-3 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-300 text-xs font-medium transition-colors flex items-center justify-center"
                         title="Удалить из памяти"
                       >
-                        🗑️
+                        <svg className="w-3.5 h-3.5 fill-none stroke-current" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
                       </button>
                     </div>
                   </div>
@@ -745,7 +775,11 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
               </div>
             ) : (
               <div className="p-12 text-center glass-card rounded-3xl space-y-3">
-                <div className="text-3xl">📥</div>
+                <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-zinc-400">
+                  <svg className="w-6 h-6 fill-none stroke-current" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </div>
                 <div className="text-sm font-medium text-white">Нет загруженных фильмов</div>
                 <p className="text-xs text-zinc-400 font-normal max-w-sm mx-auto">
                   Нажмите кнопку «Скачать оффлайн» на странице любого фильма, чтобы смотреть его в дороге без доступа к сети.
