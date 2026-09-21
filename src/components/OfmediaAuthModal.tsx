@@ -57,6 +57,16 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isOpen && e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const handleGuestLogin = async () => {
     try {
       setLoading(true);

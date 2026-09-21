@@ -31,29 +31,12 @@ import { useBodyScrollLock } from './hooks/useBodyScrollLock';
 import { checkForAppUpdate, triggerApkDownload, type AppVersionInfo } from './services/updateService';
 
 export function App() {
-  const currentPath = typeof window !== 'undefined' ? window.location.pathname.toLowerCase() : '';
-  const currentSearch = typeof window !== 'undefined' ? window.location.search : '';
-
-  const isApkDownloadRoute = typeof window !== 'undefined' && (
-    currentPath.startsWith('/app/apk') ||
-    currentPath === '/apk' ||
-    currentPath.startsWith('/apk/') ||
-    currentSearch.includes('download=apk') ||
-    currentPath.endsWith('/app/apk')
+  const [currentPath, setCurrentPath] = useState(() =>
+    typeof window !== 'undefined' ? window.location.pathname.toLowerCase() : ''
   );
-
-  const isAppLandingRoute = typeof window !== 'undefined' && (
-    currentPath === '/app' ||
-    currentPath === '/app/'
+  const [currentSearch, setCurrentSearch] = useState(() =>
+    typeof window !== 'undefined' ? window.location.search : ''
   );
-
-  if (isApkDownloadRoute) {
-    return <DownloadApkPage />;
-  }
-
-  if (isAppLandingRoute) {
-    return <AppLandingPage />;
-  }
 
   const [activeTab, setActiveTab] = useState<'main' | 'search' | 'favorites'>('main');
   const [favoritesSubTab, setFavoritesSubTab] = useState<'favorites' | 'ratings'>('favorites');
@@ -215,8 +198,128 @@ export function App() {
     };
   }, []);
 
+  const toggleFavorite = (projectId: string) => {
+    setFavorites((prev) =>
+      prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId]
+    );
+  };
+
+  const handleSelectTab = (tab: 'main' | 'search' | 'favorites') => {
+    setActiveTab(tab);
+    if (isDetailModalOpen) setIsDetailModalOpen(false);
+    if (isPlayerOpen) setIsPlayerOpen(false);
+    if (isActorModalOpen) setIsActorModalOpen(false);
+    window.history.pushState(null, '', tab === 'favorites' ? '/my' : tab === 'search' ? '/search' : '/');
+  };
+
+  const handlePlayProject = (project: Project, episode?: Episode) => {
+    setSelectedProject(project);
+    setSelectedEpisode(episode || project.episodes?.[0]);
+    setIsPlayerOpen(true);
+    setIsDetailModalOpen(false);
+    setIsActorModalOpen(false);
+    window.history.pushState({ type: 'player', slug: project.slug }, '', `/${project.slug || project.id}/player`);
+  };
+
+  const handleOpenDetails = (project: Project) => {
+    setSelectedProject(project);
+    setIsDetailModalOpen(true);
+    setIsPlayerOpen(false);
+    setIsActorModalOpen(false);
+    window.history.pushState({ type: 'film', slug: project.slug }, '', `/${project.slug || project.id}`);
+  };
+
+  const handleCloseDetails = () => {
+    setIsDetailModalOpen(false);
+    setSelectedProject(null);
+    window.history.pushState(null, '', activeTab === 'favorites' ? '/my' : '/');
+  };
+
+  const handleSelectGenre = (genre: string) => {
+    setIsDetailModalOpen(false);
+    setSelectedProject(null);
+    setActiveTab('main');
+    window.history.pushState(null, '', '/');
+    const gLower = genre.toLowerCase();
+    if (gLower.includes('ком')) {
+      setSelectedCategory('comedy');
+    } else if (gLower.includes('муз') || gLower.includes('клип') || gLower.includes('концерт')) {
+      setSelectedCategory('music');
+    } else if (gLower.includes('шоу') || gLower.includes('постан') || gLower.includes('скетч')) {
+      setSelectedCategory('shows');
+    } else if (gLower.includes('приключ') || gLower.includes('влог') || gLower.includes('экскурс')) {
+      setSelectedCategory('adventure');
+    } else if (gLower.includes('нов')) {
+      setSelectedCategory('new');
+    } else {
+      setSelectedCategory('none');
+    }
+  };
+
+  const handleClosePlayer = () => {
+    setIsPlayerOpen(false);
+    if (selectedProject) {
+      setIsDetailModalOpen(true);
+      window.history.pushState({ type: 'film', slug: selectedProject.slug }, '', `/${selectedProject.slug || selectedProject.id}`);
+    } else {
+      window.history.pushState(null, '', activeTab === 'favorites' ? '/my' : '/');
+    }
+  };
+
+  const handleOpenActor = (actor: Actor) => {
+    setSelectedActor(actor);
+    setIsActorModalOpen(true);
+    setIsDetailModalOpen(false);
+    setIsPlayerOpen(false);
+    window.history.pushState({ type: 'actor', slug: actor.slug }, '', `/actor/${actor.slug || actor.id}`);
+  };
+
+  const handleCloseActor = () => {
+    setIsActorModalOpen(false);
+    setSelectedActor(null);
+    window.history.pushState(null, '', activeTab === 'favorites' ? '/my' : '/');
+  };
+
+  const handleSelectNextEpisode = () => {
+    if (!selectedProject || !selectedProject.episodes || selectedProject.episodes.length <= 1) return;
+    const currentIdx = selectedProject.episodes.findIndex(
+      (ep) => ep.id === selectedEpisode?.id
+    );
+    if (currentIdx !== -1 && currentIdx + 1 < selectedProject.episodes.length) {
+      setSelectedEpisode(selectedProject.episodes[currentIdx + 1]);
+    }
+  };
+
+  const filterProjectsByCategory = (cat: GenreCategoryId): Project[] => {
+    switch (cat) {
+      case 'new':
+        return PROJECTS_DATA.filter((p) => p.year === 2026);
+      case 'comedy':
+        return PROJECTS_DATA.filter((p) => p.genres.includes('Комедия'));
+      case 'music':
+        return PROJECTS_DATA.filter((p) =>
+          p.genres.includes('Музыкальное') || p.genres.includes('Клип') || p.genres.includes('Концерт')
+        );
+      case 'shows':
+        return PROJECTS_DATA.filter((p) =>
+          p.genres.includes('Постановка') || p.genres.includes('Шоу') || p.genres.includes('Скетч')
+        );
+      case 'adventure':
+        return PROJECTS_DATA.filter((p) =>
+          p.genres.includes('Приключения') || p.genres.includes('Влог') || p.genres.includes('Экскурсия')
+        );
+      case 'none':
+      default:
+        return PROJECTS_DATA;
+    }
+  };
+
   // URL Router: Sync route from location (handles direct links, page refresh, and back/forward browser history)
   const syncRouteFromLocation = () => {
+    if (typeof window === 'undefined') return;
+    setCurrentPath(window.location.pathname.toLowerCase());
+    setCurrentSearch(window.location.search);
+
     const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
     const params = new URLSearchParams(window.location.search);
 
@@ -350,123 +453,18 @@ export function App() {
     return () => {
       if (removeListener) removeListener();
     };
-  }, [isPlayerOpen, isDetailModalOpen, isActorModalOpen, isProfileModalOpen, isAuthModalOpen, activeTab]);
+  }, [
+    isPlayerOpen,
+    isDetailModalOpen,
+    isActorModalOpen,
+    isProfileModalOpen,
+    isAuthModalOpen,
+    activeTab,
+    handleClosePlayer,
+    handleCloseDetails,
+    handleCloseActor,
+  ]);
 
-  const toggleFavorite = (projectId: string) => {
-    setFavorites((prev) =>
-      prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId]
-    );
-  };
-
-  const handleSelectTab = (tab: 'main' | 'search' | 'favorites') => {
-    setActiveTab(tab);
-    if (isDetailModalOpen) setIsDetailModalOpen(false);
-    if (isPlayerOpen) setIsPlayerOpen(false);
-    if (isActorModalOpen) setIsActorModalOpen(false);
-    window.history.pushState(null, '', tab === 'favorites' ? '/my' : tab === 'search' ? '/search' : '/');
-  };
-
-  const handlePlayProject = (project: Project, episode?: Episode) => {
-    setSelectedProject(project);
-    setSelectedEpisode(episode || project.episodes?.[0]);
-    setIsPlayerOpen(true);
-    setIsDetailModalOpen(false);
-    setIsActorModalOpen(false);
-    window.history.pushState({ type: 'player', slug: project.slug }, '', `/${project.slug || project.id}/player`);
-  };
-
-  const handleOpenDetails = (project: Project) => {
-    setSelectedProject(project);
-    setIsDetailModalOpen(true);
-    setIsPlayerOpen(false);
-    setIsActorModalOpen(false);
-    window.history.pushState({ type: 'film', slug: project.slug }, '', `/${project.slug || project.id}`);
-  };
-
-  const handleCloseDetails = () => {
-    setIsDetailModalOpen(false);
-    setSelectedProject(null);
-    window.history.pushState(null, '', activeTab === 'favorites' ? '/my' : '/');
-  };
-
-  const handleSelectGenre = (genre: string) => {
-    setIsDetailModalOpen(false);
-    setSelectedProject(null);
-    setActiveTab('main');
-    window.history.pushState(null, '', '/');
-    const gLower = genre.toLowerCase();
-    if (gLower.includes('ком')) {
-      setSelectedCategory('comedy');
-    } else if (gLower.includes('муз') || gLower.includes('клип') || gLower.includes('концерт')) {
-      setSelectedCategory('music');
-    } else if (gLower.includes('шоу') || gLower.includes('постан') || gLower.includes('скетч')) {
-      setSelectedCategory('shows');
-    } else if (gLower.includes('приключ') || gLower.includes('влог') || gLower.includes('экскурс')) {
-      setSelectedCategory('adventure');
-    } else if (gLower.includes('нов')) {
-      setSelectedCategory('new');
-    } else {
-      setSelectedCategory('none');
-    }
-  };
-
-  const handleClosePlayer = () => {
-    setIsPlayerOpen(false);
-    if (selectedProject) {
-      setIsDetailModalOpen(true);
-      window.history.pushState({ type: 'film', slug: selectedProject.slug }, '', `/${selectedProject.slug || selectedProject.id}`);
-    } else {
-      window.history.pushState(null, '', activeTab === 'favorites' ? '/my' : '/');
-    }
-  };
-
-  const handleOpenActor = (actor: Actor) => {
-    setSelectedActor(actor);
-    setIsActorModalOpen(true);
-    setIsDetailModalOpen(false);
-    setIsPlayerOpen(false);
-    window.history.pushState({ type: 'actor', slug: actor.slug }, '', `/actor/${actor.slug || actor.id}`);
-  };
-
-  const handleCloseActor = () => {
-    setIsActorModalOpen(false);
-    setSelectedActor(null);
-    window.history.pushState(null, '', activeTab === 'favorites' ? '/my' : '/');
-  };
-
-  const handleSelectNextEpisode = () => {
-    if (!selectedProject || !selectedProject.episodes || selectedProject.episodes.length <= 1) return;
-    const currentIdx = selectedProject.episodes.findIndex(
-      (ep) => ep.id === selectedEpisode?.id
-    );
-    if (currentIdx !== -1 && currentIdx + 1 < selectedProject.episodes.length) {
-      setSelectedEpisode(selectedProject.episodes[currentIdx + 1]);
-    }
-  };
-
-  const filterProjectsByCategory = (cat: GenreCategoryId): Project[] => {
-    switch (cat) {
-      case 'new':
-        return PROJECTS_DATA.filter((p) => p.year === 2026);
-      case 'comedy':
-        return PROJECTS_DATA.filter((p) => p.genres.includes('Комедия'));
-      case 'music':
-        return PROJECTS_DATA.filter((p) =>
-          p.genres.includes('Музыкальное') || p.genres.includes('Клип') || p.genres.includes('Концерт')
-        );
-      case 'shows':
-        return PROJECTS_DATA.filter((p) =>
-          p.genres.includes('Постановка') || p.genres.includes('Шоу') || p.genres.includes('Скетч')
-        );
-      case 'adventure':
-        return PROJECTS_DATA.filter((p) =>
-          p.genres.includes('Приключения') || p.genres.includes('Влог') || p.genres.includes('Экскурсия')
-        );
-      case 'none':
-      default:
-        return PROJECTS_DATA;
-    }
-  };
 
   const sortProjects = (list: Project[]): Project[] => {
     return [...list].sort((a, b) => {
@@ -500,6 +498,25 @@ export function App() {
     shows: showProjects.length,
     adventure: adventureProjects.length,
   };
+
+  const isApkDownloadRoute =
+    currentPath.startsWith('/app/apk') ||
+    currentPath === '/apk' ||
+    currentPath.startsWith('/apk/') ||
+    currentSearch.includes('download=apk') ||
+    currentPath.endsWith('/app/apk');
+
+  const isAppLandingRoute =
+    currentPath === '/app' ||
+    currentPath === '/app/';
+
+  if (isApkDownloadRoute) {
+    return <DownloadApkPage />;
+  }
+
+  if (isAppLandingRoute) {
+    return <AppLandingPage />;
+  }
 
   return (
     <div className="min-h-screen bg-[#070709] text-zinc-100 flex flex-col selection:bg-[#ff5c00] selection:text-white pb-16 sm:pb-0">

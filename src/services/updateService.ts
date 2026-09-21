@@ -1,4 +1,4 @@
-import { isNativeAndroid } from './vkIdService';
+import { isMobileApp } from './platform';
 
 export interface AppVersionInfo {
   versionCode: number;
@@ -19,7 +19,7 @@ export const checkForAppUpdate = async (): Promise<{
 }> => {
   // CRITICAL: NEVER check for updates or show update prompts on website!
   // Only check inside the native Android Capacitor application shell.
-  if (typeof window === 'undefined' || !isNativeAndroid()) {
+  if (typeof window === 'undefined' || !isMobileApp()) {
     return { updateAvailable: false };
   }
 

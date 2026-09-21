@@ -33,18 +33,6 @@ export const OfmediaActorModal: React.FC<OfmediaActorModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      window.scrollTo(0, 0);
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, [isOpen]);
-
   if (!isOpen || !actor) return null;
 
   return (

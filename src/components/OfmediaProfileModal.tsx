@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { UserProfile } from '../services/firebase';
 import { updateLocalUserProfile, CINEMA_AVATARS } from '../services/firebase';
@@ -44,7 +44,7 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
   const [prefQuality, setPrefQuality] = useState(() => localStorage.getItem('ofmedia_pref_quality') || '1080p');
   const [autoNext, setAutoNext] = useState(() => localStorage.getItem('ofmedia_pref_autonext') !== 'false');
 
-  const refreshData = () => {
+  const refreshData = useCallback(() => {
     try {
       const watchedRaw = localStorage.getItem('ofmedia_watched') || '[]';
       const watchedIds: string[] = JSON.parse(watchedRaw);
@@ -63,22 +63,16 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
     setUserRatings(getUserRatings());
     setUserReviews(getAllUserReviews(user?.uid));
     setOfflineMovies(getOfflineMovies());
-  };
+  }, [user?.uid]);
 
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
       const currentName = user?.displayName || user?.email?.split('@')[0] || 'Пользователь';
       setDisplayName(currentName);
       setSelectedAvatar(user?.avatarIcon || 'popcorn');
       refreshData();
-    } else {
-      document.body.style.overflow = 'auto';
     }
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, [isOpen, user]);
+  }, [isOpen, user, refreshData]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

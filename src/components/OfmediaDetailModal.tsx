@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Hls from 'hls.js';
 import type { Project, Episode, CastMember } from '../data/projects';
 import { PROJECTS_DATA } from '../data/projects';
@@ -24,7 +24,7 @@ import {
 import { PlayIcon } from './PlayIcon';
 import { OfmediaMovieCard } from './OfmediaMovieCard';
 import { downloadMovieForOffline, isMovieOffline, removeOfflineMovie } from '../services/offlineStorageService';
-import { isNativeAndroid } from '../services/vkIdService';
+import { isMobileApp } from '../services/platform';
 
 interface OfmediaDetailModalProps {
   project: Project | null;
@@ -166,12 +166,12 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
     setTimeout(() => setToastMessage(null), 2500);
   };
 
-  const refreshAll = () => {
+  const refreshAll = useCallback(() => {
     if (project) {
       setRatingData(getMovieRating(project.id));
       setReviewsData(getMovieReviews(project.id));
     }
-  };
+  }, [project]);
 
   useEffect(() => {
     if (project) {
@@ -183,7 +183,7 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
         setIsWatched(false);
       }
     }
-  }, [project]);
+  }, [project, refreshAll]);
 
   useEffect(() => {
     window.addEventListener('ofmedia_ratings_updated', refreshAll);
@@ -192,19 +192,7 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
       window.removeEventListener('ofmedia_ratings_updated', refreshAll);
       window.removeEventListener('ofmedia_reviews_updated', refreshAll);
     };
-  }, [project]);
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      window.scrollTo(0, 0);
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, [isOpen]);
+  }, [refreshAll]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -436,7 +424,7 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
             </button>
 
             {/* Offline Download Button (Native Android App Only) */}
-            {isNativeAndroid() && (
+            {isMobileApp() && (
               <button
                 onClick={handleToggleDownload}
                 disabled={isDownloading}

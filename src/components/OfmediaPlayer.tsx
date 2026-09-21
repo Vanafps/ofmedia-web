@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Hls from 'hls.js';
 import type { Project, Episode } from '../data/projects';
 import { saveWatchProgress, getWatchProgress } from '../services/watchHistoryService';
-import { isNativeAndroid } from '../services/vkIdService';
+import { isMobileApp } from '../services/platform';
 import { SpeakerVolumeIcon } from './SpeakerVolumeIcon';
 
 interface OfmediaPlayerProps {
@@ -442,6 +442,284 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     };
   }, [isOpen]);
 
+  const togglePlay = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setIsPlaying(true);
+            setFlashFeedback({ type: 'play', id: Date.now() });
+          })
+          .catch((err) => {
+            console.warn('Video play was prevented:', err);
+          });
+      }
+    } else {
+      video.pause();
+      setIsPlaying(false);
+      setFlashFeedback({ type: 'pause', id: Date.now() });
+    }
+  };
+
+  const skip = (seconds: number) => {
+    if (!videoRef.current) return;
+    videoRef.current.currentTime = Math.max(
+      0,
+      Math.min(effectiveDuration || 0, videoRef.current.currentTime + seconds)
+    );
+    setCurrentTime(videoRef.current.currentTime);
+  };
+
+  // Ultra-Smooth Drag & Click Seeking
+  const handleSeekStart = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!videoRef.current || !effectiveDuration) return;
+    isDraggingScrubberRef.current = true;
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTrackWidth(rect.width);
+    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const targetTime = pos * effectiveDuration;
+    videoRef.current.currentTime = targetTime;
+    setCurrentTime(targetTime);
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      if (!videoRef.current || !effectiveDuration || !scrubberTrackRef.current) return;
+      const trackRect = scrubberTrackRef.current.getBoundingClientRect();
+      const movePos = Math.max(0, Math.min(1, (moveEvent.clientX - trackRect.left) / trackRect.width));
+      const newTime = movePos * effectiveDuration;
+      videoRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+      setHoverPos(moveEvent.clientX - trackRect.left);
+      setHoverTime(newTime);
+    };
+
+    const onMouseUp = () => {
+      isDraggingScrubberRef.current = false;
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
+  const handleSeekHover = (e: React.MouseEvent<HTMLDivElement>) => {
+    const totalDuration = duration > 0 ? duration : fallbackDuration;
+    if (!totalDuration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTrackWidth(rect.width);
+    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const targetTime = pos * totalDuration;
+    setHoverPos(e.clientX - rect.left);
+    setHoverTime(targetTime);
+  };
+
+  const togglePictureInPicture = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        setIsPipActive(false);
+      } else if (video.requestPictureInPicture) {
+        await video.requestPictureInPicture();
+        setIsPipActive(true);
+      } else if ((video as any).webkitSetPresentationMode) {
+        const currentMode = (video as any).webkitPresentationMode;
+        (video as any).webkitSetPresentationMode(currentMode === 'picture-in-picture' ? 'inline' : 'picture-in-picture');
+        setIsPipActive(currentMode !== 'picture-in-picture');
+      }
+    } catch (err) {
+      console.warn('Picture in picture error:', err);
+    }
+  };
+
+  const toggleFullscreen = async () => {
+    const container = containerRef.current;
+    const video = videoRef.current;
+    if (!container) return;
+
+    const isCurrentlyFs = Boolean(
+      document.fullscreenElement ||
+      (document as any).webkitFullscreenElement ||
+      (document as any).mozFullScreenElement
+    );
+
+    try {
+      if (!isCurrentlyFs) {
+        if (container.requestFullscreen) {
+          await container.requestFullscreen();
+        } else if ((container as any).webkitRequestFullscreen) {
+          await (container as any).webkitRequestFullscreen();
+        } else if (video && (video as any).webkitEnterFullscreen) {
+          (video as any).webkitEnterFullscreen();
+        }
+
+        if (isMobileApp()) {
+          try {
+            const { StatusBar } = await import('@capacitor/status-bar');
+            await StatusBar.hide();
+          } catch {}
+          try {
+            (window.screen?.orientation as any)?.lock?.('landscape').catch(() => {});
+          } catch {}
+        }
+        setIsFullscreen(true);
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          await (document as any).webkitExitFullscreen();
+        }
+
+        if (isMobileApp()) {
+          try {
+            const { StatusBar } = await import('@capacitor/status-bar');
+            await StatusBar.show();
+          } catch {}
+          try {
+            (window.screen?.orientation as any)?.unlock?.();
+          } catch {}
+        }
+        setIsFullscreen(false);
+      }
+    } catch (e) {
+      console.warn('Fullscreen toggle error:', e);
+      setIsFullscreen((prev) => !prev);
+    }
+  };
+
+  const handleContainerTap = (e: React.MouseEvent | React.TouchEvent) => {
+    const container = containerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const clientX = 'touches' in e
+      ? ((e as React.TouchEvent).touches[0] || (e as any).changedTouches?.[0])?.clientX
+      : (e as React.MouseEvent).clientX;
+    if (clientX === undefined) return;
+
+    const side = clientX < rect.left + rect.width / 2 ? 'left' : 'right';
+    const now = Date.now();
+
+    if (now - lastTapRef.current.time < 350 && lastTapRef.current.side === side) {
+      // Double Tap detected!
+      if (singleTapTimerRef.current) {
+        clearTimeout(singleTapTimerRef.current);
+        singleTapTimerRef.current = null;
+      }
+      if (doubleTapTimerRef.current) clearTimeout(doubleTapTimerRef.current);
+
+      if (side === 'left') {
+        skip(-10);
+      } else {
+        skip(10);
+      }
+
+      setDoubleTapFeedback((prev) => ({
+        side,
+        count: prev && prev.side === side ? prev.count + 10 : 10,
+      }));
+
+      doubleTapTimerRef.current = setTimeout(() => {
+        setDoubleTapFeedback(null);
+      }, 700);
+
+      lastTapRef.current = { time: 0, x: clientX, side };
+    } else {
+      lastTapRef.current = { time: now, x: clientX, side };
+      // Single tap: toggle controls visibility after delay if not followed by second tap
+      if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
+      singleTapTimerRef.current = setTimeout(() => {
+        setShowControls((prev) => !prev);
+      }, 250);
+    }
+  };
+
+  const handleSpeedChange = (newSpeed: number) => {
+    setSpeed(newSpeed);
+    if (videoRef.current) videoRef.current.playbackRate = newSpeed;
+  };
+
+  const handleQualityChange = (newQuality: VideoQuality) => {
+    setQuality(newQuality);
+    const label = QUALITY_STEPS.find((q) => q.id === newQuality)?.label || newQuality;
+    setQualityToast(`Качество: ${label}`);
+    setTimeout(() => {
+      setQualityToast(null);
+    }, 1800);
+
+    const hls = hlsRef.current;
+    if (hls && hls.levels && hls.levels.length > 0) {
+      if (newQuality === 'auto') {
+        // Seamless ABR auto-selection without buffer flush or player stall
+        hls.nextLevel = -1;
+      } else {
+        const targetHeight = parseInt(newQuality, 10);
+        let chosenIdx = -1;
+
+        // Try exact match first
+        hls.levels.forEach((l, idx) => {
+          if (l.height === targetHeight) {
+            chosenIdx = idx;
+          }
+        });
+
+        // Fallback to closest match
+        if (chosenIdx === -1) {
+          let minDiff = Infinity;
+          hls.levels.forEach((l, idx) => {
+            const diff = Math.abs(l.height - targetHeight);
+            if (diff < minDiff) {
+              minDiff = diff;
+              chosenIdx = idx;
+            }
+          });
+        }
+
+        if (chosenIdx !== -1) {
+          // nextLevel loads the next fragment at the target resolution without evicting current buffer
+          hls.nextLevel = chosenIdx;
+        }
+      }
+    }
+
+    // Proactively prevent video freeze on level change
+    if (videoRef.current && !videoRef.current.paused) {
+      videoRef.current.play().catch(() => {});
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    if (isNaN(seconds)) return '00:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  const progressPercent = effectiveDuration > 0 ? (currentTime / effectiveDuration) * 100 : 0;
+  const hoverPercent = effectiveDuration > 0 && hoverTime !== null ? (hoverTime / effectiveDuration) * 100 : null;
+
+  const getQualityBadge = (h: number): string => {
+    if (h >= 1080) return 'FHD';
+    if (h >= 720) return 'HD';
+    if (h >= 480) return 'SD';
+    if (h >= 360) return 'LQ';
+    return 'LD';
+  };
+
+  const currentQualityLabel =
+    quality === 'auto'
+      ? currentAutoHeight
+        ? `Авто (${getQualityBadge(currentAutoHeight)})`
+        : 'Авто'
+      : QUALITY_STEPS.find((q) => q.id === quality)?.label || 'FHD';
+
+  // Glassmorphism button base class
+  const glassBtnClass =
+    'backdrop-blur-xl bg-white/10 hover:bg-white/20 border border-white/10 hover:border-white/25 text-zinc-100 hover:text-white transition-all duration-200 ease-out hover:scale-105 active:scale-95 shadow-lg shadow-black/20';
+
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -621,8 +899,6 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     const video = videoRef.current;
     if (!video) return;
 
-    video.volume = isMuted ? 0 : volume;
-
     const onLoadedMetadata = () => {
       if (video.duration && isFinite(video.duration) && video.duration > 0) {
         setDuration(video.duration);
@@ -691,89 +967,14 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     };
   }, [currentEpisode.id, currentEpisode.videoUrl, project.id, effectiveDuration]);
 
-  if (!isOpen) return null;
-
-  const togglePlay = () => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (video.paused) {
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setIsPlaying(true);
-            setFlashFeedback({ type: 'play', id: Date.now() });
-          })
-          .catch((err) => {
-            console.warn('Video play was prevented:', err);
-          });
-      }
-    } else {
-      video.pause();
-      setIsPlaying(false);
-      setFlashFeedback({ type: 'pause', id: Date.now() });
-    }
-  };
-
-  const skip = (seconds: number) => {
-    if (!videoRef.current) return;
-    videoRef.current.currentTime = Math.max(
-      0,
-      Math.min(effectiveDuration || 0, videoRef.current.currentTime + seconds)
-    );
-    setCurrentTime(videoRef.current.currentTime);
-  };
-
-  // Ultra-Smooth Drag & Click Seeking
-  const handleSeekStart = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!videoRef.current || !effectiveDuration) return;
-    isDraggingScrubberRef.current = true;
-    const rect = e.currentTarget.getBoundingClientRect();
-    setTrackWidth(rect.width);
-    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const targetTime = pos * effectiveDuration;
-    videoRef.current.currentTime = targetTime;
-    setCurrentTime(targetTime);
-
-    const onMouseMove = (moveEvent: MouseEvent) => {
-      if (!videoRef.current || !effectiveDuration || !scrubberTrackRef.current) return;
-      const trackRect = scrubberTrackRef.current.getBoundingClientRect();
-      const movePos = Math.max(0, Math.min(1, (moveEvent.clientX - trackRect.left) / trackRect.width));
-      const newTime = movePos * effectiveDuration;
-      videoRef.current.currentTime = newTime;
-      setCurrentTime(newTime);
-      setHoverPos(moveEvent.clientX - trackRect.left);
-      setHoverTime(newTime);
-    };
-
-    const onMouseUp = () => {
-      isDraggingScrubberRef.current = false;
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-    };
-
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-  };
-
-  const handleSeekHover = (e: React.MouseEvent<HTMLDivElement>) => {
-    const totalDuration = duration > 0 ? duration : fallbackDuration;
-    if (!totalDuration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    setTrackWidth(rect.width);
-    const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const targetTime = pos * totalDuration;
-    setHoverPos(e.clientX - rect.left);
-    setHoverTime(targetTime);
-  };
-
+  // Fullscreen and Picture-in-Picture event listeners
   useEffect(() => {
     if (typeof document !== 'undefined') {
       const hasDocPip = 'pictureInPictureEnabled' in document && Boolean((document as any).pictureInPictureEnabled);
       const video = videoRef.current;
       const hasVideoPip = video && typeof (video as any).requestPictureInPicture === 'function';
       const hasWebkitPip = video && typeof (video as any).webkitSupportsPresentationMode === 'function';
-      setIsPipSupported(Boolean(hasDocPip || hasVideoPip || hasWebkitPip || isNativeAndroid()));
+      setIsPipSupported(Boolean(hasDocPip || hasVideoPip || hasWebkitPip || isMobileApp()));
     }
 
     const handleFullscreenChange = () => {
@@ -793,209 +994,14 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     };
   }, []);
 
-  const togglePictureInPicture = async () => {
-    const video = videoRef.current;
-    if (!video) return;
-    try {
-      if (document.pictureInPictureElement) {
-        await document.exitPictureInPicture();
-        setIsPipActive(false);
-      } else if (video.requestPictureInPicture) {
-        await video.requestPictureInPicture();
-        setIsPipActive(true);
-      } else if ((video as any).webkitSetPresentationMode) {
-        const currentMode = (video as any).webkitPresentationMode;
-        (video as any).webkitSetPresentationMode(currentMode === 'picture-in-picture' ? 'inline' : 'picture-in-picture');
-        setIsPipActive(currentMode !== 'picture-in-picture');
-      }
-    } catch (err) {
-      console.warn('Picture in picture error:', err);
+  // Keep playback rate synced across episode changes and video reloads
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = speed;
     }
-  };
+  }, [speed, currentEpisode.id, currentEpisode.videoUrl]);
 
-  const toggleFullscreen = async () => {
-    const container = containerRef.current;
-    const video = videoRef.current;
-    if (!container) return;
-
-    const isCurrentlyFs = Boolean(
-      document.fullscreenElement ||
-      (document as any).webkitFullscreenElement ||
-      (document as any).mozFullScreenElement
-    );
-
-    try {
-      if (!isCurrentlyFs) {
-        if (container.requestFullscreen) {
-          await container.requestFullscreen();
-        } else if ((container as any).webkitRequestFullscreen) {
-          await (container as any).webkitRequestFullscreen();
-        } else if (video && (video as any).webkitEnterFullscreen) {
-          (video as any).webkitEnterFullscreen();
-        }
-
-        if (isNativeAndroid()) {
-          try {
-            const { StatusBar } = await import('@capacitor/status-bar');
-            await StatusBar.hide();
-          } catch {}
-          try {
-            (window.screen?.orientation as any)?.lock?.('landscape').catch(() => {});
-          } catch {}
-        }
-        setIsFullscreen(true);
-      } else {
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        } else if ((document as any).webkitExitFullscreen) {
-          await (document as any).webkitExitFullscreen();
-        }
-
-        if (isNativeAndroid()) {
-          try {
-            const { StatusBar } = await import('@capacitor/status-bar');
-            await StatusBar.show();
-          } catch {}
-          try {
-            (window.screen?.orientation as any)?.unlock?.();
-          } catch {}
-        }
-        setIsFullscreen(false);
-      }
-    } catch (e) {
-      console.warn('Fullscreen toggle error:', e);
-      setIsFullscreen((prev) => !prev);
-    }
-  };
-
-  const handleContainerTap = (e: React.MouseEvent | React.TouchEvent) => {
-    const container = containerRef.current;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    const clientX = 'touches' in e
-      ? ((e as React.TouchEvent).touches[0] || (e as any).changedTouches?.[0])?.clientX
-      : (e as React.MouseEvent).clientX;
-    if (clientX === undefined) return;
-
-    const side = clientX < rect.left + rect.width / 2 ? 'left' : 'right';
-    const now = Date.now();
-
-    if (now - lastTapRef.current.time < 350 && lastTapRef.current.side === side) {
-      // Double Tap detected!
-      if (singleTapTimerRef.current) {
-        clearTimeout(singleTapTimerRef.current);
-        singleTapTimerRef.current = null;
-      }
-      if (doubleTapTimerRef.current) clearTimeout(doubleTapTimerRef.current);
-
-      if (side === 'left') {
-        skip(-10);
-      } else {
-        skip(10);
-      }
-
-      setDoubleTapFeedback((prev) => ({
-        side,
-        count: prev && prev.side === side ? prev.count + 10 : 10,
-      }));
-
-      doubleTapTimerRef.current = setTimeout(() => {
-        setDoubleTapFeedback(null);
-      }, 700);
-
-      lastTapRef.current = { time: 0, x: clientX, side };
-    } else {
-      lastTapRef.current = { time: now, x: clientX, side };
-      // Single tap: toggle controls visibility after delay if not followed by second tap
-      if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
-      singleTapTimerRef.current = setTimeout(() => {
-        setShowControls((prev) => !prev);
-      }, 250);
-    }
-  };
-
-  const handleSpeedChange = (newSpeed: number) => {
-    setSpeed(newSpeed);
-    if (videoRef.current) videoRef.current.playbackRate = newSpeed;
-  };
-
-  const handleQualityChange = (newQuality: VideoQuality) => {
-    setQuality(newQuality);
-    const label = QUALITY_STEPS.find((q) => q.id === newQuality)?.label || newQuality;
-    setQualityToast(`Качество: ${label}`);
-    setTimeout(() => {
-      setQualityToast(null);
-    }, 1800);
-
-    const hls = hlsRef.current;
-    if (hls && hls.levels && hls.levels.length > 0) {
-      if (newQuality === 'auto') {
-        // Seamless ABR auto-selection without buffer flush or player stall
-        hls.nextLevel = -1;
-      } else {
-        const targetHeight = parseInt(newQuality, 10);
-        let chosenIdx = -1;
-
-        // Try exact match first
-        hls.levels.forEach((l, idx) => {
-          if (l.height === targetHeight) {
-            chosenIdx = idx;
-          }
-        });
-
-        // Fallback to closest match
-        if (chosenIdx === -1) {
-          let minDiff = Infinity;
-          hls.levels.forEach((l, idx) => {
-            const diff = Math.abs(l.height - targetHeight);
-            if (diff < minDiff) {
-              minDiff = diff;
-              chosenIdx = idx;
-            }
-          });
-        }
-
-        if (chosenIdx !== -1) {
-          // nextLevel loads the next fragment at the target resolution without evicting current buffer
-          hls.nextLevel = chosenIdx;
-        }
-      }
-    }
-
-    // Proactively prevent video freeze on level change
-    if (videoRef.current && !videoRef.current.paused) {
-      videoRef.current.play().catch(() => {});
-    }
-  };
-
-  const formatTime = (seconds: number) => {
-    if (isNaN(seconds)) return '00:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
-
-  const progressPercent = effectiveDuration > 0 ? (currentTime / effectiveDuration) * 100 : 0;
-  const hoverPercent = effectiveDuration > 0 && hoverTime !== null ? (hoverTime / effectiveDuration) * 100 : null;
-
-  const getQualityBadge = (h: number): string => {
-    if (h >= 1080) return 'FHD';
-    if (h >= 720) return 'HD';
-    if (h >= 480) return 'SD';
-    if (h >= 360) return 'LQ';
-    return 'LD';
-  };
-
-  const currentQualityLabel =
-    quality === 'auto'
-      ? currentAutoHeight
-        ? `Авто (${getQualityBadge(currentAutoHeight)})`
-        : 'Авто'
-      : QUALITY_STEPS.find((q) => q.id === quality)?.label || 'FHD';
-
-  // Glassmorphism button base class
-  const glassBtnClass =
-    'backdrop-blur-xl bg-white/10 hover:bg-white/20 border border-white/10 hover:border-white/25 text-zinc-100 hover:text-white transition-all duration-200 ease-out hover:scale-105 active:scale-95 shadow-lg shadow-black/20';
+  if (!isOpen) return null;
 
   return (
     <div

@@ -19,7 +19,7 @@ export const getVkAppId = (): number => {
   if (storedId && !isNaN(Number(storedId))) {
     return Number(storedId);
   }
-  return isNativeAndroid() ? VK_APP_ID_ANDROID : VK_APP_ID_WEB;
+  return isMobileApp() ? VK_APP_ID_ANDROID : VK_APP_ID_WEB;
 };
 
 export const setVkAppId = (id: number | string) => {

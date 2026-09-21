@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { isNativeAndroid } from '../services/vkIdService';
+import { isMobileApp } from '../services/platform';
 
 export const OfmediaMobileAppNotice: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -8,7 +8,7 @@ export const OfmediaMobileAppNotice: React.FC = () => {
   useEffect(() => {
     // Don't show in native Android Capacitor shell or if already dismissed recently
     if (typeof window === 'undefined') return;
-    if (isNativeAndroid()) return;
+    if (isMobileApp()) return;
 
     const isMobileDevice =
       window.innerWidth < 768 ||
