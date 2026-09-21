@@ -15,7 +15,7 @@ export const OfmediaInteractiveHero: React.FC<OfmediaInteractiveHeroProps> = ({
   onOpenDetails,
   onPlay,
   onScrollToCatalog,
-  onOpenAuth,
+  onOpenAuth: _onOpenAuth,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -75,83 +75,7 @@ export const OfmediaInteractiveHero: React.FC<OfmediaInteractiveHeroProps> = ({
     }
   };
 
-  // Upcoming Premieres & Events Ticker
-  const [eventIndex, setEventIndex] = useState(0);
-  const [isEventPaused, setIsEventPaused] = useState(false);
 
-  const events = useMemo(() => [
-    {
-      id: 'ng2',
-      tag: 'СКОРО',
-      title: '«Новый Год в Москве 2»',
-      desc: 'Премьера продолжения зимой 2026',
-      icon: (
-        <svg className="w-3.5 h-3.5 fill-none stroke-current stroke-2 text-[#ff5c00]" viewBox="0 0 24 24">
-          <path d="M7 2v20M17 2v20M2 12h20M2 7h5M2 17h5M17 17h5M17 7h5M2 4h20a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      ),
-      action: () => {
-        const found = projects.find((p) => p.id === 'ng');
-        if (found) onOpenDetails(found);
-      },
-    },
-    {
-      id: 'nalim-4k',
-      tag: '4K ULTRA HD',
-      title: '«Налим» в 4K & Dolby Atmos',
-      desc: 'Оригинальный ремастеринг классики',
-      icon: (
-        <svg className="w-3.5 h-3.5 fill-none stroke-current stroke-2 text-amber-400" viewBox="0 0 24 24">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      ),
-      action: () => {
-        const found = projects.find((p) => p.id === 'nalim');
-        if (found) onOpenDetails(found);
-      },
-    },
-    {
-      id: 'android-apk',
-      tag: 'ПРИЛОЖЕНИЕ',
-      title: 'OFMEDIA для Android',
-      desc: 'Оффлайн-загрузка, PiP и быстрый запуск',
-      icon: (
-        <svg className="w-3.5 h-3.5 fill-none stroke-current stroke-2 text-emerald-400" viewBox="0 0 24 24">
-          <rect x="5" y="2" width="14" height="20" rx="2" ry="2" strokeLinecap="round" strokeLinejoin="round" />
-          <line x1="12" y1="18" x2="12.01" y2="18" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      ),
-      action: () => {
-        window.location.href = '/app/apk';
-      },
-    },
-    {
-      id: 'vkid-login',
-      tag: 'VK ID',
-      title: 'Быстрый вход через VK ID',
-      desc: 'Синхронизация профиля и оценок',
-      icon: (
-        <svg className="w-3.5 h-3.5 fill-current text-[#ff5c00]" viewBox="0 0 24 24">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-6h2v6zm-1-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm5 7h-2v-3c0-.55-.45-1-1-1s-1 .45-1 1v3h-2v-6h2v1.1c.45-.65 1.25-1.1 2-1.1 1.66 0 3 1.34 3 3v3z" />
-        </svg>
-      ),
-      action: () => {
-        if (onOpenAuth) {
-          onOpenAuth();
-        } else {
-          window.dispatchEvent(new CustomEvent('ofmedia_open_auth'));
-        }
-      },
-    },
-  ], [projects, onOpenDetails, onOpenAuth]);
-
-  useEffect(() => {
-    if (isEventPaused || events.length === 0) return;
-    const timer = setInterval(() => {
-      setEventIndex((prev) => (prev + 1) % events.length);
-    }, 4500);
-    return () => clearInterval(timer);
-  }, [isEventPaused, events.length]);
 
   // 3D Tilt calculation
   const tiltX = -lerpPos.y * 10;
@@ -202,44 +126,6 @@ export const OfmediaInteractiveHero: React.FC<OfmediaInteractiveHeroProps> = ({
             transform: `translate3d(${lerpPos.x * -12}px, ${lerpPos.y * -8}px, 0)`,
           }}
         >
-          {/* Live Events & Upcoming Premieres Ribbon / Ticker */}
-          {events.length > 0 && (
-            <div
-              onMouseEnter={() => setIsEventPaused(true)}
-              onMouseLeave={() => setIsEventPaused(false)}
-              onClick={events[eventIndex].action}
-              className="self-start inline-flex items-center gap-2.5 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white/[0.05] hover:bg-white/[0.09] border border-white/15 hover:border-[#ff5c00]/50 transition-all duration-300 backdrop-blur-xl shadow-lg cursor-pointer group select-none max-w-full"
-              title="Нажмите, чтобы узнать подробнее"
-            >
-              {/* Tag badge with vector icon */}
-              <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold tracking-wider uppercase text-[#ff5c00] bg-[#ff5c00]/15 border border-[#ff5c00]/30 shrink-0">
-                {events[eventIndex].icon}
-                <span>{events[eventIndex].tag}</span>
-              </span>
-
-              {/* Event Title & Description */}
-              <div className="flex items-center gap-1.5 text-xs sm:text-sm truncate">
-                <span className="text-white font-semibold group-hover:text-[#ff5c00] transition-colors truncate">
-                  {events[eventIndex].title}
-                </span>
-                <span className="text-zinc-500 hidden sm:inline">•</span>
-                <span className="text-zinc-400 font-normal hidden sm:inline truncate">
-                  {events[eventIndex].desc}
-                </span>
-              </div>
-
-              {/* Arrow */}
-              <svg
-                className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0 ml-0.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </div>
-          )}
-
           {/* Grand Heading: 'ТВОЙ НОВЫЙ' in Bebas Neue + OFMEDIA Logo */}
           <div className="space-y-1 sm:space-y-2">
             <h1 className="font-bebas text-6xl sm:text-7xl md:text-8xl lg:text-[92px] xl:text-[104px] tracking-wider text-transparent bg-clip-text bg-gradient-to-b from-white via-zinc-100 to-zinc-400 leading-[0.9] drop-shadow-[0_4px_30px_rgba(0,0,0,0.9)]">

@@ -29,6 +29,8 @@ import { checkAndHandleVkRedirect, renderVkFloatingOneTap } from './services/vkI
 import { isMobileApp, isWeb } from './services/platform';
 import { useBodyScrollLock } from './hooks/useBodyScrollLock';
 import { checkForAppUpdate, triggerApkDownload, type AppVersionInfo } from './services/updateService';
+import { OfmediaNewsSection } from './components/OfmediaNewsSection';
+import { CustomTooltipProvider } from './components/ui/CustomTooltipProvider';
 
 export function App() {
   const [currentPath, setCurrentPath] = useState(() =>
@@ -42,6 +44,7 @@ export function App() {
   const [favoritesSubTab, setFavoritesSubTab] = useState<'favorites' | 'ratings'>('favorites');
   const [sortOrder, setSortOrder] = useState<'rating_desc' | 'year_desc' | 'title_asc'>('rating_desc');
   const [selectedCategory, setSelectedCategory] = useState<GenreCategoryId>('none');
+  const [categoryViewMode, setCategoryViewMode] = useState<'grid' | 'carousel'>('grid');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedActor, setSelectedActor] = useState<Actor | null>(null);
   const [selectedEpisode, setSelectedEpisode] = useState<Episode | undefined>(undefined);
@@ -178,6 +181,19 @@ export function App() {
       setUser(u);
     });
 
+    const handleUserUpdate = () => {
+      try {
+        const raw = localStorage.getItem('ofmedia_user');
+        if (raw) {
+          setUser(JSON.parse(raw));
+        } else {
+          setUser(null);
+        }
+      } catch {}
+    };
+    window.addEventListener('ofmedia_user_updated', handleUserUpdate);
+    window.addEventListener('storage', handleUserUpdate);
+
     // Check VK ID redirect return from OAuth
     checkAndHandleVkRedirect().then((vkUser) => {
       if (vkUser) setUser(vkUser);
@@ -195,6 +211,8 @@ export function App() {
 
     return () => {
       if (typeof unsub === 'function') unsub();
+      window.removeEventListener('ofmedia_user_updated', handleUserUpdate);
+      window.removeEventListener('storage', handleUserUpdate);
     };
   }, []);
 
@@ -295,23 +313,43 @@ export function App() {
       case 'new':
         return PROJECTS_DATA.filter((p) => p.year === 2026);
       case 'comedy':
-        return PROJECTS_DATA.filter((p) => p.genres.includes('Комедия'));
+        return PROJECTS_DATA.filter((p) =>
+          p.genres.some((g) => g.toLowerCase().includes('комед'))
+        );
       case 'music':
         return PROJECTS_DATA.filter((p) =>
-          p.genres.includes('Музыкальное') || p.genres.includes('Клип') || p.genres.includes('Концерт')
+          p.genres.some((g) => {
+            const l = g.toLowerCase();
+            return l.includes('муз') || l.includes('клип') || l.includes('концерт');
+          })
         );
       case 'shows':
         return PROJECTS_DATA.filter((p) =>
-          p.genres.includes('Постановка') || p.genres.includes('Шоу') || p.genres.includes('Скетч')
+          p.genres.some((g) => {
+            const l = g.toLowerCase();
+            return l.includes('шоу') || l.includes('постановк') || l.includes('скетч');
+          })
         );
       case 'adventure':
         return PROJECTS_DATA.filter((p) =>
-          p.genres.includes('Приключения') || p.genres.includes('Влог') || p.genres.includes('Экскурсия')
+          p.genres.some((g) => {
+            const l = g.toLowerCase();
+            return l.includes('приключ') || l.includes('влог') || l.includes('экскурс') || l.includes('путеш');
+          })
         );
       case 'none':
       default:
         return PROJECTS_DATA;
     }
+  };
+
+  const formatReleaseCount = (count: number): string => {
+    const mod10 = count % 10;
+    const mod100 = count % 100;
+    if (mod100 >= 11 && mod100 <= 19) return `${count} релизов`;
+    if (mod10 === 1) return `${count} релиз`;
+    if (mod10 >= 2 && mod10 <= 4) return `${count} релиза`;
+    return `${count} релизов`;
   };
 
   // URL Router: Sync route from location (handles direct links, page refresh, and back/forward browser history)
@@ -520,6 +558,9 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-[#070709] text-zinc-100 flex flex-col selection:bg-[#ff5c00] selection:text-white pb-16 sm:pb-0">
+      {/* Global Cinematic Glass Tooltips */}
+      <CustomTooltipProvider />
+
       {/* Header with Profile Modal Access (hidden when viewing standalone modal, profile, or player) */}
       {!isPlayerOpen && !isDetailModalOpen && !isActorModalOpen && !isProfileModalOpen && (
         <OfmediaHeader
@@ -559,7 +600,7 @@ export function App() {
             </section>
 
             {/* Dynamic Recommendations & Curated Feeds */}
-            <div className="space-y-8 sm:space-y-12">
+            <div id="catalog-results" className="space-y-8 sm:space-y-12">
               {/* CONTINUE WATCHING (FIRST ROW BEFORE RECOMMENDATIONS) */}
               {continueWatchingList.length > 0 && (
                 <OfmediaCardRow
@@ -595,8 +636,9 @@ export function App() {
 
                   {/* Standard Feeds */}
                   <OfmediaCardRow
-                    title="Новинки и хиты OFMEDIA"
-                    projects={PROJECTS_DATA.slice(0, 5)}
+                    title="Новинки 2026 года"
+                    subtitle="Свежие релизы и премьеры текущего сезона"
+                    projects={newProjects}
                     onOpenDetails={handleOpenDetails}
                     onPlay={handlePlayProject}
                     favorites={favorites}
@@ -634,31 +676,97 @@ export function App() {
                   />
                 </>
               ) : (
-                <OfmediaCardRow
-                  title={
-                    selectedCategory === 'new'
-                      ? 'Новинки 2026 года'
-                      : selectedCategory === 'comedy'
-                      ? 'Комедии'
-                      : selectedCategory === 'music'
-                      ? 'Музыкальные релизы'
-                      : selectedCategory === 'shows'
-                      ? 'Шоу и постановки'
-                      : 'Приключения и экскурсии'
-                  }
-                  subtitle={
-                    selectedCategory === 'new'
-                      ? 'Все премьеры текущего 2026 года'
-                      : undefined
-                  }
-                  projects={filterProjectsByCategory(selectedCategory)}
-                  onOpenDetails={handleOpenDetails}
-                  onPlay={handlePlayProject}
-                  favorites={favorites}
-                  onToggleFavorite={toggleFavorite}
-                />
+                <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+                  {/* Category Result Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-3xl glass-card">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#ff5c00]/20 text-[#ff5c00] border border-[#ff5c00]/30">
+                          Каталог
+                        </span>
+                        <span className="text-xs text-zinc-400 font-normal">
+                          {formatReleaseCount(filterProjectsByCategory(selectedCategory).length)}
+                        </span>
+                      </div>
+                      <h2 className="font-heading font-bold text-2xl sm:text-3xl text-white">
+                        {selectedCategory === 'new'
+                          ? 'Новинки 2026 года'
+                          : selectedCategory === 'comedy'
+                          ? 'Комедии'
+                          : selectedCategory === 'music'
+                          ? 'Музыкальные релизы'
+                          : selectedCategory === 'shows'
+                          ? 'Шоу и постановки'
+                          : 'Приключения и экскурсии'}
+                      </h2>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                      {/* Grid / Carousel Toggle */}
+                      <div className="flex items-center p-1 rounded-2xl bg-white/5 border border-white/10 text-xs">
+                        <button
+                          onClick={() => setCategoryViewMode('grid')}
+                          className={`px-3 py-1.5 rounded-xl transition-all font-medium cursor-pointer ${
+                            categoryViewMode === 'grid'
+                              ? 'bg-white/15 text-white shadow-sm'
+                              : 'text-zinc-400 hover:text-white'
+                          }`}
+                          title="Отобразить плиткой"
+                        >
+                          Сетка
+                        </button>
+                        <button
+                          onClick={() => setCategoryViewMode('carousel')}
+                          className={`px-3 py-1.5 rounded-xl transition-all font-medium cursor-pointer ${
+                            categoryViewMode === 'carousel'
+                              ? 'bg-white/15 text-white shadow-sm'
+                              : 'text-zinc-400 hover:text-white'
+                          }`}
+                          title="Отобразить каруселью"
+                        >
+                          Карусель
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => setSelectedCategory('none')}
+                        className="px-4 py-2 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white text-xs font-medium transition-colors cursor-pointer"
+                      >
+                        Сбросить фильтр
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Results: Grid or Carousel */}
+                  {categoryViewMode === 'grid' ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+                      {filterProjectsByCategory(selectedCategory).map((project) => (
+                        <OfmediaMovieCard
+                          key={project.id}
+                          project={project}
+                          onPlay={handlePlayProject}
+                          onOpenDetails={handleOpenDetails}
+                          isFavorite={favorites.includes(project.id)}
+                          onToggleFavorite={toggleFavorite}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <OfmediaCardRow
+                      title=""
+                      projects={filterProjectsByCategory(selectedCategory)}
+                      onOpenDetails={handleOpenDetails}
+                      onPlay={handlePlayProject}
+                      favorites={favorites}
+                      onToggleFavorite={toggleFavorite}
+                    />
+                  )}
+                </div>
               )}
             </div>
+
+            {/* Platform News Feed (OFNEWS) */}
+            <OfmediaNewsSection user={user} />
           </div>
         )}
 

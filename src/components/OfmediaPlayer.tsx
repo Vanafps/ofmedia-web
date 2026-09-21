@@ -43,7 +43,7 @@ const parseDurationToSeconds = (durStr?: string): number => {
 // Modern Geometric Play SVG Icon - Optically Centered
 export const ModernPlayIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M8 5.14v13.72a1 1 0 0 0 1.55.83l11-6.86a1 1 0 0 0 0-1.66l-11-6.86A1 1 0 0 0 8 5.14z" />
+    <path d="M7.5 6.2c0-.95 1.05-1.53 1.85-1.02l10.2 6.3c.78.48.78 1.56 0 2.04l-10.2 6.3c-.8.5-1.85-.07-1.85-1.02V6.2z" />
   </svg>
 );
 
@@ -549,12 +549,16 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
 
     try {
       if (!isCurrentlyFs) {
-        if (container.requestFullscreen) {
-          await container.requestFullscreen();
-        } else if ((container as any).webkitRequestFullscreen) {
-          await (container as any).webkitRequestFullscreen();
-        } else if (video && (video as any).webkitEnterFullscreen) {
-          (video as any).webkitEnterFullscreen();
+        try {
+          if (container.requestFullscreen) {
+            await container.requestFullscreen();
+          } else if ((container as any).webkitRequestFullscreen) {
+            await (container as any).webkitRequestFullscreen();
+          } else if (video && (video as any).webkitEnterFullscreen) {
+            (video as any).webkitEnterFullscreen();
+          }
+        } catch (domFsErr) {
+          console.warn('DOM requestFullscreen handled:', domFsErr);
         }
 
         if (isMobileApp()) {
@@ -568,10 +572,14 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
         }
         setIsFullscreen(true);
       } else {
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        } else if ((document as any).webkitExitFullscreen) {
-          await (document as any).webkitExitFullscreen();
+        try {
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if ((document as any).webkitExitFullscreen) {
+            await (document as any).webkitExitFullscreen();
+          }
+        } catch (exitFsErr) {
+          console.warn('DOM exitFullscreen handled:', exitFsErr);
         }
 
         if (isMobileApp()) {
@@ -591,7 +599,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     }
   };
 
-  const handleContainerTap = (e: React.MouseEvent | React.TouchEvent) => {
+  const handleScreenClick = (e: React.MouseEvent | React.TouchEvent) => {
     const container = containerRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
@@ -603,8 +611,8 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     const side = clientX < rect.left + rect.width / 2 ? 'left' : 'right';
     const now = Date.now();
 
-    if (now - lastTapRef.current.time < 350 && lastTapRef.current.side === side) {
-      // Double Tap detected!
+    if (now - lastTapRef.current.time < 320 && lastTapRef.current.side === side) {
+      // Double Tap detected: skip 10s and cancel single-click play/pause
       if (singleTapTimerRef.current) {
         clearTimeout(singleTapTimerRef.current);
         singleTapTimerRef.current = null;
@@ -629,11 +637,12 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
       lastTapRef.current = { time: 0, x: clientX, side };
     } else {
       lastTapRef.current = { time: now, x: clientX, side };
-      // Single tap: toggle controls visibility after delay if not followed by second tap
+      // Single tap: toggle Play/Pause and show controls after delay if not followed by second tap
       if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
       singleTapTimerRef.current = setTimeout(() => {
-        setShowControls((prev) => !prev);
-      }, 250);
+        togglePlay();
+        setShowControls(true);
+      }, 260);
     }
   };
 
@@ -1006,7 +1015,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
   return (
     <div
       ref={containerRef}
-      onClick={handleContainerTap}
+      onClick={handleScreenClick}
       className={`fixed inset-0 z-[100] bg-black flex items-center justify-center select-none ${
         !showControls && isPlaying ? 'cursor-none' : 'cursor-default'
       }`}
@@ -1026,22 +1035,24 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
         </div>
       )}
 
-      {/* DOUBLE TAP SEEK FEEDBACK OVERLAYS */}
+      {/* DOUBLE TAP SEEK FEEDBACK OVERLAYS - CINEMATIC SOFT GRADIENT (NO HARD BLACK BARS) */}
       {doubleTapFeedback && (
         <div
           className={`absolute top-0 bottom-0 ${
-            doubleTapFeedback.side === 'left' ? 'left-0 rounded-r-3xl' : 'right-0 rounded-l-3xl'
-          } w-1/3 flex items-center justify-center bg-black/40 backdrop-blur-xs pointer-events-none z-30 animate-in fade-in zoom-in-95 duration-200`}
+            doubleTapFeedback.side === 'left'
+              ? 'left-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent'
+              : 'right-0 bg-gradient-to-l from-black/85 via-black/40 to-transparent'
+          } w-1/2 sm:w-2/5 flex items-center justify-center pointer-events-none z-30 transition-opacity duration-300`}
         >
-          <div className="flex flex-col items-center gap-2 text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
-            <div className="w-16 h-16 rounded-full bg-black/70 border border-white/25 flex items-center justify-center shadow-2xl">
+          <div className="flex flex-col items-center gap-3 text-white drop-shadow-[0_4px_20px_rgba(0,0,0,0.95)]">
+            <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-[#101012]/85 backdrop-blur-2xl border border-white/20 flex items-center justify-center shadow-[0_0_40px_rgba(255,92,0,0.4)] animate-pulse">
               {doubleTapFeedback.side === 'left' ? (
-                <Rewind10Icon className="w-8 h-8 text-[#ff5c00]" />
+                <Rewind10Icon className="w-9 h-9 text-[#ff5c00]" />
               ) : (
-                <Forward10Icon className="w-8 h-8 text-[#ff5c00]" />
+                <Forward10Icon className="w-9 h-9 text-[#ff5c00]" />
               )}
             </div>
-            <span className="text-sm font-bold tracking-wider font-mono">
+            <span className="text-base sm:text-lg font-heading font-bold tracking-wider text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.95)]">
               {doubleTapFeedback.side === 'left' ? `-${doubleTapFeedback.count} сек` : `+${doubleTapFeedback.count} сек`}
             </span>
           </div>
@@ -1517,11 +1528,11 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
         {/* 2. CONTROLS BAR */}
         <div className="flex items-center justify-between gap-1.5 sm:gap-4 text-zinc-100 min-w-0">
           {/* Left Controls: Play, Skip 10s SVGs, Okko Settings Button, Time */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 overflow-hidden">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 overflow-visible py-1">
             {/* Play/Pause Button - Optically Centered with Spring Scale Interaction */}
             <button
               onClick={togglePlay}
-              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-90 hover:scale-105 transition-all duration-150 shrink-0 ${glassBtnClass}`}
+              className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center cursor-pointer active:scale-95 hover:scale-105 transition-transform duration-150 shrink-0 ${glassBtnClass}`}
               title={isPlaying ? 'Пауза (Пробел)' : 'Воспроизведение (Пробел)'}
             >
               {isPlaying ? (
@@ -1534,7 +1545,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
             {/* Skip -10s with Interactive Rotation Micro-Animation */}
             <button
               onClick={() => skip(-10)}
-              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-90 active:-rotate-20 hover:scale-105 transition-all duration-150 shrink-0 ${glassBtnClass} group/rewind`}
+              className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center cursor-pointer active:scale-95 active:-rotate-15 hover:scale-105 transition-all duration-150 shrink-0 ${glassBtnClass} group/rewind`}
               title="Назад на 10 сек (←)"
             >
               <Rewind10Icon className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-100 group-hover/rewind:text-white transition-colors" />
@@ -1543,7 +1554,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
             {/* Skip +10s with Interactive Rotation Micro-Animation */}
             <button
               onClick={() => skip(10)}
-              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center cursor-pointer active:scale-90 active:rotate-20 hover:scale-105 transition-all duration-150 shrink-0 ${glassBtnClass} group/forward`}
+              className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center cursor-pointer active:scale-95 active:rotate-15 hover:scale-105 transition-all duration-150 shrink-0 ${glassBtnClass} group/forward`}
               title="Вперёд на 10 сек (→)"
             >
               <Forward10Icon className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-100 group-hover/forward:text-white transition-colors" />

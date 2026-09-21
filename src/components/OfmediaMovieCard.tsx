@@ -18,6 +18,21 @@ export interface OfmediaMovieCardProps {
   showRemainingBadge?: boolean;
   remainingMinutes?: number;
 }
+// Global Active Card Preview Coordinator: guarantees ONLY 1 CARD can play preview at any time!
+let currentActiveCardInstanceId: string | null = null;
+const cardPreviewSubscribers = new Set<(activeId: string | null) => void>();
+
+export const notifyCardPreviewStarted = (instanceId: string) => {
+  currentActiveCardInstanceId = instanceId;
+  cardPreviewSubscribers.forEach((cb) => cb(instanceId));
+};
+
+export const notifyCardPreviewStopped = (instanceId: string) => {
+  if (currentActiveCardInstanceId === instanceId) {
+    currentActiveCardInstanceId = null;
+    cardPreviewSubscribers.forEach((cb) => cb(null));
+  }
+};
 
 export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
   project,
@@ -228,7 +243,41 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
     };
   }, []);
 
-  // Desktop hover: Card preview with grace debounce so cursor movement never cancels trailer
+
+  // Stop this card if any other card starts previewing
+  useEffect(() => {
+    const handleActiveChange = (activeId: string | null) => {
+      if (activeId && activeId !== instanceIdRef.current) {
+        if (leaveTimerRef.current) {
+          clearTimeout(leaveTimerRef.current);
+          leaveTimerRef.current = null;
+        }
+        if (hoverTimerRef.current) {
+          clearTimeout(hoverTimerRef.current);
+          hoverTimerRef.current = null;
+        }
+        setIsTeaserActive(false);
+        setIsVideoPlaying(false);
+        setPreviewProgress(0);
+        if (hlsRef.current) {
+          hlsRef.current.destroy();
+          hlsRef.current = null;
+        }
+        if (videoRef.current) {
+          videoRef.current.pause();
+          videoRef.current.removeAttribute('src');
+          videoRef.current.load();
+        }
+      }
+    };
+    cardPreviewSubscribers.add(handleActiveChange);
+    return () => {
+      cardPreviewSubscribers.delete(handleActiveChange);
+      notifyCardPreviewStopped(instanceIdRef.current);
+    };
+  }, []);
+
+  // Desktop hover: Card preview with immediate stop on exit and single active card exclusivity
   const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleMouseEnter = () => {
@@ -241,50 +290,35 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
       clearTimeout(hoverTimerRef.current);
     }
     hoverTimerRef.current = setTimeout(() => {
+      notifyCardPreviewStarted(instanceIdRef.current);
       setIsTeaserActive(true);
-    }, 350);
+    }, 320);
   };
 
-  const handleMouseLeave = (e: React.MouseEvent) => {
-    // Prevent accidental resets if cursor moves over internal elements
-    if (containerRef.current && containerRef.current.contains(e.relatedTarget as Node)) {
-      return;
-    }
-
+  const handleMouseLeave = () => {
     if (hoverTimerRef.current) {
       clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;
     }
-
     if (leaveTimerRef.current) {
       clearTimeout(leaveTimerRef.current);
+      leaveTimerRef.current = null;
     }
 
-    // 250ms grace period so moving over buttons or slight boundary touches never drops the trailer
-    leaveTimerRef.current = setTimeout(() => {
-      if (videoRef.current && videoRef.current.currentTime > 0) {
-        try {
-          localStorage.setItem(
-            `ofmedia_card_trailer_pos_${project.id}`,
-            videoRef.current.currentTime.toString()
-          );
-        } catch {}
-      }
+    notifyCardPreviewStopped(instanceIdRef.current);
+    setIsTeaserActive(false);
+    setIsVideoPlaying(false);
+    setPreviewProgress(0);
 
-      setIsTeaserActive(false);
-      setIsVideoPlaying(false);
-      setPreviewProgress(0);
-
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
-      }
-      if (videoRef.current) {
-        videoRef.current.pause();
-        videoRef.current.removeAttribute('src');
-        videoRef.current.load();
-      }
-    }, 250);
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.pause();
+      videoRef.current.removeAttribute('src');
+      videoRef.current.load();
+    }
   };
 
   // Re-sync with other card updates, ratings changes, and watch progress updates

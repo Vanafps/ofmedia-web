@@ -412,7 +412,7 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
               <span>Смотреть фильм</span>
             </button>
 
-            {/* Watch Trailer Button */}
+            {/* Watch Trailer Button (Systematically disabled per user request without touching hover preview)
             <button
               onClick={() => setIsTrailerOpen(true)}
               className="w-full sm:w-auto px-7 py-3.5 rounded-full font-medium text-sm glass-pill hover:bg-white/15 text-white shadow-xl hover:scale-104 active:scale-95 transition-all flex items-center justify-center gap-2.5 border border-white/20"
@@ -422,6 +422,7 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
               </svg>
               <span>Трейлер</span>
             </button>
+            */}
 
             {/* Offline Download Button (Native Android App Only) */}
             {isMobileApp() && (

@@ -5,6 +5,7 @@ import { updateLocalUserProfile, CINEMA_AVATARS } from '../services/firebase';
 import { getUserRatings } from '../services/ratingService';
 import { getAllUserReviews, deleteMovieReview, type Review } from '../services/reviewService';
 import { PROJECTS_DATA, type Project } from '../data/projects';
+import { OfmediaMovieCard } from './OfmediaMovieCard';
 import { PlayIcon } from './PlayIcon';
 import { CustomSelect } from './ui/CustomSelect';
 import { getOfflineMovies, removeOfflineMovie, type OfflineMovie } from '../services/offlineStorageService';
@@ -29,7 +30,7 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'downloads' | 'history' | 'ratings' | 'reviews' | 'settings'>('overview');
   const [displayName, setDisplayName] = useState('');
-  const [selectedAvatar, setSelectedAvatar] = useState(user?.avatarIcon || 'popcorn');
+  const [selectedAvatar, setSelectedAvatar] = useState<string | null>(user?.avatarIcon || 'popcorn');
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [userReviews, setUserReviews] = useState<Review[]>([]);
   const [watchedProjects, setWatchedProjects] = useState<Project[]>([]);
@@ -54,7 +55,7 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
     }
 
     try {
-      const favRaw = localStorage.getItem('ofmedia_favorites') || '[]';
+      const favRaw = localStorage.getItem('ofmedia_favs') || localStorage.getItem('ofmedia_favorites') || '[]';
       setFavoritesList(JSON.parse(favRaw));
     } catch {
       setFavoritesList([]);
@@ -64,6 +65,16 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
     setUserReviews(getAllUserReviews(user?.uid));
     setOfflineMovies(getOfflineMovies());
   }, [user?.uid]);
+
+  const handleToggleFavorite = (projectId: string) => {
+    setFavoritesList((prev) => {
+      const next = prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId];
+      localStorage.setItem('ofmedia_favs', JSON.stringify(next));
+      localStorage.setItem('ofmedia_favorites', JSON.stringify(next));
+      window.dispatchEvent(new Event('storage'));
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -327,9 +338,23 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
               </div>
             </div>
             
-            {/* Minimalist 3D Cinema Avatars */}
+            {/* Minimalist Cinema Avatars */}
             <div className="space-y-2">
-              <label className="text-xs text-zinc-400 font-medium block">Или выберите коллекционный 3D-аватар киномана:</label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-zinc-400 font-medium block">Или выберите минималистичный аватар киномана:</label>
+                {(selectedAvatar || user?.avatarIcon || user?.photoURL) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedAvatar(null);
+                      updateLocalUserProfile({ photoURL: null, avatarIcon: null });
+                    }}
+                    className="text-[11px] text-[#ff5c00] hover:underline font-medium cursor-pointer"
+                  >
+                    Сбросить аватар
+                  </button>
+                )}
+              </div>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5 max-w-md">
                 {CINEMA_AVATARS.map((av) => {
                   const isSelected = selectedAvatar === av.id && !user?.photoURL;
@@ -338,8 +363,13 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
                       key={av.id}
                       type="button"
                       onClick={() => {
-                        setSelectedAvatar(av.id);
-                        updateLocalUserProfile({ photoURL: null, avatarIcon: av.id });
+                        if (isSelected) {
+                          setSelectedAvatar(null);
+                          updateLocalUserProfile({ photoURL: null, avatarIcon: null });
+                        } else {
+                          setSelectedAvatar(av.id);
+                          updateLocalUserProfile({ photoURL: null, avatarIcon: av.id });
+                        }
                       }}
                       className={`flex flex-col items-center justify-center p-2 rounded-2xl border transition-all cursor-pointer ${
                         isSelected
@@ -510,48 +540,20 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
               {watchedProjects.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {watchedProjects.slice(0, 3).map((p) => (
-                    <div
+                    <OfmediaMovieCard
                       key={p.id}
-                      onClick={() => {
-                        onSelectProject(p);
+                      project={p}
+                      onPlay={(proj) => {
+                        onPlayProject(proj);
                         onClose();
                       }}
-                      className="p-4 rounded-3xl glass-card hover:border-[#ff5c00]/50 transition-all flex flex-col justify-between space-y-3 cursor-pointer group shadow-lg"
-                    >
-                      <div className="relative aspect-video rounded-2xl overflow-hidden bg-zinc-900 border border-white/10">
-                        <img
-                          src={p.backdrop || p.poster}
-                          alt={p.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-black/25 group-hover:bg-black/10 transition-colors" />
-
-                        <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-black/60">
-                          <div className="h-full bg-[#ff5c00] w-3/4 rounded-r-full" />
-                        </div>
-
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onPlayProject(p);
-                            onClose();
-                          }}
-                          className="absolute inset-0 m-auto w-10 h-10 rounded-full bg-[#ff5c00] hover:bg-[#e05200] text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-xl hover:scale-110"
-                          title="Возобновить просмотр"
-                        >
-                          <PlayIcon className="w-4 h-4 fill-white" />
-                        </button>
-                      </div>
-
-                      <div className="space-y-0.5">
-                        <div className="text-sm font-medium text-white group-hover:text-[#ff5c00] transition-colors truncate">
-                          {p.title}
-                        </div>
-                        <div className="text-xs text-zinc-400 font-normal truncate">
-                          {p.genres.join(' • ')} • {p.duration}
-                        </div>
-                      </div>
-                    </div>
+                      onOpenDetails={(proj) => {
+                        onSelectProject(proj);
+                        onClose();
+                      }}
+                      isFavorite={favoritesList.includes(p.id)}
+                      onToggleFavorite={handleToggleFavorite}
+                    />
                   ))}
                 </div>
               ) : (
@@ -585,65 +587,29 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
             {watchedProjects.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {watchedProjects.map((p) => (
-                  <div
-                    key={p.id}
-                    className="p-4 rounded-3xl glass-card hover:border-[#ff5c00]/50 transition-all flex flex-col justify-between space-y-3 group shadow-lg"
-                  >
-                    <div
-                      onClick={() => {
-                        onSelectProject(p);
+                  <div key={p.id} className="relative group/hist">
+                    <OfmediaMovieCard
+                      project={p}
+                      onPlay={(proj) => {
+                        onPlayProject(proj);
                         onClose();
                       }}
-                      className="relative aspect-video rounded-2xl overflow-hidden bg-zinc-900 cursor-pointer"
+                      onOpenDetails={(proj) => {
+                        onSelectProject(proj);
+                        onClose();
+                      }}
+                      isFavorite={favoritesList.includes(p.id)}
+                      onToggleFavorite={handleToggleFavorite}
+                    />
+                    <button
+                      onClick={() => handleRemoveHistoryItem(p.id)}
+                      className="absolute top-3 right-3 z-30 w-7 h-7 rounded-full bg-black/70 hover:bg-red-500/80 text-zinc-300 hover:text-white flex items-center justify-center transition-all opacity-0 group-hover/hist:opacity-100 shadow"
+                      title="Удалить из истории"
                     >
-                      <img
-                        src={p.backdrop || p.poster}
-                        alt={p.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
-                      <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/80 text-[10px] text-white">
-                        {p.duration}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div
-                          onClick={() => {
-                            onSelectProject(p);
-                            onClose();
-                          }}
-                          className="text-sm font-medium text-white group-hover:text-[#ff5c00] transition-colors truncate cursor-pointer"
-                        >
-                          {p.title}
-                        </div>
-                        <div className="text-xs text-zinc-400 font-normal truncate">
-                          {p.genres.join(', ')} • {p.year}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          onClick={() => {
-                            onPlayProject(p);
-                            onClose();
-                          }}
-                          className="w-8 h-8 rounded-full bg-[#ff5c00] hover:bg-[#e05200] text-white flex items-center justify-center shadow"
-                          title="Смотреть"
-                        >
-                          <PlayIcon className="w-3.5 h-3.5 fill-white" />
-                        </button>
-                        <button
-                          onClick={() => handleRemoveHistoryItem(p.id)}
-                          className="w-8 h-8 rounded-full glass-pill text-zinc-400 hover:text-red-400 flex items-center justify-center transition-colors text-xs"
-                          title="Удалить из истории"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   </div>
                 ))}
               </div>

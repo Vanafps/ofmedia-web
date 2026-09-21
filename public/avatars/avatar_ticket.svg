@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="tickBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e11d48"/>
+      <stop offset="100%" stop-color="#9f1239"/>
+    </linearGradient>
+    <filter id="tickShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="256" height="256" rx="64" fill="url(#tickBg)"/>
+  <g filter="url(#tickShadow)" transform="rotate(-15 128 128)">
+    <path d="M58 84 C58 76 64 70 72 70 L184 70 C192 70 198 76 198 84 L198 116 C186 116 176 122 176 132 C176 142 186 148 198 148 L198 172 C198 180 192 186 184 186 L72 186 C64 186 58 180 58 172 L58 148 C70 148 80 142 80 132 C80 122 70 116 58 116 Z" fill="#ffffff"/>
+    <line x1="106" y1="74" x2="106" y2="182" stroke="#fda4af" stroke-width="3" stroke-dasharray="6 6"/>
+    <polygon points="148,110 154,124 170,126 158,136 162,152 148,144 134,152 138,136 126,126 142,124" fill="#e11d48"/>
+  </g>
+</svg>

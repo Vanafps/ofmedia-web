@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="clapperBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#27272a"/>
+      <stop offset="100%" stop-color="#09090b"/>
+    </linearGradient>
+    <filter id="clapperShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+  <rect width="256" height="256" rx="64" fill="url(#clapperBg)"/>
+  <g filter="url(#clapperShadow)">
+    <rect x="54" y="116" width="148" height="94" rx="16" fill="#18181b" stroke="#3f3f46" stroke-width="4"/>
+    <line x1="54" y1="148" x2="202" y2="148" stroke="#27272a" stroke-width="3"/>
+    <rect x="72" y="164" width="40" height="8" rx="4" fill="#3f3f46"/>
+    <rect x="122" y="164" width="60" height="8" rx="4" fill="#3f3f46"/>
+    <rect x="72" y="182" width="70" height="8" rx="4" fill="#27272a"/>
+    <g transform="rotate(-12 54 116)">
+      <rect x="50" y="82" width="152" height="32" rx="8" fill="#18181b" stroke="#3f3f46" stroke-width="4"/>
+      <path d="M68 84 L84 112 L98 112 L82 84 Z" fill="#ffffff"/>
+      <path d="M104 84 L120 112 L134 112 L118 84 Z" fill="#ffffff"/>
+      <path d="M140 84 L156 112 L170 112 L154 84 Z" fill="#ffffff"/>
+      <path d="M176 84 L192 112 L200 112 L190 84 Z" fill="#ffffff"/>
+    </g>
+    <circle cx="54" cy="116" r="6" fill="#e4e4e7"/>
+  </g>
+</svg>

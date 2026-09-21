@@ -68,12 +68,12 @@ export interface StoredAccount {
 }
 
 export const CINEMA_AVATARS = [
-  { id: 'popcorn', label: 'Попкорн', src: '/avatars/avatar_popcorn.jpg', bg: 'from-orange-500 to-amber-600' },
-  { id: 'clapper', label: 'Хлопушка', src: '/avatars/avatar_clapper.jpg', bg: 'from-zinc-700 to-zinc-900' },
-  { id: 'camera', label: 'Камера', src: '/avatars/avatar_camera.jpg', bg: 'from-zinc-700 to-zinc-800' },
-  { id: 'star', label: 'Звезда', src: '/avatars/avatar_star.jpg', bg: 'from-amber-400 to-orange-500' },
-  { id: 'ticket', label: 'Билеты', src: '/avatars/avatar_ticket.jpg', bg: 'from-amber-500 to-yellow-600' },
-  { id: 'headphones', label: 'Звук', src: '/avatars/avatar_headphones.jpg', bg: 'from-zinc-800 to-black' },
+  { id: 'popcorn', label: 'Попкорн', src: '/avatars/avatar_popcorn.svg', bg: 'from-orange-500 to-amber-600' },
+  { id: 'clapper', label: 'Хлопушка', src: '/avatars/avatar_clapper.svg', bg: 'from-zinc-700 to-zinc-900' },
+  { id: 'camera', label: 'Камера', src: '/avatars/avatar_camera.svg', bg: 'from-zinc-700 to-zinc-800' },
+  { id: 'star', label: 'Звезда', src: '/avatars/avatar_star.svg', bg: 'from-amber-400 to-orange-500' },
+  { id: 'ticket', label: 'Билеты', src: '/avatars/avatar_ticket.svg', bg: 'from-amber-500 to-yellow-600' },
+  { id: 'headphones', label: 'Звук', src: '/avatars/avatar_headphones.svg', bg: 'from-indigo-600 to-indigo-800' },
 ];
 
 export const getStoredAccounts = (): StoredAccount[] => {
@@ -162,12 +162,23 @@ export const subscribeToAuth = (callback: (user: UserProfile | null) => void) =>
 export const updateLocalUserProfile = (updates: Partial<UserProfile>) => {
   try {
     const raw = localStorage.getItem('ofmedia_user');
-    if (!raw) return;
-    const cur: UserProfile = JSON.parse(raw);
+    let cur: UserProfile;
+    if (raw) {
+      cur = JSON.parse(raw);
+    } else {
+      cur = {
+        uid: `guest_${Date.now()}`,
+        email: null,
+        displayName: 'Гость',
+        photoURL: null,
+        avatarIcon: 'popcorn',
+        isAnonymous: true,
+      };
+    }
     const updated: UserProfile = { ...cur, ...updates };
     localStorage.setItem('ofmedia_user', JSON.stringify(updated));
 
-    // Update in accounts DB
+    // Update in accounts DB if exists
     const accounts = getStoredAccounts();
     const idx = accounts.findIndex((a) => a.uid === cur.uid);
     if (idx !== -1) {

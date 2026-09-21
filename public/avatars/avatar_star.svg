@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="starBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fffbeb"/>
+      <stop offset="50%" stop-color="#fde68a"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+    <filter id="starShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="14" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="256" height="256" rx="64" fill="url(#starBg)"/>
+  <g filter="url(#starShadow)">
+    <polygon points="128,48 152,102 212,108 166,148 180,206 128,176 76,206 90,148 44,108 104,102" fill="url(#gold)" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="128" cy="124" r="12" fill="#ffffff" fill-opacity="0.6"/>
+  </g>
+</svg>

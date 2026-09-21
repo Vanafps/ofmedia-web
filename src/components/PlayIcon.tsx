@@ -18,8 +18,8 @@ export const PlayIcon: React.FC<PlayIconProps> = ({ className = 'w-4 h-4 fill-cu
       fill="currentColor"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* True optical center inside circular buttons */}
-      <path d="M8 5.14v13.72a1 1 0 0 0 1.55.83l11-6.86a1 1 0 0 0 0-1.66l-11-6.86A1 1 0 0 0 8 5.14z" />
+      {/* Mathematically & optically centered triangle inside circular containers */}
+      <path d="M7.5 6.2c0-.95 1.05-1.53 1.85-1.02l10.2 6.3c.78.48.78 1.56 0 2.04l-10.2 6.3c-.8.5-1.85-.07-1.85-1.02V6.2z" />
     </svg>
   );
 };

@@ -8,6 +8,15 @@ interface OfmediaGenreCardsProps {
   counts: Record<GenreCategoryId, number>;
 }
 
+export const formatReleaseCount = (count: number): string => {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod100 >= 11 && mod100 <= 19) return `${count} релизов`;
+  if (mod10 === 1) return `${count} релиз`;
+  if (mod10 >= 2 && mod10 <= 4) return `${count} релиза`;
+  return `${count} релизов`;
+};
+
 export const OfmediaGenreCards: React.FC<OfmediaGenreCardsProps> = ({
   selectedCategory,
   onSelectCategory,
@@ -18,6 +27,12 @@ export const OfmediaGenreCards: React.FC<OfmediaGenreCardsProps> = ({
       onSelectCategory('none');
     } else {
       onSelectCategory(id);
+      setTimeout(() => {
+        const el = document.getElementById('catalog-results') || document.getElementById('catalog-section');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 60);
     }
   };
 
@@ -30,9 +45,10 @@ export const OfmediaGenreCards: React.FC<OfmediaGenreCardsProps> = ({
           {selectedCategory !== 'none' && (
             <button
               onClick={() => onSelectCategory('none')}
-              className="text-xs font-normal text-[#ff5c00] hover:underline ml-2"
+              className="text-xs font-medium text-[#ff5c00] hover:text-[#ff7a29] transition-colors ml-2 bg-[#ff5c00]/10 hover:bg-[#ff5c00]/20 px-2.5 py-1 rounded-full border border-[#ff5c00]/30 flex items-center gap-1"
             >
-              Сбросить фильтр
+              <span>✕</span>
+              <span>Сбросить фильтр</span>
             </button>
           )}
         </h2>
@@ -59,7 +75,7 @@ export const OfmediaGenreCards: React.FC<OfmediaGenreCardsProps> = ({
           </div>
 
           <span className="relative z-10 text-[10px] text-zinc-300 mt-1.5 font-normal">
-            {counts.new} релиза (2026)
+            {formatReleaseCount(counts.new)} (2026)
           </span>
         </button>
 
@@ -82,7 +98,7 @@ export const OfmediaGenreCards: React.FC<OfmediaGenreCardsProps> = ({
           </div>
 
           <span className="relative z-10 text-[10px] text-zinc-300 mt-1.5 font-normal">
-            {counts.comedy} релиза
+            {formatReleaseCount(counts.comedy)}
           </span>
         </button>
 
@@ -105,7 +121,7 @@ export const OfmediaGenreCards: React.FC<OfmediaGenreCardsProps> = ({
           </div>
 
           <span className="relative z-10 text-[10px] text-zinc-300 mt-1.5 font-normal">
-            {counts.music} релиза
+            {formatReleaseCount(counts.music)}
           </span>
         </button>
 
@@ -128,7 +144,7 @@ export const OfmediaGenreCards: React.FC<OfmediaGenreCardsProps> = ({
           </div>
 
           <span className="relative z-10 text-[10px] text-zinc-300 mt-1.5 font-normal">
-            {counts.shows} релиза
+            {formatReleaseCount(counts.shows)}
           </span>
         </button>
 
@@ -151,7 +167,7 @@ export const OfmediaGenreCards: React.FC<OfmediaGenreCardsProps> = ({
           </div>
 
           <span className="relative z-10 text-[10px] text-zinc-300 mt-1.5 font-normal">
-            {counts.adventure} релиза
+            {formatReleaseCount(counts.adventure)}
           </span>
         </button>
       </div>
