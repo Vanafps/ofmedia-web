@@ -13,7 +13,6 @@ export default async function handler(req, res) {
   const host = req.headers.host || 'localhost';
   const urlObj = new URL(req.url, 'http://' + host);
   const userId = urlObj.searchParams.get('user_id') || urlObj.searchParams.get('userId');
-  const token = urlObj.searchParams.get('token') || VK_SERVICE_TOKEN;
 
   if (!userId) {
     res.statusCode = 400;
@@ -21,24 +20,32 @@ export default async function handler(req, res) {
   }
 
   try {
-    const vkApiUrl = 'https://api.vk.com/method/users.get?user_ids=' + encodeURIComponent(userId) + '&fields=photo_200,first_name,last_name,sex,domain,screen_name&access_token=' + encodeURIComponent(token) + '&v=5.131';
+    const fields = 'photo_200,photo_max,first_name,last_name,domain,screen_name';
+    const vkApiUrl = `https://api.vk.com/method/users.get?user_ids=${encodeURIComponent(userId)}&fields=${fields}&access_token=${VK_SERVICE_TOKEN}&v=5.131`;
     const response = await fetch(vkApiUrl);
     const data = await response.json();
 
     if (data.response && data.response[0]) {
       const user = data.response[0];
-      res.setHeader('Content-Type', 'application/json');
+      const photo = user.photo_200 || user.photo_max || null;
+      const firstName = user.first_name || '';
+      const lastName = user.last_name || '';
+      const displayName = `${firstName} ${lastName}`.trim() || user.domain || `id${user.id}`;
+      const username = user.domain || user.screen_name || '';
+
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
       res.statusCode = 200;
       return res.end(JSON.stringify({
         id: user.id,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        photo: user.photo_200,
-        username: user.domain || user.screen_name || '',
-        displayName: (user.first_name + ' ' + (user.last_name || '')).trim()
+        firstName,
+        lastName,
+        displayName,
+        photo,
+        username,
       }));
     }
 
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.statusCode = 200;
     return res.end(JSON.stringify(data));
   } catch (err) {
@@ -47,3 +54,4 @@ export default async function handler(req, res) {
     return res.end(JSON.stringify({ error: err ? err.message : 'Unknown' }));
   }
 }
+

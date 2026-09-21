@@ -25,7 +25,9 @@ import { subscribeToAuth, logoutUser, type UserProfile } from './services/fireba
 import { getUserRatings, getMovieRating } from './services/ratingService';
 import { getPersonalizedRecommendations, type RecommendedRow } from './services/recommendationService';
 import { getContinueWatchingProjects, type ContinueWatchingItem } from './services/watchHistoryService';
-import { checkAndHandleVkRedirect, isNativeAndroid } from './services/vkIdService';
+import { checkAndHandleVkRedirect, renderVkFloatingOneTap } from './services/vkIdService';
+import { isMobileApp, isWeb } from './services/platform';
+import { useBodyScrollLock } from './hooks/useBodyScrollLock';
 import { checkForAppUpdate, triggerApkDownload, type AppVersionInfo } from './services/updateService';
 
 export function App() {
@@ -105,37 +107,54 @@ export function App() {
     };
   }, []);
 
-  const [showAuthBanner, setShowAuthBanner] = useState<boolean>(false);
   const [updateInfo, setUpdateInfo] = useState<AppVersionInfo | null>(null);
   const [showUpdateModal, setShowUpdateModal] = useState<boolean>(false);
 
+  const isAnyModalOpen =
+    isDetailModalOpen ||
+    isActorModalOpen ||
+    isPlayerOpen ||
+    isAuthModalOpen ||
+    isProfileModalOpen ||
+    showUpdateModal;
+
+  // Rock-solid background scroll lock across all mobile & desktop browsers
+  useBodyScrollLock(isAnyModalOpen);
+
+  // Official VK ID Floating One Tap ("Шторка авторизации") for unauthenticated visitors
   useEffect(() => {
-    // Show auth prompt to unauthenticated visitors after 5 seconds
+    if (user || isAnyModalOpen) return;
+
     const isDismissed = sessionStorage.getItem('ofmedia_auth_prompt_dismissed');
-    if (!user && !isDismissed) {
-      const timer = setTimeout(() => {
-        setShowAuthBanner(true);
-      }, 5000);
-      return () => clearTimeout(timer);
-    } else {
-      setShowAuthBanner(false);
-    }
-  }, [user]);
+    if (isDismissed) return;
 
-  const handleDismissAuthBanner = () => {
-    setShowAuthBanner(false);
-    sessionStorage.setItem('ofmedia_auth_prompt_dismissed', 'true');
-  };
+    let floatingInstance: any = null;
+    const timer = setTimeout(() => {
+      floatingInstance = renderVkFloatingOneTap(
+        (authedUser) => {
+          setUser(authedUser);
+        },
+        (err) => {
+          console.warn('VK FloatingOneTap notice:', err);
+        }
+      );
+    }, 3500);
 
-  const isAnyModalOpen = isDetailModalOpen || isActorModalOpen || isPlayerOpen || isAuthModalOpen || isProfileModalOpen;
+    return () => {
+      clearTimeout(timer);
+      try {
+        floatingInstance?.close?.();
+      } catch {}
+    };
+  }, [user, isAnyModalOpen]);
 
   // Butter-Smooth Kinetic Inertia Scrolling via Lenis (DESKTOP ONLY)
   useEffect(() => {
-    // Disable Lenis on touch screens and mobile to eliminate rubber-band bounce
-    const isTouchDevice =
+    // Disable Lenis on touch screens, mobile app, and when any modal is open
+    const isTouch =
       typeof window !== 'undefined' &&
-      ('ontouchstart' in window || navigator.maxTouchPoints > 0 || isNativeAndroid() || window.innerWidth < 768);
-    if (isTouchDevice) return;
+      ('ontouchstart' in window || navigator.maxTouchPoints > 0 || isMobileApp() || window.innerWidth < 768);
+    if (isTouch || isAnyModalOpen) return;
 
     const lenis = new Lenis({
       duration: 1.2,
@@ -182,7 +201,7 @@ export function App() {
     });
 
     // Check for APK updates ONLY inside native Android app
-    if (isNativeAndroid()) {
+    if (isMobileApp()) {
       checkForAppUpdate().then((res) => {
         if (res.updateAvailable && res.latestVersion) {
           setUpdateInfo(res.latestVersion);
@@ -868,60 +887,7 @@ export function App() {
         onSuccess={(u) => setUser(u)}
       />
 
-      {/* Floating Smart Auth Reminder for Unauthenticated Users with Smooth AnimatePresence */}
-      <AnimatePresence>
-        {showAuthBanner && !user && (
-          <motion.div
-            initial={{ opacity: 0, y: 30, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 25, scale: 0.95 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-[95] max-w-sm w-[calc(100%-2rem)] bg-[#101012] border border-white/15 rounded-2xl p-4 shadow-[0_20px_50px_rgba(0,0,0,0.9)] select-none"
-          >
-            <button
-              onClick={handleDismissAuthBanner}
-              className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white flex items-center justify-center transition-colors text-xs cursor-pointer"
-              title="Закрыть"
-            >
-              <svg className="w-3.5 h-3.5 fill-none stroke-current" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#ff5c00]/15 border border-[#ff5c00]/30 flex items-center justify-center text-[#ff5c00] shrink-0 mt-0.5 shadow-inner">
-                <svg className="w-5 h-5 fill-none stroke-current" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-                </svg>
-              </div>
-              <div className="space-y-1 pr-4">
-                <div className="font-heading font-bold text-xs sm:text-sm text-white">
-                  Войдите в OFMEDIA
-                </div>
-                <p className="text-[11px] text-zinc-400 leading-snug">
-                  Сохраняйте историю просмотров, оценки и продолжайте кино на любых устройствах.
-                </p>
-                <div className="pt-2 flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      handleDismissAuthBanner();
-                      setIsAuthModalOpen(true);
-                    }}
-                    className="px-4 py-1.5 rounded-xl bg-[#ff5c00] hover:bg-[#e05200] text-white text-xs font-semibold shadow-md shadow-[#ff5c00]/30 transition-all hover:scale-103 active:scale-95 cursor-pointer"
-                  >
-                    Войти
-                  </button>
-                  <button
-                    onClick={handleDismissAuthBanner}
-                    className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white text-xs font-medium transition-colors cursor-pointer"
-                  >
-                    Позже
-                  </button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
 
       {/* In-App Update Modal with Smooth AnimatePresence */}
       <AnimatePresence>
@@ -1012,8 +978,8 @@ export function App() {
         }}
       />
 
-      {/* Footer & App promo: Visible on website (desktop & mobile), STRICTLY HIDDEN in Native Android App */}
-      {!isNativeAndroid() && (
+      {/* Footer & App promo: ALWAYS visible on the website (desktop & mobile web), HIDDEN in Native Android App */}
+      {isWeb() && (
         <div className="w-full">
           {/* Mobile App Download Callout in Footer */}
           <section className="border-t border-white/8 bg-[#09090b] py-8 sm:py-10 text-white select-none">
@@ -1069,8 +1035,8 @@ export function App() {
             </div>
           </section>
 
-          {/* Desktop Footer */}
-          <footer className="border-t border-white/8 bg-[#08080a] py-8 sm:py-10 text-zinc-400 text-xs">
+          {/* Website Footer (Desktop & Mobile with bottom clearance for nav bar) */}
+          <footer className="border-t border-white/8 bg-[#08080a] py-8 sm:py-10 text-zinc-400 text-xs mb-20 md:mb-0">
             <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
               <div className="flex items-center gap-3">
                 <img

@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build --mode web",
+    "build:web": "tsc -b && vite build --mode web",
+    "build:mobile": "tsc -b && vite build --mode mobile",
     "lint": "oxlint",
     "preview": "vite preview",
     "deploy:mirror": "node scripts/deploy-mirror.mjs"

@@ -25,6 +25,8 @@ dist-ssr
 
 .vercel
 .env*
+!.env.web
+!.env.mobile
 
 # Android / Mobile builds
 *.apk

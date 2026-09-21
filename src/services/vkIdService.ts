@@ -1,5 +1,4 @@
 import * as VKID from '@vkid/sdk';
-import { Capacitor } from '@capacitor/core';
 import type { UserProfile } from './firebase';
 
 export const VK_APP_ID_WEB = 54781535;
@@ -7,17 +6,9 @@ export const VK_APP_ID_ANDROID = 54781536;
 export const VK_CLIENT_SECRET = 'onvGud3EPvBipAvPz7AK';
 export const VK_SERVICE_TOKEN = '74427b5e74427b5e74427b5e0277019d3e7744274427b5e1ef273586bfcddc4a9f3a85e';
 
-export const isNativeAndroid = (): boolean => {
-  if (typeof window === 'undefined') return false;
-  try {
-    if (Capacitor.isNativePlatform()) return true;
-  } catch {}
-  return (
-    !!(window as any)?.Capacitor?.isNativePlatform?.() ||
-    window.location.protocol === 'capacitor:' ||
-    (window.location.protocol === 'http:' && window.location.hostname === 'localhost' && !window.location.port)
-  );
-};
+import { isMobileApp } from './platform';
+
+export const isNativeAndroid = isMobileApp;
 
 export const getVkAppId = (): number => {
   const envId = import.meta.env.VITE_VK_APP_ID;
@@ -50,6 +41,7 @@ export const initVkId = () => {
   try {
     const appId = getVkAppId();
     const redirectUrl = getRedirectUrl();
+    const state = typeof window !== 'undefined' ? window.location.href : '';
 
     VKID.Config.init({
       app: appId,
@@ -57,6 +49,7 @@ export const initVkId = () => {
       responseMode: VKID.ConfigResponseMode.Callback,
       source: VKID.ConfigSource.LOWCODE,
       mode: VKID.ConfigAuthMode.Redirect,
+      state,
       scope: '',
     });
     isInitialized = true;
@@ -66,24 +59,24 @@ export const initVkId = () => {
 };
 
 /**
- * Fetch real user profile from VK API using service token or user token
+ * Fetch real user profile from VK API using service token with permanent access
  */
 export const fetchVkUserProfile = async (
-  userId: string | number,
-  userAccessToken?: string
+  userId: string | number
 ): Promise<{ displayName: string; photoURL: string | null; firstName: string; lastName: string; username?: string } | null> => {
   if (!userId) return null;
 
   // 1. Try Vercel Serverless proxy (handles CORS across GitHub Pages, localhost, and APK)
   try {
-    const apiUrl = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')
-      ? `/api/vk-user?user_id=${encodeURIComponent(userId)}&token=${encodeURIComponent(userAccessToken || '')}`
-      : `https://ofmedia.vercel.app/api/vk-user?user_id=${encodeURIComponent(userId)}&token=${encodeURIComponent(userAccessToken || '')}`;
+    const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
+    const apiUrl = isVercel
+      ? `/api/vk-user?user_id=${encodeURIComponent(userId)}`
+      : `https://ofmedia.vercel.app/api/vk-user?user_id=${encodeURIComponent(userId)}`;
 
     const res = await fetch(apiUrl);
     if (res.ok) {
       const data = await res.json();
-      if (data.displayName || data.firstName || data.photo) {
+      if (data && (data.displayName || data.firstName || data.photo)) {
         return {
           displayName: data.displayName || `${data.firstName || ''} ${data.lastName || ''}`.trim(),
           photoURL: data.photo || null,
@@ -93,11 +86,11 @@ export const fetchVkUserProfile = async (
         };
       }
     }
-  } catch {
-    // Fallback to JSONP
+  } catch (e) {
+    console.warn('Vercel VK API proxy notice:', e);
   }
 
-  // 2. Client JSONP fallback (works directly with VK API)
+  // 2. Client JSONP fallback (works directly with VK API using guaranteed service token)
   return new Promise((resolve) => {
     if (typeof document === 'undefined') return resolve(null);
     const callbackName = `vk_cb_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
@@ -111,28 +104,31 @@ export const fetchVkUserProfile = async (
     const timer = setTimeout(() => {
       cleanup();
       resolve(null);
-    }, 4500);
+    }, 5000);
 
     (window as any)[callbackName] = (data: any) => {
       clearTimeout(timer);
       cleanup();
       if (data && data.response && data.response[0]) {
         const u = data.response[0];
-        const displayName = `${u.first_name || ''} ${u.last_name || ''}`.trim();
+        const firstName = u.first_name || '';
+        const lastName = u.last_name || '';
+        const displayName = `${firstName} ${lastName}`.trim();
+        const photo = u.photo_200 || u.photo_max || null;
+        const username = u.domain || u.screen_name || '';
         resolve({
-          displayName: displayName || `Пользователь (${userId})`,
-          photoURL: u.photo_200 || null,
-          firstName: u.first_name || '',
-          lastName: u.last_name || '',
-          username: u.domain || u.screen_name || '',
+          displayName: displayName || username || `id${userId}`,
+          photoURL: photo,
+          firstName,
+          lastName,
+          username,
         });
       } else {
         resolve(null);
       }
     };
 
-    const tokenToUse = userAccessToken || VK_SERVICE_TOKEN;
-    script.src = `https://api.vk.com/method/users.get?user_ids=${encodeURIComponent(userId)}&fields=photo_200,first_name,last_name,domain,screen_name&access_token=${encodeURIComponent(tokenToUse)}&v=5.131&callback=${callbackName}`;
+    script.src = `https://api.vk.com/method/users.get?user_ids=${encodeURIComponent(userId)}&fields=photo_200,photo_max,first_name,last_name,domain,screen_name&access_token=${VK_SERVICE_TOKEN}&v=5.131&callback=${callbackName}`;
     script.onerror = () => {
       clearTimeout(timer);
       cleanup();
@@ -146,47 +142,60 @@ export const handleVkAuthPayload = async (payload: any): Promise<UserProfile> =>
   const user = payload?.user || payload;
   const rawId = user?.user_id || user?.id || payload?.user_id;
   const vkId = rawId || `${Date.now()}`;
-  const accessToken = payload?.access_token || user?.access_token;
 
   let firstName = user?.first_name || '';
   let lastName = user?.last_name || '';
   let photo = user?.avatar || user?.photo_200 || null;
+  let username = user?.domain || user?.screen_name || '';
+  let email = user?.email || payload?.email || '';
 
-  // Try decoding JWT id_token if provided by VK ID 2.0
+  // Safely decode JWT id_token (handles base64url + UTF-8 characters)
   try {
     const idToken = payload?.id_token || user?.id_token;
     if (idToken && typeof idToken === 'string' && idToken.includes('.')) {
       const parts = idToken.split('.');
       if (parts.length >= 2) {
-        const parsed = JSON.parse(atob(parts[1]));
+        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, '=');
+        const jsonStr = decodeURIComponent(
+          atob(padded)
+            .split('')
+            .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        );
+        const parsed = JSON.parse(jsonStr);
         firstName = firstName || parsed.first_name || parsed.given_name || '';
         lastName = lastName || parsed.last_name || parsed.family_name || '';
-        photo = photo || parsed.avatar || parsed.picture || null;
+        photo = photo || parsed.avatar || parsed.picture || parsed.photo_200 || null;
+        if (parsed.email) email = parsed.email;
       }
     }
-  } catch {}
-
-  let username = user?.domain || user?.screen_name || '';
+  } catch (e) {
+    console.warn('id_token decode notice:', e);
+  }
 
   // Always fetch official profile if user ID exists to ensure real photo, name and username
   if (rawId) {
     try {
-      const realProfile = await fetchVkUserProfile(rawId, accessToken);
+      const realProfile = await fetchVkUserProfile(rawId);
       if (realProfile) {
-        firstName = realProfile.firstName || firstName;
-        lastName = realProfile.lastName || lastName;
-        photo = realProfile.photoURL || photo;
-        username = realProfile.username || username;
+        if (realProfile.firstName) firstName = realProfile.firstName;
+        if (realProfile.lastName) lastName = realProfile.lastName;
+        if (realProfile.photoURL) photo = realProfile.photoURL;
+        if (realProfile.username) username = realProfile.username;
       }
-    } catch {}
+    } catch (e) {
+      console.warn('fetchVkUserProfile error:', e);
+    }
   }
 
-  const displayName = `${firstName} ${lastName}`.trim() || (username ? `@${username}` : `Пользователь (${vkId})`);
-  const email = user?.email || payload?.email || (username ? `${username}@vk.com` : `id${vkId}@vk.com`);
+  const fullName = `${firstName} ${lastName}`.trim();
+  const displayName = fullName || (username ? `@${username}` : `Пользователь (${vkId})`);
+  const finalEmail = email || (username ? `${username}@vk.com` : `id${vkId}@vk.com`);
 
   const profile: UserProfile = {
     uid: `vk_${vkId}`,
-    email,
+    email: finalEmail,
     displayName,
     photoURL: photo,
     avatarIcon: null,
@@ -199,6 +208,9 @@ export const handleVkAuthPayload = async (payload: any): Promise<UserProfile> =>
   return profile;
 };
 
+/**
+ * Official VK ID OneTap widget (for modals)
+ */
 export const renderVkOneTap = (
   container: HTMLElement,
   onSuccess: (user: UserProfile) => void,
@@ -213,10 +225,10 @@ export const renderVkOneTap = (
         scheme: VKID.Scheme.DARK,
         skin: VKID.OneTapSkin.Primary,
         showAlternativeLogin: true,
-        oauthList: ['ok_ru' as any, 'mail_ru' as any],
+        oauthList: [VKID.OAuthName.OK, VKID.OAuthName.MAIL],
         styles: {
-          height: 44,
-          borderRadius: 12,
+          height: 48,
+          borderRadius: 16,
         },
       })
       .on(VKID.WidgetEvents.ERROR, (err: any) => {
@@ -247,6 +259,56 @@ export const renderVkOneTap = (
 };
 
 /**
+ * Official VK ID FloatingOneTap widget («Шторка авторизации»)
+ */
+export const renderVkFloatingOneTap = (
+  onSuccess: (user: UserProfile) => void,
+  onError?: (err: any) => void
+) => {
+  initVkId();
+  try {
+    const floating = new VKID.FloatingOneTap();
+    floating
+      .render({
+        scheme: VKID.Scheme.DARK,
+        showAlternativeLogin: true,
+        oauthList: [VKID.OAuthName.OK, VKID.OAuthName.MAIL],
+        contentId: VKID.FloatingOneTapContentId.SIGN_IN_TO_SERVICE,
+        appName: 'OFMEDIA',
+        indent: {
+          bottom: 80,
+          right: 20,
+          top: 20,
+        },
+      })
+      .on(VKID.WidgetEvents.ERROR, (err: any) => {
+        console.warn('VK ID FloatingOneTap error:', err);
+        if (onError) onError(err);
+      })
+      .on(VKID.FloatingOneTapInternalEvents.LOGIN_SUCCESS, async (payload: any) => {
+        const code = payload?.code;
+        const deviceId = payload?.device_id;
+        if (code && deviceId) {
+          try {
+            const data = await VKID.Auth.exchangeCode(code, deviceId);
+            const user = await handleVkAuthPayload(data || payload);
+            onSuccess(user);
+            return;
+          } catch (e) {
+            console.warn('FloatingOneTap exchangeCode fallback:', e);
+          }
+        }
+        const user = await handleVkAuthPayload(payload);
+        onSuccess(user);
+      });
+    return floating;
+  } catch (err) {
+    console.warn('FloatingOneTap render error:', err);
+    return null;
+  }
+};
+
+/**
  * Direct VK ID 2.0 Auth flow using official SDK PKCE redirect
  */
 export const loginWithVkId = async (): Promise<void> => {
@@ -258,7 +320,8 @@ export const loginWithVkId = async (): Promise<void> => {
     console.warn('VKID.Auth.login notice:', e?.message);
     const appId = getVkAppId();
     const redirectUri = encodeURIComponent(getRedirectUrl());
-    window.location.href = `https://id.vk.ru/authorize?client_id=${appId}&redirect_uri=${redirectUri}&response_type=code&scope=&state=${encodeURIComponent(window.location.href)}`;
+    const state = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
+    window.location.href = `https://id.vk.ru/authorize?client_id=${appId}&redirect_uri=${redirectUri}&response_type=code&scope=&state=${state}`;
   }
 };
 
@@ -267,6 +330,26 @@ export const loginWithVkId = async (): Promise<void> => {
  */
 export const checkAndHandleVkRedirect = async (): Promise<UserProfile | null> => {
   if (typeof window === 'undefined') return null;
+
+  // 0. Check Hash for transferred session: #vk_session=...
+  if (window.location.hash && window.location.hash.includes('vk_session=')) {
+    try {
+      const hashContent = window.location.hash.startsWith('#') ? window.location.hash.substring(1) : window.location.hash;
+      const params = new URLSearchParams(hashContent);
+      const rawSession = params.get('vk_session');
+      if (rawSession) {
+        const user = JSON.parse(decodeURIComponent(rawSession));
+        if (user && user.uid) {
+          localStorage.setItem('ofmedia_user', JSON.stringify(user));
+          window.dispatchEvent(new Event('ofmedia_user_updated'));
+          window.history.replaceState({}, document.title, window.location.pathname);
+          return user;
+        }
+      }
+    } catch (e) {
+      console.warn('vk_session parse notice:', e);
+    }
+  }
 
   // 1. Check Search: ?code=...&device_id=...
   if (window.location.search && window.location.search.includes('code=')) {
@@ -281,12 +364,13 @@ export const checkAndHandleVkRedirect = async (): Promise<UserProfile | null> =>
         const data = await VKID.Auth.exchangeCode(code, deviceId);
         const user = await handleVkAuthPayload(data);
 
-        // If returned from external origin (e.g. Vercel), redirect back
+        // If returned from external origin (e.g. Vercel), forward with secure session hash
         if (state) {
           try {
             const returnUrl = decodeURIComponent(state);
             if (returnUrl.startsWith('http') && !returnUrl.includes(window.location.host)) {
-              window.location.href = `${returnUrl}${returnUrl.includes('?') ? '&' : '?'}vk_auth=success`;
+              const sessionPayload = encodeURIComponent(JSON.stringify(user));
+              window.location.href = `${returnUrl.split('#')[0]}#vk_session=${sessionPayload}`;
               return user;
             }
           } catch {}
@@ -321,3 +405,4 @@ export const checkAndHandleVkRedirect = async (): Promise<UserProfile | null> =>
 
   return null;
 };
+
