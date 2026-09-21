@@ -3,6 +3,7 @@ import type { Project } from '../data/projects';
 import type { Actor } from '../data/actors';
 import { ACTORS_DATA } from '../data/actors';
 import type { UserProfile } from '../services/firebase';
+import { CINEMA_AVATARS } from '../services/firebase';
 
 interface OfmediaHeaderProps {
   activeTab: 'main' | 'search' | 'favorites';
@@ -267,20 +268,35 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
               className="h-9 sm:h-10 flex items-center gap-2 p-1 sm:p-1.5 sm:pr-3.5 rounded-full glass-pill text-white transition-all shadow-lg hover:scale-102 active:scale-95 cursor-pointer border border-white/15 hover:border-[#ff5c00]/50"
               title="Личный кабинет и настройки"
             >
-              {user.photoURL ? (
-                <img
-                  src={user.photoURL}
-                  alt={user.displayName || ''}
-                  className="w-7 h-7 rounded-full object-cover border border-white/25 shadow-sm shrink-0"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLElement).style.display = 'none';
-                  }}
-                />
-              ) : (
-                <div className="w-7 h-7 rounded-full bg-[#ff5c00] text-white font-semibold text-xs flex items-center justify-center shadow shrink-0">
-                  {(user.displayName || user.email || 'U')[0].toUpperCase()}
-                </div>
-              )}
+              {(() => {
+                if (user.photoURL) {
+                  return (
+                    <img
+                      src={user.photoURL}
+                      alt={user.displayName || ''}
+                      className="w-7 h-7 rounded-full object-cover border border-white/25 shadow-sm shrink-0"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  );
+                }
+                const currentAv = CINEMA_AVATARS.find((a) => a.id === user.avatarIcon);
+                if (currentAv) {
+                  return (
+                    <img
+                      src={currentAv.src}
+                      alt={currentAv.label}
+                      className="w-7 h-7 rounded-full object-cover border border-white/25 shadow-sm shrink-0"
+                    />
+                  );
+                }
+                return (
+                  <div className="w-7 h-7 rounded-full bg-[#ff5c00] text-white font-semibold text-xs flex items-center justify-center shadow shrink-0">
+                    {(user.displayName || user.email || 'U')[0].toUpperCase()}
+                  </div>
+                );
+              })()}
               <span className="text-xs font-medium max-w-[110px] truncate hidden md:block">
                 {user.displayName || user.email?.split('@')[0]}
               </span>

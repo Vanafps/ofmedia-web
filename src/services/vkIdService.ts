@@ -41,15 +41,13 @@ export const initVkId = () => {
   try {
     const appId = getVkAppId();
     const redirectUrl = getRedirectUrl();
-    const state = typeof window !== 'undefined' ? window.location.href : '';
 
     VKID.Config.init({
       app: appId,
       redirectUrl,
       responseMode: VKID.ConfigResponseMode.Callback,
       source: VKID.ConfigSource.LOWCODE,
-      mode: VKID.ConfigAuthMode.Redirect,
-      state,
+      mode: VKID.ConfigAuthMode.InNewWindow,
       scope: '',
     });
     isInitialized = true;
@@ -66,7 +64,61 @@ export const fetchVkUserProfile = async (
 ): Promise<{ displayName: string; photoURL: string | null; firstName: string; lastName: string; username?: string } | null> => {
   if (!userId) return null;
 
-  // 1. Try Vercel Serverless proxy (handles CORS across GitHub Pages, localhost, and APK)
+  // 1. Client JSONP (works directly with VK API using permanent service token without CORS)
+  const jsonpPromise = new Promise<{ displayName: string; photoURL: string | null; firstName: string; lastName: string; username?: string } | null>((resolve) => {
+    if (typeof document === 'undefined') return resolve(null);
+    const callbackName = `vk_cb_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+    const script = document.createElement('script');
+
+    const cleanup = () => {
+      try {
+        delete (window as any)[callbackName];
+        if (script.parentNode) script.parentNode.removeChild(script);
+      } catch {}
+    };
+
+    const timer = setTimeout(() => {
+      cleanup();
+      resolve(null);
+    }, 4500);
+
+    (window as any)[callbackName] = (data: any) => {
+      clearTimeout(timer);
+      cleanup();
+      if (data && data.response && data.response[0]) {
+        const u = data.response[0];
+        const firstName = u.first_name || '';
+        const lastName = u.last_name || '';
+        const displayName = `${firstName} ${lastName}`.trim();
+        const photo = u.photo_200 || u.photo_max || null;
+        const username = u.domain || u.screen_name || '';
+        resolve({
+          displayName: displayName || (username ? `@${username}` : `id${userId}`),
+          photoURL: photo,
+          firstName,
+          lastName,
+          username,
+        });
+      } else {
+        resolve(null);
+      }
+    };
+
+    script.src = `https://api.vk.com/method/users.get?user_ids=${encodeURIComponent(userId)}&fields=photo_200,photo_max,first_name,last_name,domain,screen_name&access_token=${VK_SERVICE_TOKEN}&v=5.131&callback=${callbackName}`;
+    script.onerror = () => {
+      clearTimeout(timer);
+      cleanup();
+      resolve(null);
+    };
+    document.head.appendChild(script);
+  });
+
+  const jsonpData = await jsonpPromise;
+  if (jsonpData && (jsonpData.displayName || jsonpData.photoURL)) {
+    return jsonpData;
+  }
+
+  // 2. Serverless proxy fallback
   try {
     const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
     const apiUrl = isVercel
@@ -90,58 +142,12 @@ export const fetchVkUserProfile = async (
     console.warn('Vercel VK API proxy notice:', e);
   }
 
-  // 2. Client JSONP fallback (works directly with VK API using guaranteed service token)
-  return new Promise((resolve) => {
-    if (typeof document === 'undefined') return resolve(null);
-    const callbackName = `vk_cb_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-    const script = document.createElement('script');
-
-    const cleanup = () => {
-      delete (window as any)[callbackName];
-      if (script.parentNode) script.parentNode.removeChild(script);
-    };
-
-    const timer = setTimeout(() => {
-      cleanup();
-      resolve(null);
-    }, 5000);
-
-    (window as any)[callbackName] = (data: any) => {
-      clearTimeout(timer);
-      cleanup();
-      if (data && data.response && data.response[0]) {
-        const u = data.response[0];
-        const firstName = u.first_name || '';
-        const lastName = u.last_name || '';
-        const displayName = `${firstName} ${lastName}`.trim();
-        const photo = u.photo_200 || u.photo_max || null;
-        const username = u.domain || u.screen_name || '';
-        resolve({
-          displayName: displayName || username || `id${userId}`,
-          photoURL: photo,
-          firstName,
-          lastName,
-          username,
-        });
-      } else {
-        resolve(null);
-      }
-    };
-
-    script.src = `https://api.vk.com/method/users.get?user_ids=${encodeURIComponent(userId)}&fields=photo_200,photo_max,first_name,last_name,domain,screen_name&access_token=${VK_SERVICE_TOKEN}&v=5.131&callback=${callbackName}`;
-    script.onerror = () => {
-      clearTimeout(timer);
-      cleanup();
-      resolve(null);
-    };
-    document.head.appendChild(script);
-  });
+  return null;
 };
 
 export const handleVkAuthPayload = async (payload: any): Promise<UserProfile> => {
   const user = payload?.user || payload;
-  const rawId = user?.user_id || user?.id || payload?.user_id;
-  const vkId = rawId || `${Date.now()}`;
+  let rawId = user?.user_id || user?.id || payload?.user_id || payload?.userId;
 
   let firstName = user?.first_name || '';
   let lastName = user?.last_name || '';
@@ -149,9 +155,9 @@ export const handleVkAuthPayload = async (payload: any): Promise<UserProfile> =>
   let username = user?.domain || user?.screen_name || '';
   let email = user?.email || payload?.email || '';
 
-  // Safely decode JWT id_token (handles base64url + UTF-8 characters)
+  // 1. Safely decode JWT id_token if present (extracts real numeric VK ID from sub)
   try {
-    const idToken = payload?.id_token || user?.id_token;
+    const idToken = payload?.id_token || user?.id_token || payload?.token?.id_token;
     if (idToken && typeof idToken === 'string' && idToken.includes('.')) {
       const parts = idToken.split('.');
       if (parts.length >= 2) {
@@ -164,6 +170,9 @@ export const handleVkAuthPayload = async (payload: any): Promise<UserProfile> =>
             .join('')
         );
         const parsed = JSON.parse(jsonStr);
+        if (!rawId) {
+          rawId = parsed.sub || parsed.user_id;
+        }
         firstName = firstName || parsed.first_name || parsed.given_name || '';
         lastName = lastName || parsed.last_name || parsed.family_name || '';
         photo = photo || parsed.avatar || parsed.picture || parsed.photo_200 || null;
@@ -174,7 +183,23 @@ export const handleVkAuthPayload = async (payload: any): Promise<UserProfile> =>
     console.warn('id_token decode notice:', e);
   }
 
-  // Always fetch official profile if user ID exists to ensure real photo, name and username
+  // 2. If access token is available, attempt SDK userInfo call
+  if ((!firstName || !photo) && payload?.access_token) {
+    try {
+      const uInfo = await VKID.Auth.userInfo(payload.access_token);
+      if (uInfo?.user) {
+        if (!rawId && uInfo.user.user_id) rawId = uInfo.user.user_id;
+        if (uInfo.user.first_name) firstName = uInfo.user.first_name;
+        if (uInfo.user.last_name) lastName = uInfo.user.last_name;
+        if (uInfo.user.avatar) photo = uInfo.user.avatar;
+        if (uInfo.user.email) email = uInfo.user.email;
+      }
+    } catch (e) {
+      console.warn('VKID userInfo notice:', e);
+    }
+  }
+
+  // 3. Always fetch real user profile directly from VK API if user ID exists
   if (rawId) {
     try {
       const realProfile = await fetchVkUserProfile(rawId);
@@ -185,13 +210,14 @@ export const handleVkAuthPayload = async (payload: any): Promise<UserProfile> =>
         if (realProfile.username) username = realProfile.username;
       }
     } catch (e) {
-      console.warn('fetchVkUserProfile error:', e);
+      console.warn('fetchVkUserProfile notice:', e);
     }
   }
 
+  const vkId = rawId ? String(rawId) : `${Date.now()}`;
   const fullName = `${firstName} ${lastName}`.trim();
-  const displayName = fullName || (username ? `@${username}` : `Пользователь (${vkId})`);
-  const finalEmail = email || (username ? `${username}@vk.com` : `id${vkId}@vk.com`);
+  const displayName = fullName || (username ? (username.startsWith('@') ? username : `@${username}`) : (rawId ? `Пользователь VK` : 'Пользователь'));
+  const finalEmail = email || (username ? `${username.replace(/^@/, '')}@vk.com` : (rawId ? `id${rawId}@vk.com` : 'vk_user@vk.com'));
 
   const profile: UserProfile = {
     uid: `vk_${vkId}`,
@@ -236,20 +262,26 @@ export const renderVkOneTap = (
         if (onError) onError(err);
       })
       .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, async (payload: any) => {
-        const code = payload?.code;
-        const deviceId = payload?.device_id;
-        if (code && deviceId) {
-          try {
-            const data = await VKID.Auth.exchangeCode(code, deviceId);
-            const user = await handleVkAuthPayload(data || payload);
-            onSuccess(user);
-            return;
-          } catch (e) {
-            console.warn('exchangeCode fallback to payload:', e);
+        try {
+          const code = payload?.code;
+          const deviceId = payload?.device_id;
+          let authResult = payload;
+          if (code && deviceId) {
+            try {
+              const data = await VKID.Auth.exchangeCode(code, deviceId);
+              if (data) {
+                authResult = { ...payload, ...data };
+              }
+            } catch (e) {
+              console.warn('exchangeCode fallback to payload:', e);
+            }
           }
+          const user = await handleVkAuthPayload(authResult);
+          onSuccess(user);
+        } catch (err) {
+          console.error('VK OneTap process error:', err);
+          if (onError) onError(err);
         }
-        const user = await handleVkAuthPayload(payload);
-        onSuccess(user);
       });
     return oneTap;
   } catch (err) {

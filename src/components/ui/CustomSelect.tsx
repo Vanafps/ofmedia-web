@@ -15,6 +15,7 @@ export interface CustomSelectProps {
   menuClassName?: string;
   placeholder?: string;
   disabled?: boolean;
+  align?: 'left' | 'right';
 }
 
 export const CustomSelect: React.FC<CustomSelectProps> = ({
@@ -26,6 +27,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   menuClassName = '',
   placeholder = 'Выберите...',
   disabled = false,
+  align = 'left',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -81,7 +83,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative inline-block ${className}`}
+      className={`relative inline-block ${isOpen ? 'z-[60]' : 'z-10'} ${className}`}
       onKeyDown={handleKeyDown}
     >
       {/* Trigger Button */}
@@ -115,7 +117,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       {/* Popover Dropdown Menu */}
       {isOpen && (
         <div
-          className={`absolute left-0 top-full mt-1.5 w-max min-w-full max-w-xs z-[100] rounded-xl bg-[#141416]/95 backdrop-blur-xl border border-white/12 shadow-[0_16px_36px_rgba(0,0,0,0.85)] p-1 space-y-0.5 animate-in fade-in zoom-in-95 duration-150 origin-top overflow-hidden ${menuClassName}`}
+          className={`absolute ${align === 'right' ? 'right-0 origin-top-right' : 'left-0 origin-top'} top-full mt-1.5 w-max min-w-full max-w-xs z-[100] rounded-xl bg-[#141416]/95 backdrop-blur-xl border border-white/12 shadow-[0_16px_36px_rgba(0,0,0,0.85)] p-1 space-y-0.5 animate-in fade-in zoom-in-95 duration-150 overflow-hidden ${menuClassName}`}
         >
           {options.map((option) => {
             const isSelected = option.value === value;

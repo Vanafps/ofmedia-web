@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { loginAsGuest, type UserProfile } from '../services/firebase';
-import { renderVkOneTap, loginWithVkId } from '../services/vkIdService';
+import { loginAsGuest, loginWithEmail, registerWithEmail, type UserProfile } from '../services/firebase';
+import { renderVkOneTap } from '../services/vkIdService';
 
 interface OfmediaAuthModalProps {
   isOpen: boolean;
@@ -14,6 +14,12 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
   onClose,
   onSuccess,
 }) => {
+  const [authMethod, setAuthMethod] = useState<'vk' | 'email'>('vk');
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [emailInput, setEmailInput] = useState('');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [nameInput, setNameInput] = useState('');
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,9 +32,9 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
     onCloseRef.current = onClose;
   }, [onSuccess, onClose]);
 
-  // Render official VK ID SDK OneTap widget when modal opens
+  // Render official VK ID SDK OneTap widget when modal opens and VK tab is active
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || authMethod !== 'vk') return;
 
     const container = oneTapRef.current;
     if (!container) return;
@@ -55,7 +61,7 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
         (oneTapInstance as any)?.close?.();
       } catch {}
     };
-  }, [isOpen]);
+  }, [isOpen, authMethod]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -81,13 +87,23 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
     }
   };
 
-  const handleVkLoginClick = async () => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
       setLoading(true);
       setError(null);
-      await loginWithVkId();
-    } catch (e: any) {
-      setError(e?.message || 'Не удалось открыть авторизацию VK ID');
+      if (isRegisterMode) {
+        const user = await registerWithEmail(emailInput, passwordInput, nameInput);
+        onSuccess(user);
+        onClose();
+      } else {
+        const user = await loginWithEmail(emailInput, passwordInput);
+        onSuccess(user);
+        onClose();
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Ошибка авторизации по почте');
+    } finally {
       setLoading(false);
     }
   };
@@ -112,7 +128,7 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ type: 'spring', damping: 25, stiffness: 320 }}
-            className="relative w-full max-w-md bg-[#101012] border border-white/12 rounded-3xl p-6 sm:p-8 shadow-[0_30px_90px_rgba(0,0,0,0.95),0_0_1px_rgba(255,255,255,0.2)] z-10 space-y-5"
+            className="relative w-full max-w-md bg-[#101012] border border-white/12 rounded-3xl p-6 sm:p-8 shadow-[0_30px_90px_rgba(0,0,0,0.95),0_0_1px_rgba(255,255,255,0.2)] z-10 space-y-4"
           >
             {/* Close Button */}
             <button
@@ -126,7 +142,7 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
             </button>
 
             {/* Header */}
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-1.5">
               <div className="flex justify-center mb-1">
                 <img
                   src="/logos/ofmediawhite_clean.png"
@@ -138,8 +154,34 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
                 Вход в онлайн-кинотеатр
               </h2>
               <p className="text-xs text-zinc-400 font-normal leading-relaxed max-w-xs mx-auto">
-                Авторизуйтесь через VK ID для доступа к истории просмотров, персональным оценкам и закладкам на всех устройствах
+                Сохраняйте историю просмотров, персональные оценки и закладки на всех устройствах
               </p>
+            </div>
+
+            {/* Auth Method Toggle Tabs */}
+            <div className="grid grid-cols-2 p-1 rounded-2xl bg-white/5 border border-white/8 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => { setAuthMethod('vk'); setError(null); }}
+                className={`py-2 rounded-xl transition-all ${
+                  authMethod === 'vk'
+                    ? 'bg-[#0077ff]/25 text-white shadow-sm border border-[#0077ff]/40'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                VK ID & сервисы
+              </button>
+              <button
+                type="button"
+                onClick={() => { setAuthMethod('email'); setError(null); }}
+                className={`py-2 rounded-xl transition-all ${
+                  authMethod === 'email'
+                    ? 'bg-white/15 text-white shadow-sm border border-white/20'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                Почта и пароль
+              </button>
             </div>
 
             {/* Error Alert */}
@@ -154,29 +196,76 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
               </div>
             )}
 
-            {/* Official VK ID OneTap Container (LowCode Widget with 3-in-1: VK ID, Mail.ru, OK.ru) */}
-            <div className="w-full flex flex-col items-center justify-center pt-2">
-              <div
-                ref={oneTapRef}
-                className="w-full flex justify-center items-center min-h-[48px]"
-              />
-            </div>
+            {/* Tab 1: Official VK ID OneTap Container (NO DUPLICATE BUTTONS) */}
+            {authMethod === 'vk' && (
+              <div className="w-full flex flex-col items-center justify-center pt-1 min-h-[56px]">
+                <div
+                  ref={oneTapRef}
+                  className="w-full flex justify-center items-center"
+                />
+              </div>
+            )}
 
-            {/* Fallback Direct VK ID Button */}
-            <button
-              type="button"
-              onClick={handleVkLoginClick}
-              disabled={loading}
-              className="w-full py-3 px-4 rounded-2xl bg-[#0077ff]/15 hover:bg-[#0077ff]/25 border border-[#0077ff]/40 text-white text-xs sm:text-sm font-semibold flex items-center justify-center gap-3 transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer shadow-md disabled:opacity-50"
-            >
-              <svg className="w-5 h-5 fill-[#0077ff]" viewBox="0 0 24 24">
-                <path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.408 0 15.684 0zm3.602 17.502h-1.782c-.675 0-.882-.537-2.096-1.758-1.058-1.03-1.528-1.162-1.788-1.162-.366 0-.472.105-.472.61v1.65c0 .44-.14.71-1.303.71-1.922 0-4.053-1.164-5.558-3.33-2.268-3.197-2.888-5.61-2.888-6.108 0-.27.106-.52.61-.52h1.782c.453 0 .62.208.795.7 1.012 2.94 2.705 5.518 3.402 5.518.263 0 .384-.12.384-.783V11.23c-.08-.985-.576-1.07-.576-1.42 0-.175.148-.35.39-.35h2.46c.334 0 .452.176.452.574v3.522c0 .383.167.51.278.51.222 0 .408-.127.818-.538 1.258-1.412 2.158-3.52 2.158-3.52.12-.262.33-.548.784-.548h1.783c.537 0 .652.278.537.66-.214.992-2.3 3.938-2.39 4.07-.202.29-.278.42 0 .794.198.27 1.756 1.71 2.213 2.502.457.79.255 1.066-.43 1.066z" />
-              </svg>
-              <span>Войти через VK ID</span>
-            </button>
+            {/* Tab 2: Email & Password Authentication */}
+            {authMethod === 'email' && (
+              <form onSubmit={handleEmailSubmit} className="space-y-3 pt-1">
+                <div className="flex items-center justify-between text-xs pb-1">
+                  <span className="text-zinc-400 font-medium">
+                    {isRegisterMode ? 'Создание нового профиля' : 'Вход в существующий профиль'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsRegisterMode(!isRegisterMode)}
+                    className="text-[#ff5c00] hover:underline font-semibold"
+                  >
+                    {isRegisterMode ? 'Уже есть аккаунт?' : 'Регистрация'}
+                  </button>
+                </div>
+
+                {isRegisterMode && (
+                  <input
+                    type="text"
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    placeholder="Ваше имя"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs placeholder:text-zinc-500 focus:outline-none focus:border-[#ff5c00] transition-colors"
+                  />
+                )}
+
+                <input
+                  type="text"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  placeholder="Email или логин"
+                  required
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs placeholder:text-zinc-500 focus:outline-none focus:border-[#ff5c00] transition-colors"
+                />
+
+                <input
+                  type="password"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="Пароль"
+                  required
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs placeholder:text-zinc-500 focus:outline-none focus:border-[#ff5c00] transition-colors"
+                />
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-2.5 rounded-xl bg-[#ff5c00] hover:bg-[#ff6c1a] text-white text-xs font-semibold transition-all active:scale-95 disabled:opacity-50 cursor-pointer shadow"
+                >
+                  {loading
+                    ? 'Подождите...'
+                    : isRegisterMode
+                    ? 'Зарегистрироваться'
+                    : 'Войти по почте'}
+                </button>
+              </form>
+            )}
 
             {/* Divider */}
-            <div className="flex items-center gap-3 py-1">
+            <div className="flex items-center gap-3 py-0.5">
               <div className="flex-1 h-px bg-white/10" />
               <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">или без профиля</span>
               <div className="flex-1 h-px bg-white/10" />
@@ -190,8 +279,8 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
               className="w-full p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-left transition-all hover:scale-[1.01] active:scale-[0.98] cursor-pointer group"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-white/10 flex items-center justify-center text-zinc-300 group-hover:text-white group-hover:bg-[#ff5c00]/20 group-hover:border-[#ff5c00]/30 transition-colors shrink-0">
-                  <svg className="w-5 h-5 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth="2">
+                <div className="w-9 h-9 rounded-xl bg-zinc-800 border border-white/10 flex items-center justify-center text-zinc-300 group-hover:text-white group-hover:bg-[#ff5c00]/20 group-hover:border-[#ff5c00]/30 transition-colors shrink-0">
+                  <svg className="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>

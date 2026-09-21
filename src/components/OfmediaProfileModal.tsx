@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { UserProfile } from '../services/firebase';
 import { updateLocalUserProfile, CINEMA_AVATARS } from '../services/firebase';
@@ -6,7 +6,6 @@ import { getUserRatings } from '../services/ratingService';
 import { getAllUserReviews, deleteMovieReview, type Review } from '../services/reviewService';
 import { PROJECTS_DATA, type Project } from '../data/projects';
 import { PlayIcon } from './PlayIcon';
-import { CinemaAvatarIcon } from './CinemaAvatarIcon';
 import { CustomSelect } from './ui/CustomSelect';
 import { getOfflineMovies, removeOfflineMovie, type OfflineMovie } from '../services/offlineStorageService';
 import { checkForAppUpdate, triggerApkDownload, CURRENT_APP_VERSION } from '../services/updateService';
@@ -39,6 +38,7 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
   const [offlineMovies, setOfflineMovies] = useState<OfflineMovie[]>([]);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Player Settings
   const [prefQuality, setPrefQuality] = useState(() => localStorage.getItem('ofmedia_pref_quality') || '1080p');
@@ -85,6 +85,41 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
   }, [isOpen, onClose]);
 
   const currentDisplayName = displayName || user?.displayName || user?.email?.split('@')[0] || 'Пользователь';
+
+  const handleAvatarFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+        const minSide = Math.min(img.width, img.height);
+        const sx = (img.width - minSide) / 2;
+        const sy = (img.height - minSide) / 2;
+        ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, 256, 256);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+        updateLocalUserProfile({
+          photoURL: dataUrl,
+          avatarIcon: null,
+        });
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleRemovePhoto = () => {
+    updateLocalUserProfile({
+      photoURL: null,
+      avatarIcon: selectedAvatar || 'popcorn',
+    });
+  };
 
   const handleSaveProfile = () => {
     updateLocalUserProfile({
@@ -147,6 +182,15 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
           data-lenis-prevent="true"
           className="fixed inset-0 z-[100] bg-[#08080a] overflow-y-auto custom-scrollbar text-[#f4f4f5] pb-28 sm:pb-12"
         >
+      {/* Hidden File Input for Custom Avatar Upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*"
+        className="hidden"
+        onChange={handleAvatarFileSelect}
+      />
+
       {/* Top Floating Navigation Header */}
       <div className="sticky top-0 left-0 right-0 z-40 px-4 sm:px-12 py-3.5 sm:py-5 glass-header flex items-center justify-between">
         <button
@@ -160,13 +204,11 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
           <span>← На главную</span>
         </button>
 
-        <div className="flex items-center gap-3 px-3 py-1.5 rounded-full glass-pill shadow">
-          <img
-            src="/logos/ofmediawhite_clean.png"
-            alt="OFMEDIA"
-            className="h-4 sm:h-5 w-auto object-contain opacity-90 drop-shadow"
-          />
-        </div>
+        <img
+          src="/logos/ofmediawhite_clean.png"
+          alt="OFMEDIA"
+          className="h-5 sm:h-6 w-auto object-contain opacity-95 hover:opacity-100 transition-opacity"
+        />
       </div>
 
       {/* Main Content Area */}
@@ -175,33 +217,51 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
         <div className="p-6 sm:p-8 rounded-3xl glass-card flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           {/* Avatar & Meta */}
           <div className="flex flex-col sm:flex-row items-center sm:items-center gap-5 text-center sm:text-left">
-            {(() => {
-              if (user?.photoURL) {
+            <div className="relative group shrink-0">
+              {(() => {
+                if (user?.photoURL) {
+                  return (
+                    <img
+                      src={user.photoURL}
+                      alt={user.displayName || ''}
+                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-white/20 shrink-0 shadow-lg"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  );
+                }
+                const currentAvatarObj = CINEMA_AVATARS.find((a) => a.id === user?.avatarIcon);
+                if (currentAvatarObj) {
+                  return (
+                    <img
+                      src={currentAvatarObj.src}
+                      alt={currentAvatarObj.label}
+                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-white/20 shrink-0 shadow-lg"
+                    />
+                  );
+                }
                 return (
-                  <img
-                    src={user.photoURL}
-                    alt={user.displayName || ''}
-                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-white/20 shrink-0 shadow-lg"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLElement).style.display = 'none';
-                    }}
-                  />
-                );
-              }
-              const currentAvatarObj = CINEMA_AVATARS.find((a) => a.id === user?.avatarIcon);
-              if (currentAvatarObj) {
-                return (
-                  <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-tr ${currentAvatarObj.bg} flex items-center justify-center text-white shadow-lg border border-white/20 shrink-0`}>
-                    <CinemaAvatarIcon id={currentAvatarObj.id} className="w-10 h-10 text-white" />
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-[#ff5c00] to-orange-700 flex items-center justify-center text-white font-bold text-3xl sm:text-4xl shadow-lg border border-white/20 shrink-0">
+                    {initialLetter}
                   </div>
                 );
-              }
-              return (
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-[#ff5c00] to-orange-700 flex items-center justify-center text-white font-bold text-3xl sm:text-4xl shadow-lg border border-white/20 shrink-0">
-                  {initialLetter}
-                </div>
-              );
-            })()}
+              })()}
+
+              {/* Interactive Change Avatar Overlay Button */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute inset-0 rounded-2xl bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[11px] font-medium transition-opacity cursor-pointer backdrop-blur-[2px]"
+                title="Загрузить свою фотографию"
+              >
+                <svg className="w-5 h-5 mb-0.5 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>Изменить</span>
+              </button>
+            </div>
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
@@ -247,26 +307,61 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
         {isEditingProfile && (
           <div className="p-6 rounded-3xl glass-card space-y-5 animate-in fade-in">
             <h3 className="font-bold text-base text-white">Редактирование профиля</h3>
-            
+
+            {/* Custom Photo Upload & Removal Controls */}
             <div className="space-y-2">
-              <label className="text-xs text-zinc-400 font-medium block">Выберите аватар киномана:</label>
+              <label className="text-xs text-zinc-400 font-medium block">Ваша фотография:</label>
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-white text-xs font-medium transition-all flex items-center gap-2 cursor-pointer shadow hover:scale-102 active:scale-95"
+                >
+                  <svg className="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  <span>Загрузить фото с устройства</span>
+                </button>
+
+                {user?.photoURL && (
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    className="px-4 py-2.5 rounded-2xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/25 text-red-300 text-xs font-medium transition-all cursor-pointer hover:scale-102 active:scale-95"
+                  >
+                    Удалить свое фото
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {/* Minimalist 3D Cinema Avatars */}
+            <div className="space-y-2">
+              <label className="text-xs text-zinc-400 font-medium block">Или выберите коллекционный 3D-аватар киномана:</label>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5 max-w-md">
                 {CINEMA_AVATARS.map((av) => {
-                  const isSelected = selectedAvatar === av.id;
+                  const isSelected = selectedAvatar === av.id && !user?.photoURL;
                   return (
                     <button
                       key={av.id}
                       type="button"
-                      onClick={() => setSelectedAvatar(av.id)}
-                      className={`flex flex-col items-center justify-center p-2 rounded-2xl border transition-all ${
+                      onClick={() => {
+                        setSelectedAvatar(av.id);
+                        if (user?.photoURL) {
+                          updateLocalUserProfile({ photoURL: null, avatarIcon: av.id });
+                        }
+                      }}
+                      className={`flex flex-col items-center justify-center p-2 rounded-2xl border transition-all cursor-pointer ${
                         isSelected
-                          ? 'border-[#ff5c00] bg-[#ff5c00]/15 ring-2 ring-[#ff5c00]/40 scale-105'
+                          ? 'border-[#ff5c00] bg-[#ff5c00]/20 ring-2 ring-[#ff5c00]/50 scale-105 shadow-lg shadow-[#ff5c00]/20'
                           : 'border-white/10 bg-white/5 hover:border-white/25 hover:bg-white/10'
                       }`}
                     >
-                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${av.bg} flex items-center justify-center text-white shadow-inner mb-1`}>
-                        <CinemaAvatarIcon id={av.id} className="w-5 h-5 text-white" />
-                      </div>
+                      <img
+                        src={av.src}
+                        alt={av.label}
+                        className="w-12 h-12 rounded-xl object-cover shadow-inner mb-1.5"
+                      />
                       <span className="text-[10px] text-zinc-300 font-medium truncate max-w-full">{av.label}</span>
                     </button>
                   );
@@ -286,13 +381,13 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
             <div className="flex items-center gap-2 pt-2">
               <button
                 onClick={handleSaveProfile}
-                className="px-5 py-2 rounded-2xl bg-[#ff5c00] hover:bg-[#e05200] text-white text-xs font-medium transition-all shadow border border-white/20"
+                className="px-5 py-2 rounded-2xl bg-[#ff5c00] hover:bg-[#e05200] text-white text-xs font-medium transition-all shadow border border-white/20 cursor-pointer"
               >
                 Сохранить
               </button>
               <button
                 onClick={() => setIsEditingProfile(false)}
-                className="px-4 py-2 rounded-2xl glass-pill text-zinc-300 text-xs font-medium transition-colors"
+                className="px-4 py-2 rounded-2xl glass-pill text-zinc-300 text-xs font-medium transition-colors cursor-pointer"
               >
                 Отмена
               </button>
@@ -792,7 +887,7 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
             </div>
 
             <div className="space-y-4 text-xs">
-              <div className="p-5 rounded-3xl glass-card flex items-center justify-between gap-4">
+              <div className="p-5 rounded-3xl glass-card flex items-center justify-between gap-4 relative z-30 overflow-visible">
                 <div>
                   <div className="font-medium text-sm text-white">Качество видео по умолчанию</div>
                   <div className="text-xs text-zinc-400 font-normal mt-0.5">
@@ -802,6 +897,7 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
                 <CustomSelect
                   value={prefQuality}
                   onChange={(val) => handleSaveSettings(val, autoNext)}
+                  align="right"
                   options={[
                     { value: '1080p', label: '1080p' },
                     { value: '720p', label: '720p' },
@@ -814,7 +910,7 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
                 />
               </div>
 
-              <div className="p-5 rounded-3xl glass-card flex items-center justify-between gap-4">
+              <div className="p-5 rounded-3xl glass-card flex items-center justify-between gap-4 relative z-10">
                 <div>
                   <div className="font-medium text-sm text-white">Автопереход к следующей серии</div>
                   <div className="text-xs text-zinc-400 font-normal mt-0.5">

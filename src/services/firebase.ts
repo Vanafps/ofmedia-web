@@ -69,12 +69,12 @@ export interface StoredAccount {
 }
 
 export const CINEMA_AVATARS = [
-  { id: 'popcorn', label: 'Киноман', bg: 'from-orange-500 to-amber-600' },
-  { id: 'director', label: 'Режиссёр', bg: 'from-red-500 to-amber-600' },
-  { id: 'camera', label: 'Оператор', bg: 'from-zinc-700 to-zinc-800' },
-  { id: 'star', label: 'Звезда', bg: 'from-amber-400 to-orange-500' },
-  { id: 'mask', label: 'Актёр', bg: 'from-rose-500 to-orange-600' },
-  { id: 'sound', label: 'Звукач', bg: 'from-emerald-500 to-teal-600' },
+  { id: 'popcorn', label: 'Попкорн', src: '/avatars/avatar_popcorn.jpg', bg: 'from-orange-500 to-amber-600' },
+  { id: 'clapper', label: 'Хлопушка', src: '/avatars/avatar_clapper.jpg', bg: 'from-zinc-700 to-zinc-900' },
+  { id: 'camera', label: 'Камера', src: '/avatars/avatar_camera.jpg', bg: 'from-zinc-700 to-zinc-800' },
+  { id: 'star', label: 'Звезда', src: '/avatars/avatar_star.jpg', bg: 'from-amber-400 to-orange-500' },
+  { id: 'ticket', label: 'Билеты', src: '/avatars/avatar_ticket.jpg', bg: 'from-amber-500 to-yellow-600' },
+  { id: 'headphones', label: 'Звук', src: '/avatars/avatar_headphones.jpg', bg: 'from-zinc-800 to-black' },
 ];
 
 export const getStoredAccounts = (): StoredAccount[] => {
