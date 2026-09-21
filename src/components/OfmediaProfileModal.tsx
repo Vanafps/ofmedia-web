@@ -169,8 +169,6 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
     return acc + num;
   }, 0);
 
-  const initialLetter = (currentDisplayName || user?.email || 'U')[0].toUpperCase();
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -231,20 +229,14 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
                     />
                   );
                 }
-                const currentAvatarObj = CINEMA_AVATARS.find((a) => a.id === user?.avatarIcon);
-                if (currentAvatarObj) {
-                  return (
-                    <img
-                      src={currentAvatarObj.src}
-                      alt={currentAvatarObj.label}
-                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-white/20 shrink-0 shadow-lg"
-                    />
-                  );
-                }
+                const avatarKey = (isEditingProfile ? selectedAvatar : user?.avatarIcon) || 'popcorn';
+                const currentAvatarObj = CINEMA_AVATARS.find((a) => a.id === avatarKey) || CINEMA_AVATARS[0];
                 return (
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-br from-[#ff5c00] to-orange-700 flex items-center justify-center text-white font-bold text-3xl sm:text-4xl shadow-lg border border-white/20 shrink-0">
-                    {initialLetter}
-                  </div>
+                  <img
+                    src={currentAvatarObj.src}
+                    alt={currentAvatarObj.label}
+                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-white/20 shrink-0 shadow-lg"
+                  />
                 );
               })()}
 
@@ -347,9 +339,7 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
                       type="button"
                       onClick={() => {
                         setSelectedAvatar(av.id);
-                        if (user?.photoURL) {
-                          updateLocalUserProfile({ photoURL: null, avatarIcon: av.id });
-                        }
+                        updateLocalUserProfile({ photoURL: null, avatarIcon: av.id });
                       }}
                       className={`flex flex-col items-center justify-center p-2 rounded-2xl border transition-all cursor-pointer ${
                         isSelected

@@ -281,20 +281,13 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
                     />
                   );
                 }
-                const currentAv = CINEMA_AVATARS.find((a) => a.id === user.avatarIcon);
-                if (currentAv) {
-                  return (
-                    <img
-                      src={currentAv.src}
-                      alt={currentAv.label}
-                      className="w-7 h-7 rounded-full object-cover border border-white/25 shadow-sm shrink-0"
-                    />
-                  );
-                }
+                const currentAv = CINEMA_AVATARS.find((a) => a.id === (user.avatarIcon || 'popcorn')) || CINEMA_AVATARS[0];
                 return (
-                  <div className="w-7 h-7 rounded-full bg-[#ff5c00] text-white font-semibold text-xs flex items-center justify-center shadow shrink-0">
-                    {(user.displayName || user.email || 'U')[0].toUpperCase()}
-                  </div>
+                  <img
+                    src={currentAv.src}
+                    alt={currentAv.label}
+                    className="w-7 h-7 rounded-full object-cover border border-white/25 shadow-sm shrink-0"
+                  />
                 );
               })()}
               <span className="text-xs font-medium max-w-[110px] truncate hidden md:block">

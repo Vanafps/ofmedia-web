@@ -31,6 +31,14 @@ export const setVkAppId = (id: number | string) => {
  * The redirect URL registered in the VK ID Console.
  */
 export const getRedirectUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    if (window.location.hostname.includes('vercel.app')) {
+      return 'https://ofmedia.vercel.app/';
+    }
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return `${window.location.origin}/`;
+    }
+  }
   return 'https://ofmedia-web.github.io/';
 };
 
@@ -224,7 +232,7 @@ export const handleVkAuthPayload = async (payload: any): Promise<UserProfile> =>
     email: finalEmail,
     displayName,
     photoURL: photo,
-    avatarIcon: null,
+    avatarIcon: photo ? null : 'popcorn',
     username: username ? (username.startsWith('@') ? username : `@${username}`) : null,
     isAnonymous: false,
   };
@@ -232,6 +240,46 @@ export const handleVkAuthPayload = async (payload: any): Promise<UserProfile> =>
   localStorage.setItem('ofmedia_user', JSON.stringify(profile));
   window.dispatchEvent(new Event('ofmedia_user_updated'));
   return profile;
+};
+
+/**
+ * Robust code exchanger: tries SDK client exchange first, then falls back to serverless /api/vk-exchange
+ */
+export const exchangeVkCodeSecurely = async (code: string, deviceId?: string): Promise<any> => {
+  if (!code) return null;
+  // 1. Try SDK exchangeCode
+  try {
+    const data = await VKID.Auth.exchangeCode(code, deviceId || '');
+    if (data) return data;
+  } catch (sdkErr) {
+    console.warn('SDK exchangeCode notice, falling back to serverless:', sdkErr);
+  }
+
+  // 2. Try serverless exchange endpoint
+  try {
+    const redirectUri = getRedirectUrl();
+    const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
+    const apiUrl = isVercel ? '/api/vk-exchange' : 'https://ofmedia.vercel.app/api/vk-exchange';
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        code,
+        device_id: deviceId || '',
+        redirect_uri: redirectUri,
+      }),
+    });
+    if (res.ok) {
+      const serverData = await res.json();
+      if (serverData && !serverData.error) {
+        return serverData;
+      }
+    }
+  } catch (srvErr) {
+    console.warn('Server exchange error:', srvErr);
+  }
+
+  return null;
 };
 
 /**
@@ -266,14 +314,10 @@ export const renderVkOneTap = (
           const code = payload?.code;
           const deviceId = payload?.device_id;
           let authResult = payload;
-          if (code && deviceId) {
-            try {
-              const data = await VKID.Auth.exchangeCode(code, deviceId);
-              if (data) {
-                authResult = { ...payload, ...data };
-              }
-            } catch (e) {
-              console.warn('exchangeCode fallback to payload:', e);
+          if (code) {
+            const data = await exchangeVkCodeSecurely(code, deviceId);
+            if (data) {
+              authResult = { ...payload, ...data };
             }
           }
           const user = await handleVkAuthPayload(authResult);
@@ -320,17 +364,14 @@ export const renderVkFloatingOneTap = (
       .on(VKID.FloatingOneTapInternalEvents.LOGIN_SUCCESS, async (payload: any) => {
         const code = payload?.code;
         const deviceId = payload?.device_id;
-        if (code && deviceId) {
-          try {
-            const data = await VKID.Auth.exchangeCode(code, deviceId);
-            const user = await handleVkAuthPayload(data || payload);
-            onSuccess(user);
-            return;
-          } catch (e) {
-            console.warn('FloatingOneTap exchangeCode fallback:', e);
+        let authResult = payload;
+        if (code) {
+          const data = await exchangeVkCodeSecurely(code, deviceId);
+          if (data) {
+            authResult = { ...payload, ...data };
           }
         }
-        const user = await handleVkAuthPayload(payload);
+        const user = await handleVkAuthPayload(authResult);
         onSuccess(user);
       });
     return floating;
@@ -393,8 +434,8 @@ export const checkAndHandleVkRedirect = async (): Promise<UserProfile | null> =>
     if (code) {
       initVkId();
       try {
-        const data = await VKID.Auth.exchangeCode(code, deviceId);
-        const user = await handleVkAuthPayload(data);
+        const data = await exchangeVkCodeSecurely(code, deviceId);
+        const user = await handleVkAuthPayload(data || { code, device_id: deviceId });
 
         // If returned from external origin (e.g. Vercel), forward with secure session hash
         if (state) {

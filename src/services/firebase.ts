@@ -5,7 +5,6 @@ import {
   GoogleAuthProvider,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInAnonymously,
   signOut,
   onAuthStateChanged,
   updateProfile,
@@ -109,7 +108,12 @@ export const subscribeToAuth = (callback: (user: UserProfile | null) => void) =>
   const getSavedUser = (): UserProfile | null => {
     try {
       const saved = localStorage.getItem('ofmedia_user');
-      return saved ? JSON.parse(saved) : null;
+      if (!saved) return null;
+      const parsed: UserProfile = JSON.parse(saved);
+      if (!parsed.avatarIcon && !parsed.photoURL) {
+        parsed.avatarIcon = 'popcorn';
+      }
+      return parsed;
     } catch {
       return null;
     }
@@ -118,14 +122,20 @@ export const subscribeToAuth = (callback: (user: UserProfile | null) => void) =>
   callback(getSavedUser());
 
   if (auth && DEFAULT_FIREBASE_CONFIG.apiKey && !DEFAULT_FIREBASE_CONFIG.apiKey.includes('Dummy')) {
-    onAuthStateChanged(auth, (user: User | null) => {
-      if (user) {
+    onAuthStateChanged(auth, (firebaseUser: User | null) => {
+      const saved = getSavedUser();
+      // Never overwrite active VK ID, registered Email, or Guest session
+      if (saved && (saved.uid?.startsWith('vk_') || saved.uid?.startsWith('user_') || saved.uid?.startsWith('guest_') || saved.isAnonymous)) {
+        return;
+      }
+      if (firebaseUser && !saved) {
         const profile: UserProfile = {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName || user.email?.split('@')[0] || 'Пользователь',
-          photoURL: user.photoURL,
-          isAnonymous: user.isAnonymous
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Пользователь',
+          photoURL: firebaseUser.photoURL,
+          avatarIcon: 'popcorn',
+          isAnonymous: firebaseUser.isAnonymous
         };
         localStorage.setItem('ofmedia_user', JSON.stringify(profile));
         callback(profile);
@@ -210,26 +220,6 @@ export const loginWithGoogle = async (): Promise<UserProfile> => {
 };
 
 export const loginAsGuest = async (): Promise<UserProfile> => {
-  if (auth) {
-    try {
-      const result = await signInAnonymously(auth);
-      const guestNumber = result.user.uid.substring(0, 5).toUpperCase();
-      const profile: UserProfile = {
-        uid: result.user.uid,
-        email: null,
-        displayName: `Гость #${guestNumber}`,
-        photoURL: null,
-        avatarIcon: 'popcorn',
-        isAnonymous: true
-      };
-      localStorage.setItem('ofmedia_user', JSON.stringify(profile));
-      window.dispatchEvent(new Event('ofmedia_user_updated'));
-      return profile;
-    } catch (e: any) {
-      console.warn("Firebase anonymous auth notice:", e);
-    }
-  }
-
   const guestNumber = Math.floor(1000 + Math.random() * 9000);
   const profile: UserProfile = {
     uid: `guest_${guestNumber}`,
