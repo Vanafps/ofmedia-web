@@ -2,10 +2,10 @@ import { execSync } from 'node:child_process';
 import { copyFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
-console.log('🚀 [OFMEDIA] Building production bundle...');
+console.log('[OFMEDIA] Building production bundle...');
 execSync('npm run build', { stdio: 'inherit' });
 
-console.log('📦 [OFMEDIA] Preparing mirror files...');
+console.log('[OFMEDIA] Preparing mirror files...');
 const distDir = join(process.cwd(), 'dist');
 const public404 = join(process.cwd(), 'public', '404.html');
 const dist404 = join(distDir, '404.html');
@@ -33,7 +33,7 @@ if (existsSync(publicApkHtml)) {
 }
 copyFileSync(join(distDir, 'index.html'), join(appDir, 'index.html'));
 
-console.log('🌐 [OFMEDIA] Pushing to ofmedia-web.github.io...');
+console.log('[OFMEDIA] Pushing to ofmedia-web.github.io...');
 
 const runGit = (cmd) => {
   try {
@@ -58,4 +58,4 @@ try {
   });
 } catch {}
 
-console.log('✅ [OFMEDIA] Successfully published to https://ofmedia-web.github.io/');
+console.log('[OFMEDIA] Successfully published to https://ofmedia-web.github.io/');

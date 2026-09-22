@@ -32,32 +32,19 @@ export const OfmediaCardRow: React.FC<OfmediaCardRowProps> = ({
   const hasMovedRef = useRef(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  // Mouse wheel horizontal scrolling over movie cards row
+  // Smooth horizontal wheel scroll only when user holds Shift or uses trackpad horizontal delta
   useEffect(() => {
     const el = rowRef.current;
     if (!el) return;
 
     const handleWheel = (e: WheelEvent) => {
-      // Allow native horizontal swipe gestures from trackpads or Shift+wheel
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY) || e.shiftKey) {
-        return;
-      }
-
-      if (e.deltaY === 0) return;
-
-      const { scrollLeft, scrollWidth, clientWidth } = el;
-      const isAtStart = scrollLeft <= 0;
-      const isAtEnd = scrollLeft + clientWidth >= scrollWidth - 2;
-
-      const scrollingDown = e.deltaY > 0;
-      const scrollingUp = e.deltaY < 0;
-
-      // Scroll row horizontally if not at boundary
-      if ((scrollingDown && !isAtEnd) || (scrollingUp && !isAtStart)) {
+      // If user holds Shift, translate deltaY into horizontal carousel movement
+      if (e.shiftKey && e.deltaY !== 0) {
         e.preventDefault();
-        el.scrollLeft += e.deltaY * 1.3;
+        el.scrollLeft += e.deltaY * 1.2;
       }
-      // If already at boundary, do not preventDefault to allow seamless vertical page scroll
+      // Standard vertical wheel scroll without Shift is left completely untouched
+      // so the page scrolls vertically with zero hindrance
     };
 
     el.addEventListener('wheel', handleWheel, { passive: false });

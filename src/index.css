@@ -10,10 +10,18 @@ html, body, #root {
   width: 100%;
 }
 
-/* Modals and scrollable containers must contain their scroll to prevent window bounce */
-.overflow-y-auto, .overflow-x-auto, .custom-scrollbar {
+/* Modals and vertical scrollable containers must contain their scroll to prevent window bounce */
+.overflow-y-auto, .custom-scrollbar {
   overscroll-behavior: contain !important;
   overscroll-behavior-y: contain !important;
+}
+
+/* Horizontal rows must allow smooth vertical page scrolling on mobile and touch devices */
+.overflow-x-auto {
+  overscroll-behavior-x: contain !important;
+  overscroll-behavior-y: auto !important;
+  touch-action: pan-y pan-x !important;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Yandex 360 / YS Text Web Variable Font (Headings: width 110, weight 500-900) */

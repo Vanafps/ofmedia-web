@@ -19,7 +19,7 @@ export const getVkAppId = (): number => {
   if (storedId && !isNaN(Number(storedId))) {
     return Number(storedId);
   }
-  return isMobileApp() ? VK_APP_ID_ANDROID : VK_APP_ID_WEB;
+  return VK_APP_ID_WEB;
 };
 
 export const setVkAppId = (id: number | string) => {
@@ -36,7 +36,7 @@ export const getRedirectUrl = (): string => {
       return 'https://ofmedia.vercel.app/';
     }
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return `${window.location.origin}/`;
+      return isMobileApp() ? 'https://ofmedia.vercel.app/' : `${window.location.origin}/`;
     }
   }
   return 'https://ofmedia-web.github.io/';
@@ -49,13 +49,14 @@ export const initVkId = () => {
   try {
     const appId = getVkAppId();
     const redirectUrl = getRedirectUrl();
+    const isMobile = isMobileApp() || (typeof window !== 'undefined' && (window.innerWidth < 768 || 'ontouchstart' in window));
 
     VKID.Config.init({
       app: appId,
       redirectUrl,
       responseMode: VKID.ConfigResponseMode.Callback,
       source: VKID.ConfigSource.LOWCODE,
-      mode: VKID.ConfigAuthMode.InNewWindow,
+      mode: isMobile ? VKID.ConfigAuthMode.Redirect : VKID.ConfigAuthMode.InNewWindow,
       scope: '',
     });
     isInitialized = true;
@@ -394,7 +395,7 @@ export const loginWithVkId = async (): Promise<void> => {
     const appId = getVkAppId();
     const redirectUri = encodeURIComponent(getRedirectUrl());
     const state = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
-    window.location.href = `https://id.vk.ru/authorize?client_id=${appId}&redirect_uri=${redirectUri}&response_type=code&scope=&state=${state}`;
+    window.location.href = `https://oauth.vk.com/authorize?client_id=${appId}&redirect_uri=${redirectUri}&response_type=code&display=mobile&scope=&state=${state}`;
   }
 };
 

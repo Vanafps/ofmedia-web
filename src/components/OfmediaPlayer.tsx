@@ -544,7 +544,8 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     const isCurrentlyFs = Boolean(
       document.fullscreenElement ||
       (document as any).webkitFullscreenElement ||
-      (document as any).mozFullScreenElement
+      (document as any).mozFullScreenElement ||
+      isFullscreen
     );
 
     try {
@@ -561,13 +562,20 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
           console.warn('DOM requestFullscreen handled:', domFsErr);
         }
 
+        if ((window as any)?.AndroidScreen?.enterFullscreen) {
+          try {
+            (window as any).AndroidScreen.enterFullscreen();
+          } catch {}
+        }
+
+        try {
+          (window.screen?.orientation as any)?.lock?.('landscape')?.catch?.(() => {});
+        } catch {}
+
         if (isMobileApp()) {
           try {
             const { StatusBar } = await import('@capacitor/status-bar');
             await StatusBar.hide();
-          } catch {}
-          try {
-            (window.screen?.orientation as any)?.lock?.('landscape').catch(() => {});
           } catch {}
         }
         setIsFullscreen(true);
@@ -582,13 +590,20 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
           console.warn('DOM exitFullscreen handled:', exitFsErr);
         }
 
+        if ((window as any)?.AndroidScreen?.exitFullscreen) {
+          try {
+            (window as any).AndroidScreen.exitFullscreen();
+          } catch {}
+        }
+
+        try {
+          (window.screen?.orientation as any)?.unlock?.();
+        } catch {}
+
         if (isMobileApp()) {
           try {
             const { StatusBar } = await import('@capacitor/status-bar');
             await StatusBar.show();
-          } catch {}
-          try {
-            (window.screen?.orientation as any)?.unlock?.();
           } catch {}
         }
         setIsFullscreen(false);
@@ -1000,6 +1015,14 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      if ((window as any)?.AndroidScreen?.exitFullscreen) {
+        try {
+          (window as any).AndroidScreen.exitFullscreen();
+        } catch {}
+      }
+      try {
+        (window.screen?.orientation as any)?.unlock?.();
+      } catch {}
     };
   }, []);
 

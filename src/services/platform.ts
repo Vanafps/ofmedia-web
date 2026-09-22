@@ -23,7 +23,7 @@ export const isMobileApp = (): boolean => {
   return (
     !!(window as any)?.Capacitor?.isNativePlatform?.() ||
     window.location.protocol === 'capacitor:' ||
-    (window.location.protocol === 'http:' && window.location.hostname === 'localhost' && !window.location.port)
+    ((window.location.protocol === 'http:' || window.location.protocol === 'https:') && window.location.hostname === 'localhost' && !window.location.port)
   );
 };
 
