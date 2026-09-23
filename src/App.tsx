@@ -1189,8 +1189,8 @@ export function App() {
                   Приключения
                 </button>
 
-                {/* Mirror / Primary Switch Button with Clean SVGs (Vercel Primary <-> Netlify Mirror) */}
-                {typeof window !== 'undefined' && window.location.hostname.includes('netlify.app') ? (
+                {/* Mirror / Primary Switch Button with Clean SVGs (Vercel Primary <-> GitHub Pages Mirror) */}
+                {typeof window !== 'undefined' && window.location.hostname.includes('github.io') ? (
                   <a
                     href="https://ofmedia.vercel.app"
                     className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/10 text-[11px] group"
@@ -1205,9 +1205,9 @@ export function App() {
                   </a>
                 ) : (
                   <a
-                    href="https://ofmedia.netlify.app"
+                    href="https://ofmedia-web.github.io"
                     className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/10 text-[11px] group"
-                    title="Перейти на резервное зеркало (Netlify)"
+                    title="Перейти на резервное зеркало (GitHub Pages)"
                   >
                     <svg className="w-3.5 h-3.5 fill-none stroke-current text-[#ff5c00] group-hover:scale-110 transition-transform" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
