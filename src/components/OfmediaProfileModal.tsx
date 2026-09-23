@@ -10,6 +10,7 @@ import { PlayIcon } from './PlayIcon';
 import { CustomSelect } from './ui/CustomSelect';
 import { getOfflineMovies, removeOfflineMovie, type OfflineMovie } from '../services/offlineStorageService';
 import { checkForAppUpdate, triggerApkDownload, CURRENT_APP_VERSION } from '../services/updateService';
+import { isMobileApp } from '../services/platform';
 
 interface OfmediaProfileModalProps {
   isOpen: boolean;
@@ -204,13 +205,13 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
       <div className="sticky top-0 left-0 right-0 z-40 px-4 sm:px-12 py-3.5 sm:py-5 glass-header flex items-center justify-between">
         <button
           onClick={onClose}
-          className="flex items-center gap-2 px-4 py-2 rounded-full glass-pill text-white transition-all text-xs font-semibold group shadow-lg hover:scale-105 active:scale-95 bg-[#ff5c00]/20 hover:bg-[#ff5c00] border border-[#ff5c00]/40"
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white transition-all group shadow-lg hover:scale-105 active:scale-95 bg-white/10 hover:bg-[#ff5c00] border border-white/15 cursor-pointer"
+          aria-label="Вернуться на главную"
           title="Вернуться на главную (Esc)"
         >
           <svg className="w-4 h-4 fill-current group-hover:-translate-x-0.5 transition-transform" viewBox="0 0 24 24">
             <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
           </svg>
-          <span>← На главную</span>
         </button>
 
         <img
@@ -838,8 +839,12 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
         {activeTab === 'settings' && (
           <div className="space-y-6 animate-in fade-in">
             <div>
-              <h2 className="font-bold text-lg text-white">Настройки плеера и приложения</h2>
-              <p className="text-xs text-zinc-400 font-normal">Параметры видеопотока и обновлений</p>
+              <h2 className="font-bold text-lg text-white">
+                {isMobileApp() ? 'Настройки плеера и приложения' : 'Настройки плеера'}
+              </h2>
+              <p className="text-xs text-zinc-400 font-normal">
+                {isMobileApp() ? 'Параметры видеопотока и обновлений' : 'Параметры воспроизведения видеопотока'}
+              </p>
             </div>
 
             <div className="space-y-4 text-xs">
@@ -881,37 +886,39 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
                 />
               </div>
 
-              {/* App Version & Self Update Check without RuStore */}
-              <div className="p-5 rounded-3xl glass-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-white/10">
-                <div>
-                  <div className="font-medium text-sm text-white flex items-center gap-2">
-                    <span>Мобильное приложение OFMEDIA</span>
-                    <span className="px-2 py-0.5 rounded-md bg-[#ff5c00]/20 text-[#ff5c00] text-[10px] font-mono font-bold">v{CURRENT_APP_VERSION}</span>
+              {/* App Version & Self Update Check: Strictly in Mobile App (APK), never on Web */}
+              {isMobileApp() && (
+                <div className="p-5 rounded-3xl glass-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-white/10">
+                  <div>
+                    <div className="font-medium text-sm text-white flex items-center gap-2">
+                      <span>Мобильное приложение OFMEDIA</span>
+                      <span className="px-2 py-0.5 rounded-md bg-[#ff5c00]/20 text-[#ff5c00] text-[10px] font-mono font-bold">v{CURRENT_APP_VERSION}</span>
+                    </div>
+                    <div className="text-xs text-zinc-400 font-normal mt-0.5">
+                      {updateMessage || 'Автономные обновления без магазинов приложений'}
+                    </div>
                   </div>
-                  <div className="text-xs text-zinc-400 font-normal mt-0.5">
-                    {updateMessage || 'Автономные обновления без магазинов приложений'}
-                  </div>
+                  <button
+                    type="button"
+                    disabled={isCheckingUpdate}
+                    onClick={async () => {
+                      setIsCheckingUpdate(true);
+                      setUpdateMessage('Проверка сервера обновлений...');
+                      const res = await checkForAppUpdate();
+                      setIsCheckingUpdate(false);
+                      if (res.updateAvailable && res.latestVersion) {
+                        setUpdateMessage(`Доступна новая версия ${res.latestVersion.versionName}! Загрузка APK...`);
+                        triggerApkDownload(res.latestVersion.apkDirectUrl || res.latestVersion.apkUrl);
+                      } else {
+                        setUpdateMessage('У вас установлена последняя версия приложения.');
+                      }
+                    }}
+                    className="px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-[#ff5c00] hover:text-white text-zinc-200 text-xs font-semibold transition-all active:scale-95 shrink-0 shadow border border-white/15"
+                  >
+                    {isCheckingUpdate ? 'Проверяем...' : 'Проверить обновления'}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  disabled={isCheckingUpdate}
-                  onClick={async () => {
-                    setIsCheckingUpdate(true);
-                    setUpdateMessage('Проверка сервера обновлений...');
-                    const res = await checkForAppUpdate();
-                    setIsCheckingUpdate(false);
-                    if (res.updateAvailable && res.latestVersion) {
-                      setUpdateMessage(`Доступна новая версия ${res.latestVersion.versionName}! Загрузка APK...`);
-                      triggerApkDownload(res.latestVersion.apkDirectUrl || res.latestVersion.apkUrl);
-                    } else {
-                      setUpdateMessage('У вас установлена последняя версия приложения.');
-                    }
-                  }}
-                  className="px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-[#ff5c00] hover:text-white text-zinc-200 text-xs font-semibold transition-all active:scale-95 shrink-0 shadow border border-white/15"
-                >
-                  {isCheckingUpdate ? 'Проверяем...' : 'Проверить обновления'}
-                </button>
-              </div>
+              )}
             </div>
           </div>
         )}

@@ -21,7 +21,9 @@ export const AppLandingPage: React.FC = () => {
             href="/"
             className="px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-medium text-zinc-300 hover:text-white transition-all flex items-center gap-2"
           >
-            <span>←</span>
+            <svg className="w-3.5 h-3.5 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
             <span>В онлайн-кинотеатр</span>
           </a>
         </div>

@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 
 interface TooltipState {
   text: string;
@@ -8,6 +8,10 @@ interface TooltipState {
 }
 
 export const CustomTooltipProvider: React.FC = () => {
+  const [isHoverSupported] = useState(() => {
+    return typeof window !== 'undefined' && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  });
+
   const [tooltip, setTooltip] = useState<TooltipState>({
     text: '',
     x: 0,
@@ -17,7 +21,29 @@ export const CustomTooltipProvider: React.FC = () => {
 
   const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // On touch/mobile devices, clean up title attributes so native tooltip bubbles never linger on tap
   useEffect(() => {
+    if (isHoverSupported) return;
+    const cleanupTitles = () => {
+      document.querySelectorAll('[title]').forEach((el) => {
+        const t = el.getAttribute('title');
+        if (t) {
+          el.setAttribute('data-no-tooltip', t);
+          el.removeAttribute('title');
+        }
+      });
+    };
+    cleanupTitles();
+    const observer = new MutationObserver(cleanupTitles);
+    if (typeof document !== 'undefined' && document.body) {
+      observer.observe(document.body, { childList: true, subtree: true });
+    }
+    return () => observer.disconnect();
+  }, [isHoverSupported]);
+
+  useEffect(() => {
+    if (!isHoverSupported) return;
+
     const handleMouseOver = (e: MouseEvent) => {
       const target = (e.target as HTMLElement)?.closest('[data-tooltip], [title]') as HTMLElement | null;
       if (!target) return;

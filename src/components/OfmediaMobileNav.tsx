@@ -21,7 +21,7 @@ export const OfmediaMobileNav: React.FC<OfmediaMobileNavProps> = ({
   onGoHome,
 }) => {
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-[70] bg-[#0a0a0a]/95 backdrop-blur-3xl border-t border-white/12 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center justify-around select-none shadow-[0_-8px_30px_rgba(0,0,0,0.9)]">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-[110] bg-[#0a0a0a]/95 backdrop-blur-3xl border-t border-white/12 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center justify-around select-none shadow-[0_-8px_30px_rgba(0,0,0,0.9)]">
       {/* 1. Главная */}
       <button
         onClick={() => {

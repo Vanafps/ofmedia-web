@@ -44,10 +44,12 @@ export const OfmediaActorModal: React.FC<OfmediaActorModalProps> = ({
       <div className="sticky top-0 z-50 w-full bg-[#070709]/90 backdrop-blur-2xl border-b border-white/10 px-4 sm:px-12 lg:px-16 py-4 flex items-center justify-between">
         <button
           onClick={onClose}
-          className="flex items-center gap-2 text-xs sm:text-sm font-medium text-zinc-300 hover:text-[#ff5c00] transition-colors group cursor-pointer"
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-zinc-300 hover:text-white bg-white/5 hover:bg-white/15 border border-white/10 transition-all group cursor-pointer active:scale-95"
+          aria-label="Назад"
+          title="Назад (Esc)"
         >
           <svg
-            className="w-4 h-4 transition-transform group-hover:-translate-x-1"
+            className="w-4 h-4 transition-transform group-hover:-translate-x-0.5"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -55,7 +57,6 @@ export const OfmediaActorModal: React.FC<OfmediaActorModalProps> = ({
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
-          <span>Назад</span>
         </button>
 
         <span className="text-xs sm:text-sm text-zinc-400 font-medium tracking-wide">

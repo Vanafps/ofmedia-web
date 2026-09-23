@@ -318,6 +318,53 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     };
   }, [isPlaying]);
 
+  // Auto-landscape & Fullscreen on player mount (and restore on unmount)
+  useEffect(() => {
+    const isMobile =
+      typeof window !== 'undefined' &&
+      (window.innerWidth < 768 || 'ontouchstart' in window || isMobileApp());
+
+    if (isMobile) {
+      // 1. In native Android shell: invoke window.AndroidScreen.enterFullscreen()
+      if ((window as any)?.AndroidScreen?.enterFullscreen) {
+        try {
+          (window as any).AndroidScreen.enterFullscreen();
+        } catch (err) {
+          console.warn('AndroidScreen.enterFullscreen notice:', err);
+        }
+      }
+
+      // 2. In mobile browser: try locking screen orientation to landscape
+      try {
+        (window.screen?.orientation as any)?.lock?.('landscape')?.catch?.(() => {});
+      } catch {}
+
+      if (isMobileApp()) {
+        try {
+          import('@capacitor/status-bar').then(({ StatusBar }) => StatusBar.hide()).catch(() => {});
+        } catch {}
+      }
+    }
+
+    return () => {
+      // Restore orientation and system bars on exit
+      if ((window as any)?.AndroidScreen?.exitFullscreen) {
+        try {
+          (window as any).AndroidScreen.exitFullscreen();
+        } catch {}
+      }
+      try {
+        (window.screen?.orientation as any)?.unlock?.();
+      } catch {}
+
+      if (isMobileApp()) {
+        try {
+          import('@capacitor/status-bar').then(({ StatusBar }) => StatusBar.show()).catch(() => {});
+        } catch {}
+      }
+    };
+  }, []);
+
   // Toggle remaining time mode (-00:09 vs 00:25)
   const [showRemainingTime, setShowRemainingTime] = useState(false);
 
@@ -1548,14 +1595,25 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
           />
         </div>
 
+        {/* Mobile Portrait Timecode Indicator */}
+        <div className="flex sm:hidden items-center justify-between px-1 text-[11px] font-mono text-zinc-300 font-medium select-none mb-1">
+          <span>{formatTime(currentTime)}</span>
+          <button
+            onClick={() => setShowRemainingTime((r) => !r)}
+            className="hover:text-white transition-colors cursor-pointer"
+          >
+            {showRemainingTime ? `-${formatTime(Math.max(0, effectiveDuration - currentTime))}` : formatTime(effectiveDuration)}
+          </button>
+        </div>
+
         {/* 2. CONTROLS BAR */}
         <div className="flex items-center justify-between gap-1.5 sm:gap-4 text-zinc-100 min-w-0">
           {/* Left Controls: Play, Skip 10s SVGs, Okko Settings Button, Time */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 overflow-visible py-1">
+          <div className="flex items-center gap-1.5 sm:gap-3 min-w-0 overflow-visible py-1">
             {/* Play/Pause Button - Optically Centered with Spring Scale Interaction */}
             <button
               onClick={togglePlay}
-              className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center cursor-pointer active:scale-95 hover:scale-105 transition-transform duration-150 shrink-0 ${glassBtnClass}`}
+              className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center cursor-pointer active:scale-95 hover:scale-105 transition-transform duration-150 shrink-0 ${glassBtnClass}`}
               title={isPlaying ? 'Пауза (Пробел)' : 'Воспроизведение (Пробел)'}
             >
               {isPlaying ? (
@@ -1568,7 +1626,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
             {/* Skip -10s with Interactive Rotation Micro-Animation */}
             <button
               onClick={() => skip(-10)}
-              className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center cursor-pointer active:scale-95 active:-rotate-15 hover:scale-105 transition-all duration-150 shrink-0 ${glassBtnClass} group/rewind`}
+              className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center cursor-pointer active:scale-95 active:-rotate-15 hover:scale-105 transition-all duration-150 shrink-0 ${glassBtnClass} group/rewind`}
               title="Назад на 10 сек (←)"
             >
               <Rewind10Icon className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-100 group-hover/rewind:text-white transition-colors" />
@@ -1577,7 +1635,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
             {/* Skip +10s with Interactive Rotation Micro-Animation */}
             <button
               onClick={() => skip(10)}
-              className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center cursor-pointer active:scale-95 active:rotate-15 hover:scale-105 transition-all duration-150 shrink-0 ${glassBtnClass} group/forward`}
+              className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full flex items-center justify-center cursor-pointer active:scale-95 active:rotate-15 hover:scale-105 transition-all duration-150 shrink-0 ${glassBtnClass} group/forward`}
               title="Вперёд на 10 сек (→)"
             >
               <Forward10Icon className="w-4 h-4 sm:w-5 sm:h-5 text-zinc-100 group-hover/forward:text-white transition-colors" />
@@ -1608,10 +1666,10 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
               <span className="hidden sm:inline">Настройки</span>
             </button>
 
-            {/* Time Stamp (Click to switch current / remaining time) */}
+            {/* Time Stamp (Desktop / Landscape view) */}
             <button
               onClick={() => setShowRemainingTime((r) => !r)}
-              className="text-[11px] sm:text-xs font-medium text-zinc-300 hover:text-white px-1.5 py-1 rounded-md hover:bg-white/10 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
+              className="hidden sm:inline-flex text-[11px] sm:text-xs font-medium text-zinc-300 hover:text-white px-1.5 py-1 rounded-md hover:bg-white/10 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
               title="Нажмите для переключения формата времени"
             >
               {showRemainingTime ? (

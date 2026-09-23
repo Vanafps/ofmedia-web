@@ -16,11 +16,11 @@ html, body, #root {
   overscroll-behavior-y: contain !important;
 }
 
-/* Horizontal rows must allow smooth vertical page scrolling on mobile and touch devices */
+/* Horizontal rows must allow seamless vertical page scrolling on mobile and touch devices */
 .overflow-x-auto {
-  overscroll-behavior-x: contain !important;
+  overscroll-behavior-x: auto !important;
   overscroll-behavior-y: auto !important;
-  touch-action: pan-y pan-x !important;
+  touch-action: pan-x pan-y pinch-zoom !important;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -330,7 +330,7 @@ html, body, #root {
   background: #3f3f46;
 }
 
-/* Custom scrollbar for containers */
+/* Custom scrollbar for containers (Desktop pointer only) */
 .custom-scrollbar::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -344,6 +344,19 @@ html, body, #root {
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 92, 0, 0.5);
+}
+
+/* Completely remove custom scrollbar thumbs/tracks on mobile/touch screens */
+@media (max-width: 768px), (pointer: coarse) {
+  ::-webkit-scrollbar,
+  .custom-scrollbar::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+  * {
+    scrollbar-width: none !important;
+  }
 }
 
 /* Lenis Smooth Scroll Engine Styles */

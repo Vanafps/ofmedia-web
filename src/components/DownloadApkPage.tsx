@@ -82,9 +82,12 @@ export const DownloadApkPage: React.FC = () => {
 
           <a
             href="/"
-            className="block py-2 text-xs text-zinc-400 hover:text-white transition-colors"
+            className="inline-flex items-center justify-center gap-2 py-2 text-xs text-zinc-400 hover:text-white transition-colors"
           >
-            ← Вернуться к онлайн-просмотру в браузере
+            <svg className="w-3.5 h-3.5 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            <span>Вернуться к онлайн-просмотру в браузере</span>
           </a>
         </div>
 

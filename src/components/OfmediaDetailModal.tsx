@@ -311,13 +311,13 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
       <div className="fixed top-0 left-0 right-0 z-40 px-4 sm:px-12 py-3.5 sm:py-5 glass-header flex items-center justify-between pointer-events-none">
         <button
           onClick={onClose}
-          className="pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-full glass-pill text-zinc-100 hover:text-white transition-all text-xs font-medium group shadow-xl hover:scale-105 active:scale-95 cursor-pointer"
+          className="pointer-events-auto w-9 h-9 sm:w-10 sm:h-10 rounded-full glass-pill text-zinc-100 hover:text-white transition-all group shadow-xl hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer border border-white/15"
+          aria-label="Назад к каталогу"
           title="Назад к каталогу (Esc)"
         >
           <svg className="w-4 h-4 fill-current group-hover:-translate-x-0.5 transition-transform" viewBox="0 0 24 24">
             <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
           </svg>
-          <span>Назад</span>
         </button>
 
         <img

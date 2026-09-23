@@ -107,10 +107,9 @@ export function App() {
   // Rock-solid background scroll lock across all mobile & desktop browsers
   useBodyScrollLock(isAnyModalOpen);
 
-  // Official VK ID Floating One Tap ("Шторка авторизации") for unauthenticated visitors (Desktop only)
+  // Official VK ID Floating One Tap ("Шторка авторизации") for unauthenticated visitors (Desktop and Mobile)
   useEffect(() => {
-    const isMobileDevice = isMobileApp() || (typeof window !== 'undefined' && (window.innerWidth < 768 || 'ontouchstart' in window));
-    if (user || isAnyModalOpen || isMobileDevice) return;
+    if (user || isAnyModalOpen) return;
 
     const isDismissed = sessionStorage.getItem('ofmedia_auth_prompt_dismissed');
     if (isDismissed) return;
@@ -125,7 +124,7 @@ export function App() {
           console.warn('VK FloatingOneTap notice:', err);
         }
       );
-    }, 3500);
+    }, 2500);
 
     return () => {
       clearTimeout(timer);

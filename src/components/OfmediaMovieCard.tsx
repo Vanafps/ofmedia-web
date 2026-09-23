@@ -563,7 +563,7 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
       {/* ========================================================= */}
       <div
         onClick={handleCardClick}
-        className="hidden md:block relative aspect-video w-full rounded-2xl overflow-hidden bg-[#0a0a0c] border border-white/10 hover:border-white/30 transition-all duration-300 ease-out cursor-pointer group shadow-lg hover:shadow-[0_20px_45px_rgba(0,0,0,0.9)] hover:scale-[1.03] z-10 hover:z-30"
+        className="hidden md:block relative aspect-video w-full rounded-2xl overflow-hidden bg-[#0a0a0c] border border-white/10 hover:border-white/40 transition-all duration-300 ease-out cursor-pointer group shadow-lg hover:shadow-[0_25px_60px_rgba(0,0,0,0.95),0_0_25px_rgba(255,92,0,0.25)] hover:scale-108 z-10 hover:z-30 origin-center"
       >
         {/* Poster Image */}
         <img
@@ -571,7 +571,7 @@ export const OfmediaMovieCard: React.FC<OfmediaMovieCardProps> = ({
           alt={project.title}
           draggable={false}
           className={`w-full h-full object-cover select-none transition-all duration-500 ease-out ${
-            isVideoPlaying ? 'opacity-0 scale-105' : 'opacity-100 scale-100 group-hover:scale-103'
+            isVideoPlaying ? 'opacity-0 scale-108' : 'opacity-100 scale-100 group-hover:scale-105'
           }`}
         />
 

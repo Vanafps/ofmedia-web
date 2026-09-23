@@ -19,7 +19,7 @@ export const getVkAppId = (): number => {
   if (storedId && !isNaN(Number(storedId))) {
     return Number(storedId);
   }
-  return VK_APP_ID_WEB;
+  return isMobileApp() ? VK_APP_ID_ANDROID : VK_APP_ID_WEB;
 };
 
 export const setVkAppId = (id: number | string) => {
@@ -353,7 +353,7 @@ export const renderVkFloatingOneTap = (
         contentId: VKID.FloatingOneTapContentId.SIGN_IN_TO_SERVICE,
         appName: 'OFMEDIA',
         indent: {
-          bottom: 80,
+          bottom: 74,
           right: 20,
           top: 20,
         },
