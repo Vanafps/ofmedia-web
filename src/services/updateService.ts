@@ -10,8 +10,8 @@ export interface AppVersionInfo {
   releaseDate: string;
 }
 
-export const CURRENT_APP_VERSION = '1.0.4';
-export const CURRENT_APP_CODE = 5;
+export const CURRENT_APP_VERSION = '1.0.5';
+export const CURRENT_APP_CODE = 6;
 
 export const checkForAppUpdate = async (): Promise<{
   updateAvailable: boolean;
