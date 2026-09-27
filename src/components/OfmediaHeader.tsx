@@ -6,8 +6,8 @@ import type { UserProfile } from '../services/firebase';
 import { CINEMA_AVATARS } from '../services/firebase';
 
 interface OfmediaHeaderProps {
-  activeTab: 'main' | 'search' | 'favorites';
-  setActiveTab: (tab: 'main' | 'search' | 'favorites') => void;
+  activeTab: 'main' | 'search' | 'favorites' | 'news';
+  setActiveTab: (tab: 'main' | 'search' | 'favorites' | 'news') => void;
   onSelectProject: (project: Project) => void;
   onSelectActor: (actor: Actor) => void;
   projects: Project[];
@@ -115,6 +115,17 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
               }`}
             >
               Поиск
+            </button>
+
+            <button
+              onClick={() => setActiveTab('news')}
+              className={`relative px-4 py-1.5 rounded-full transition-all duration-200 ${
+                activeTab === 'news'
+                  ? 'bg-white/20 text-white font-medium shadow-sm border border-white/20'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              Новости
             </button>
 
             <button

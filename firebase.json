@@ -1,0 +1,24 @@
+{
+  "hosting": {
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "**/*.apk"
+    ],
+    "redirects": [
+      {
+        "source": "/ofmedia-latest.apk",
+        "destination": "https://ofmedia.ru/ofmedia-latest.apk",
+        "type": 302
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

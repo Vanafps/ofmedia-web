@@ -101,7 +101,7 @@ export const AppLandingPage: React.FC = () => {
                 Официальный релизный установочный файл без магазинов приложений. Подходит для смартфонов, планшетов и Android TV.
               </p>
               <div className="text-[11px] text-zinc-500 font-mono">
-                Версия 1.0.1 • 82.5 МБ • ru.ofmedia.app
+                Версия 1.1.0 • 96.5 МБ • ru.ofmedia.app
               </div>
             </div>
 

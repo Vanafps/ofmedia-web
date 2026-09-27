@@ -10,7 +10,12 @@
     "build:mobile": "tsc -b && vite build --mode mobile",
     "lint": "oxlint",
     "preview": "vite preview",
-    "deploy:mirror": "node scripts/deploy-mirror.mjs"
+    "deploy:mirror": "node scripts/deploy-mirror.mjs",
+    "bot:setup": "node scripts/setup-telegram-bot.mjs",
+    "bot:start": "node scripts/telegram-bot.mjs",
+    "rustore:status": "node scripts/rustore-status.mjs",
+    "rustore:upload": "node scripts/rustore-upload.mjs",
+    "deploy:firebase": "firebase deploy --only hosting"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

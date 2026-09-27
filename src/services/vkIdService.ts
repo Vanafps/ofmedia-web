@@ -32,14 +32,13 @@ export const setVkAppId = (id: number | string) => {
  */
 export const getRedirectUrl = (): string => {
   if (typeof window !== 'undefined') {
-    if (window.location.hostname.includes('vercel.app')) {
-      return 'https://ofmedia.vercel.app/';
+    if (isMobileApp()) {
+      return 'https://ofmedia.online/';
     }
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return isMobileApp() ? 'https://ofmedia.vercel.app/' : `${window.location.origin}/`;
-    }
+    const origin = window.location.origin;
+    return origin.endsWith('/') ? origin : `${origin}/`;
   }
-  return 'https://ofmedia-web.github.io/';
+  return 'https://ofmedia.online/';
 };
 
 let isInitialized = false;
@@ -129,10 +128,14 @@ export const fetchVkUserProfile = async (
 
   // 2. Serverless proxy fallback
   try {
-    const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
-    const apiUrl = isVercel
+    const isVercelHost = typeof window !== 'undefined' && (
+      window.location.hostname.includes('vercel.app') ||
+      window.location.hostname.includes('ofmedia.online') ||
+      window.location.hostname.startsWith('ver.')
+    );
+    const apiUrl = isVercelHost
       ? `/api/vk-user?user_id=${encodeURIComponent(userId)}`
-      : `https://ofmedia.vercel.app/api/vk-user?user_id=${encodeURIComponent(userId)}`;
+      : `https://ofmedia.online/api/vk-user?user_id=${encodeURIComponent(userId)}`;
 
     const res = await fetch(apiUrl);
     if (res.ok) {
@@ -259,8 +262,12 @@ export const exchangeVkCodeSecurely = async (code: string, deviceId?: string): P
   // 2. Try serverless exchange endpoint
   try {
     const redirectUri = getRedirectUrl();
-    const isVercel = typeof window !== 'undefined' && window.location.hostname.includes('vercel.app');
-    const apiUrl = isVercel ? '/api/vk-exchange' : 'https://ofmedia.vercel.app/api/vk-exchange';
+    const isVercelHost = typeof window !== 'undefined' && (
+      window.location.hostname.includes('vercel.app') ||
+      window.location.hostname.includes('ofmedia.online') ||
+      window.location.hostname.startsWith('ver.')
+    );
+    const apiUrl = isVercelHost ? '/api/vk-exchange' : 'https://ofmedia.online/api/vk-exchange';
     const res = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -268,6 +275,7 @@ export const exchangeVkCodeSecurely = async (code: string, deviceId?: string): P
         code,
         device_id: deviceId || '',
         redirect_uri: redirectUri,
+        client_id: String(getVkAppId()),
       }),
     });
     if (res.ok) {

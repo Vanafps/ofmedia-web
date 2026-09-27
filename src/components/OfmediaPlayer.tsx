@@ -3,6 +3,7 @@ import Hls from 'hls.js';
 import type { Project, Episode } from '../data/projects';
 import { saveWatchProgress, getWatchProgress } from '../services/watchHistoryService';
 import { isMobileApp } from '../services/platform';
+import { getOfflineVideoBlobUrl } from '../services/offlineStorageService';
 import { SpeakerVolumeIcon } from './SpeakerVolumeIcon';
 
 interface OfmediaPlayerProps {
@@ -260,6 +261,19 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
   const singleTapTimerRef = useRef<any>(null);
   const [isPipSupported, setIsPipSupported] = useState(false);
   const [isPipActive, setIsPipActive] = useState(false);
+  const [offlineBlobUrl, setOfflineBlobUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isCancelled = false;
+    getOfflineVideoBlobUrl(project.id).then((url) => {
+      if (!isCancelled && url) {
+        setOfflineBlobUrl(url);
+      }
+    });
+    return () => {
+      isCancelled = true;
+    };
+  }, [project.id]);
 
   // Storyboard Sprite Sheet Hover Frame Preview (Instant 60FPS scrubber thumbnails)
   const storyboardUrl = (currentEpisode as any).storyboard || project.storyboard || `/storyboards/${project.id}.webp`;
@@ -552,6 +566,42 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     window.addEventListener('mouseup', onMouseUp);
   };
 
+  // Mobile Touch Scrubbing Support
+  const handleTouchSeek = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    if (!videoRef.current || !effectiveDuration || !scrubberTrackRef.current) return;
+    isDraggingScrubberRef.current = true;
+    const rect = scrubberTrackRef.current.getBoundingClientRect();
+    setTrackWidth(rect.width);
+    const touch = e.touches[0];
+    const pos = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+    const targetTime = pos * effectiveDuration;
+    videoRef.current.currentTime = targetTime;
+    setCurrentTime(targetTime);
+
+    const onTouchMove = (moveEv: TouchEvent) => {
+      if (!videoRef.current || !effectiveDuration || !scrubberTrackRef.current) return;
+      const trackRect = scrubberTrackRef.current.getBoundingClientRect();
+      const moveTouch = moveEv.touches[0];
+      const movePos = Math.max(0, Math.min(1, (moveTouch.clientX - trackRect.left) / trackRect.width));
+      const newTime = movePos * effectiveDuration;
+      videoRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+      setHoverPos(moveTouch.clientX - trackRect.left);
+      setHoverTime(newTime);
+    };
+
+    const onTouchEnd = () => {
+      isDraggingScrubberRef.current = false;
+      setHoverTime(null);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+  };
+
   const handleSeekHover = (e: React.MouseEvent<HTMLDivElement>) => {
     const totalDuration = duration > 0 ? duration : fallbackDuration;
     if (!totalDuration) return;
@@ -699,11 +749,10 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
       lastTapRef.current = { time: 0, x: clientX, side };
     } else {
       lastTapRef.current = { time: now, x: clientX, side };
-      // Single tap: toggle Play/Pause and show controls after delay if not followed by second tap
+      // Single tap on mobile/touch screens: toggle controls visibility instead of pausing playback
       if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
       singleTapTimerRef.current = setTimeout(() => {
-        togglePlay();
-        setShowControls(true);
+        setShowControls((prev) => !prev);
       }, 260);
     }
   };
@@ -848,6 +897,19 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
       hlsRef.current = null;
     }
 
+    // Play local offline video if stored in IndexedDB / Cache
+    if (offlineBlobUrl) {
+      video.src = offlineBlobUrl;
+      video.preload = 'auto';
+      const saved = getWatchProgress(project.id);
+      if (saved && saved.currentTime > 5) {
+        video.currentTime = saved.currentTime;
+        setCurrentTime(saved.currentTime);
+      }
+      video.play().catch(() => {});
+      return;
+    }
+
     // Direct HLS Adaptive Streaming via GitHub CDN (Fallback to direct MP4)
     const videoSrc = currentEpisode.videoUrl || project.videoUrl;
     if (videoSrc) {
@@ -963,7 +1025,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
         hlsRef.current = null;
       }
     };
-  }, [isOpen, project.id, currentEpisode.id, currentEpisode.videoUrl]);
+  }, [isOpen, project.id, currentEpisode.id, currentEpisode.videoUrl, offlineBlobUrl]);
 
   // Video Element event listeners
   useEffect(() => {
@@ -1182,8 +1244,15 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
                 {project.title}
               </h2>
             )}
-            <div className="text-[11px] text-zinc-400 font-normal mt-0.5">
-              {currentEpisode.title && currentEpisode.title !== project.title ? `${currentEpisode.title} • ` : ''}{project.year}
+            <div className="flex items-center gap-2 text-[11px] text-zinc-400 font-normal mt-0.5">
+              <span>
+                {currentEpisode.title && currentEpisode.title !== project.title ? `${currentEpisode.title} • ` : ''}{project.year}
+              </span>
+              {offlineBlobUrl && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#ff5c00]/25 text-[#ff5c00] border border-[#ff5c00]/40">
+                  Оффлайн
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -1198,6 +1267,45 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
             <span>→</span>
           </button>
         )}
+      </div>
+
+      {/* MOBILE CENTER HUD CONTROLS */}
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className={`absolute inset-0 flex items-center justify-center gap-6 sm:gap-10 pointer-events-none z-25 transition-all duration-300 ${
+          showControls ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
+        }`}
+      >
+        {/* Rewind 10s */}
+        <button
+          onClick={() => skip(-10)}
+          className="pointer-events-auto w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white shadow-xl active:scale-90 hover:scale-105 transition-all cursor-pointer"
+          title="Назад на 10 сек"
+        >
+          <Rewind10Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+        </button>
+
+        {/* Center Big Play/Pause (64px mobile, 72px desktop) */}
+        <button
+          onClick={togglePlay}
+          className="pointer-events-auto w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#ff5c00] hover:bg-[#e05200] text-white flex items-center justify-center shadow-[0_0_30px_rgba(255,92,0,0.6)] active:scale-95 hover:scale-105 transition-all cursor-pointer border border-white/30"
+          title={isPlaying ? 'Пауза' : 'Воспроизведение'}
+        >
+          {isPlaying ? (
+            <PauseIcon className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+          ) : (
+            <ModernPlayIcon className="w-8 h-8 sm:w-10 sm:h-10 text-white translate-x-0.5" />
+          )}
+        </button>
+
+        {/* Forward 10s */}
+        <button
+          onClick={() => skip(10)}
+          className="pointer-events-auto w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white shadow-xl active:scale-90 hover:scale-105 transition-all cursor-pointer"
+          title="Вперёд на 10 сек"
+        >
+          <Forward10Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+        </button>
       </div>
 
       {/* BOTTOM CONTROLS DOCK */}
@@ -1504,9 +1612,10 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
         <div
           ref={scrubberTrackRef}
           onMouseDown={handleSeekStart}
+          onTouchStart={handleTouchSeek}
           onMouseMove={handleSeekHover}
           onMouseLeave={() => setHoverTime(null)}
-          className="relative w-full h-7 flex items-center cursor-pointer group/scrub mb-2 sm:mb-3"
+          className="relative w-full h-8 sm:h-7 flex items-center cursor-pointer group/scrub mb-2 sm:mb-3"
         >
           {/* Rich Floating Video Frame Preview Card with Timecode */}
           {hoverTime !== null && (() => {

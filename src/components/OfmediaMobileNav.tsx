@@ -1,8 +1,9 @@
 import React from 'react';
+import { triggerHaptic } from '../services/telegramService';
 
 interface OfmediaMobileNavProps {
-  activeTab: 'main' | 'search' | 'favorites';
-  setActiveTab: (tab: 'main' | 'search' | 'favorites') => void;
+  activeTab: 'main' | 'search' | 'favorites' | 'news';
+  setActiveTab: (tab: 'main' | 'search' | 'favorites' | 'news') => void;
   favoritesCount: number;
   onOpenSearch?: () => void;
   onOpenProfile: () => void;
@@ -20,15 +21,17 @@ export const OfmediaMobileNav: React.FC<OfmediaMobileNavProps> = ({
   isProfileOpen = false,
   onGoHome,
 }) => {
+  const handleTabClick = (tab: 'main' | 'search' | 'favorites' | 'news') => {
+    triggerHaptic('selection');
+    onGoHome();
+    setActiveTab(tab);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-[110] bg-[#0a0a0a]/95 backdrop-blur-3xl border-t border-white/12 px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex items-center justify-around select-none shadow-[0_-8px_30px_rgba(0,0,0,0.9)]">
       {/* 1. Главная */}
       <button
-        onClick={() => {
-          onGoHome();
-          setActiveTab('main');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
+        onClick={() => handleTabClick('main')}
         className={`flex flex-col items-center gap-1 p-1 transition-all active:scale-90 ${
           activeTab === 'main' && !isProfileOpen ? 'text-[#ff5c00]' : 'text-zinc-400 hover:text-white'
         }`}
@@ -41,11 +44,7 @@ export const OfmediaMobileNav: React.FC<OfmediaMobileNavProps> = ({
 
       {/* 2. Поиск */}
       <button
-        onClick={() => {
-          onGoHome();
-          setActiveTab('search');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
+        onClick={() => handleTabClick('search')}
         className={`flex flex-col items-center gap-1 p-1 transition-all active:scale-90 ${
           activeTab === 'search' && !isProfileOpen ? 'text-[#ff5c00]' : 'text-zinc-400 hover:text-white'
         }`}
@@ -56,13 +55,22 @@ export const OfmediaMobileNav: React.FC<OfmediaMobileNavProps> = ({
         <span className="text-[10px] font-medium">Поиск</span>
       </button>
 
-      {/* 3. Моё (Медиатека) */}
+      {/* 3. Новости (OFNEWS) */}
       <button
-        onClick={() => {
-          onGoHome();
-          setActiveTab('favorites');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
+        onClick={() => handleTabClick('news')}
+        className={`flex flex-col items-center gap-1 p-1 transition-all active:scale-90 ${
+          activeTab === 'news' && !isProfileOpen ? 'text-[#ff5c00]' : 'text-zinc-400 hover:text-white'
+        }`}
+      >
+        <svg className="w-5 h-5 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+        </svg>
+        <span className="text-[10px] font-medium">Новости</span>
+      </button>
+
+      {/* 4. Моё (Медиатека) */}
+      <button
+        onClick={() => handleTabClick('favorites')}
         className={`relative flex flex-col items-center gap-1 p-1 transition-all active:scale-90 ${
           activeTab === 'favorites' && !isProfileOpen ? 'text-[#ff5c00]' : 'text-zinc-400 hover:text-white'
         }`}
@@ -82,7 +90,10 @@ export const OfmediaMobileNav: React.FC<OfmediaMobileNavProps> = ({
 
       {/* 4. Профиль / Личный кабинет */}
       <button
-        onClick={onOpenProfile}
+        onClick={() => {
+          triggerHaptic('light');
+          onOpenProfile();
+        }}
         className={`flex flex-col items-center gap-1 p-1 transition-all active:scale-90 ${
           isProfileOpen ? 'text-[#ff5c00]' : 'text-zinc-400 hover:text-white'
         }`}

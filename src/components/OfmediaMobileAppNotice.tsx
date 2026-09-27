@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { isMobileApp } from '../services/platform';
+import { isMobileApp, isTelegramMiniApp } from '../services/platform';
 
 export const OfmediaMobileAppNotice: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Don't show in native Android Capacitor shell or if already dismissed recently
+    // Don't show in native Android Capacitor shell or inside Telegram Mini App
     if (typeof window === 'undefined') return;
-    if (isMobileApp()) return;
+    if (isMobileApp() || isTelegramMiniApp()) return;
 
     const isMobileDevice =
       window.innerWidth < 768 ||
@@ -19,7 +19,7 @@ export const OfmediaMobileAppNotice: React.FC = () => {
     const dismissedAt = localStorage.getItem('ofmedia_mobile_app_notice_dismissed');
     if (dismissedAt) {
       const daysPassed = (Date.now() - Number(dismissedAt)) / (1000 * 60 * 60 * 24);
-      if (daysPassed < 3) return;
+      if (daysPassed < 60) return;
     }
 
     // Show with slight delay so initial load is clean

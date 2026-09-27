@@ -14,6 +14,7 @@ export default async function handler(req, res) {
   let code = '';
   let deviceId = '';
   let redirectUri = '';
+  let clientId = '';
 
   if (req.method === 'POST') {
     try {
@@ -26,6 +27,7 @@ export default async function handler(req, res) {
         code = req.body.code || '';
         deviceId = req.body.device_id || req.body.deviceId || '';
         redirectUri = req.body.redirect_uri || req.body.redirectUri || '';
+        clientId = req.body.client_id || req.body.clientId || req.body.app_id || '';
       }
 
       if (!code && bodyStr) {
@@ -34,11 +36,13 @@ export default async function handler(req, res) {
           code = parsed.code || '';
           deviceId = parsed.device_id || parsed.deviceId || '';
           redirectUri = parsed.redirect_uri || parsed.redirectUri || '';
+          clientId = parsed.client_id || parsed.clientId || parsed.app_id || '';
         } catch {
           const params = new URLSearchParams(bodyStr);
           code = params.get('code') || '';
           deviceId = params.get('device_id') || params.get('deviceId') || '';
           redirectUri = params.get('redirect_uri') || params.get('redirectUri') || '';
+          clientId = params.get('client_id') || params.get('clientId') || params.get('app_id') || '';
         }
       }
     } catch (e) {
@@ -52,6 +56,7 @@ export default async function handler(req, res) {
     code = urlObj.searchParams.get('code') || '';
     deviceId = urlObj.searchParams.get('device_id') || urlObj.searchParams.get('deviceId') || '';
     redirectUri = urlObj.searchParams.get('redirect_uri') || urlObj.searchParams.get('redirectUri') || '';
+    clientId = urlObj.searchParams.get('client_id') || urlObj.searchParams.get('clientId') || urlObj.searchParams.get('app_id') || '';
   }
 
   if (!code) {
@@ -62,11 +67,12 @@ export default async function handler(req, res) {
 
   const defaultRedirect = 'https://ofmedia-web.github.io/';
   const finalRedirectUri = redirectUri || defaultRedirect;
+  const finalClientId = String(clientId || VK_APP_ID_WEB);
 
   try {
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
-      client_id: String(VK_APP_ID_WEB),
+      client_id: finalClientId,
       client_secret: VK_CLIENT_SECRET,
       code,
       redirect_uri: finalRedirectUri,

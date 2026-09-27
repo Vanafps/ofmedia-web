@@ -62,7 +62,7 @@ export const DownloadApkPage: React.FC = () => {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] text-zinc-400">
             <span>Пакет: ru.ofmedia.app</span>
             <span>•</span>
-            <span>82.5 МБ</span>
+            <span>96.5 МБ</span>
           </div>
         </div>
 

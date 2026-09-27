@@ -26,11 +26,20 @@ import { getUserRatings, getMovieRating } from './services/ratingService';
 import { getPersonalizedRecommendations, type RecommendedRow } from './services/recommendationService';
 import { getContinueWatchingProjects, type ContinueWatchingItem } from './services/watchHistoryService';
 import { checkAndHandleVkRedirect, renderVkFloatingOneTap } from './services/vkIdService';
-import { isMobileApp, isWeb } from './services/platform';
+import { isMobileApp, isWeb, isTelegramMiniApp } from './services/platform';
 import { useBodyScrollLock } from './hooks/useBodyScrollLock';
 import { checkForAppUpdate, triggerApkDownload, type AppVersionInfo } from './services/updateService';
 import { OfmediaNewsSection } from './components/OfmediaNewsSection';
 import { CustomTooltipProvider } from './components/ui/CustomTooltipProvider';
+import { getOfflineMovies, removeOfflineMovie, type OfflineMovie } from './services/offlineStorageService';
+import {
+  initTelegramWebApp,
+  isTelegramWebApp,
+  getTelegramUser,
+  setupTelegramBackButton,
+  hideTelegramBackButton,
+  triggerHaptic
+} from './services/telegramService';
 
 export function App() {
   const [currentPath, setCurrentPath] = useState(() =>
@@ -40,8 +49,9 @@ export function App() {
     typeof window !== 'undefined' ? window.location.search : ''
   );
 
-  const [activeTab, setActiveTab] = useState<'main' | 'search' | 'favorites'>('main');
-  const [favoritesSubTab, setFavoritesSubTab] = useState<'favorites' | 'ratings'>('favorites');
+  const [activeTab, setActiveTab] = useState<'main' | 'search' | 'favorites' | 'news'>('main');
+  const [favoritesSubTab, setFavoritesSubTab] = useState<'favorites' | 'ratings' | 'downloads'>('favorites');
+  const [offlineMovies, setOfflineMovies] = useState<OfflineMovie[]>(() => getOfflineMovies());
   const [sortOrder, setSortOrder] = useState<'rating_desc' | 'year_desc' | 'title_asc'>('rating_desc');
   const [selectedCategory, setSelectedCategory] = useState<GenreCategoryId>('none');
   const [categoryViewMode, setCategoryViewMode] = useState<'grid' | 'carousel'>('grid');
@@ -81,15 +91,18 @@ export function App() {
   useEffect(() => {
     refreshUserData();
     const handleOpenAuthEvent = () => setIsAuthModalOpen(true);
+    const handleOfflineUpdate = () => setOfflineMovies(getOfflineMovies());
     window.addEventListener('ofmedia_open_auth', handleOpenAuthEvent);
     window.addEventListener('ofmedia_ratings_updated', refreshUserData);
     window.addEventListener('ofmedia_reviews_updated', refreshUserData);
     window.addEventListener('ofmedia_history_updated', refreshUserData);
+    window.addEventListener('ofmedia_offline_updated', handleOfflineUpdate);
     return () => {
       window.removeEventListener('ofmedia_open_auth', handleOpenAuthEvent);
       window.removeEventListener('ofmedia_ratings_updated', refreshUserData);
       window.removeEventListener('ofmedia_reviews_updated', refreshUserData);
       window.removeEventListener('ofmedia_history_updated', refreshUserData);
+      window.removeEventListener('ofmedia_offline_updated', handleOfflineUpdate);
     };
   }, []);
 
@@ -109,7 +122,7 @@ export function App() {
 
   // Official VK ID Floating One Tap ("Шторка авторизации") for unauthenticated visitors (Desktop and Mobile)
   useEffect(() => {
-    if (user || isAnyModalOpen) return;
+    if (user || isAnyModalOpen || isTelegramWebApp()) return;
 
     const isDismissed = sessionStorage.getItem('ofmedia_auth_prompt_dismissed');
     if (isDismissed) return;
@@ -133,6 +146,21 @@ export function App() {
       } catch {}
     };
   }, [user, isAnyModalOpen]);
+
+  // Telegram WebApp Lifecycle & Auto-Login
+  useEffect(() => {
+    initTelegramWebApp();
+
+    if (isTelegramWebApp()) {
+      const tgUser = getTelegramUser();
+      if (tgUser && !user) {
+        setUser(tgUser);
+        try {
+          localStorage.setItem('ofmedia_user', JSON.stringify(tgUser));
+        } catch {}
+      }
+    }
+  }, []);
 
   // Butter-Smooth Kinetic Inertia Scrolling via Lenis (DESKTOP ONLY)
   useEffect(() => {
@@ -217,20 +245,27 @@ export function App() {
   }, []);
 
   const toggleFavorite = (projectId: string) => {
+    triggerHaptic('medium');
     setFavorites((prev) =>
       prev.includes(projectId) ? prev.filter((id) => id !== projectId) : [...prev, projectId]
     );
   };
 
-  const handleSelectTab = (tab: 'main' | 'search' | 'favorites') => {
+  const handleSelectTab = (tab: 'main' | 'search' | 'favorites' | 'news') => {
+    triggerHaptic('selection');
     setActiveTab(tab);
     if (isDetailModalOpen) setIsDetailModalOpen(false);
     if (isPlayerOpen) setIsPlayerOpen(false);
     if (isActorModalOpen) setIsActorModalOpen(false);
-    window.history.pushState(null, '', tab === 'favorites' ? '/my' : tab === 'search' ? '/search' : '/');
+    window.history.pushState(
+      null,
+      '',
+      tab === 'favorites' ? '/my' : tab === 'search' ? '/search' : tab === 'news' ? '/news' : '/'
+    );
   };
 
   const handlePlayProject = (project: Project, episode?: Episode) => {
+    triggerHaptic('medium');
     setSelectedProject(project);
     setSelectedEpisode(episode || project.episodes?.[0]);
     setIsPlayerOpen(true);
@@ -240,6 +275,7 @@ export function App() {
   };
 
   const handleOpenDetails = (project: Project) => {
+    triggerHaptic('light');
     setSelectedProject(project);
     setIsDetailModalOpen(true);
     setIsPlayerOpen(false);
@@ -254,6 +290,7 @@ export function App() {
   };
 
   const handleSelectGenre = (genre: string) => {
+    triggerHaptic('selection');
     setIsDetailModalOpen(false);
     setSelectedProject(null);
     setActiveTab('main');
@@ -285,6 +322,7 @@ export function App() {
   };
 
   const handleOpenActor = (actor: Actor) => {
+    triggerHaptic('light');
     setSelectedActor(actor);
     setIsActorModalOpen(true);
     setIsDetailModalOpen(false);
@@ -297,6 +335,60 @@ export function App() {
     setSelectedActor(null);
     window.history.pushState(null, '', activeTab === 'favorites' ? '/my' : '/');
   };
+
+  // Telegram BackButton synchronization with modal and navigation stack
+  useEffect(() => {
+    if (!isTelegramWebApp()) return;
+
+    if (isPlayerOpen) {
+      setupTelegramBackButton(() => {
+        triggerHaptic('light');
+        handleClosePlayer();
+      });
+    } else if (isDetailModalOpen) {
+      setupTelegramBackButton(() => {
+        triggerHaptic('light');
+        handleCloseDetails();
+      });
+    } else if (isActorModalOpen) {
+      setupTelegramBackButton(() => {
+        triggerHaptic('light');
+        handleCloseActor();
+      });
+    } else if (isProfileModalOpen) {
+      setupTelegramBackButton(() => {
+        triggerHaptic('light');
+        setIsProfileModalOpen(false);
+      });
+    } else if (isAuthModalOpen) {
+      setupTelegramBackButton(() => {
+        triggerHaptic('light');
+        setIsAuthModalOpen(false);
+      });
+    } else if (showUpdateModal) {
+      setupTelegramBackButton(() => {
+        triggerHaptic('light');
+        setShowUpdateModal(false);
+      });
+    } else if (activeTab !== 'main') {
+      setupTelegramBackButton(() => {
+        triggerHaptic('selection');
+        handleSelectTab('main');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    } else {
+      hideTelegramBackButton();
+    }
+  }, [
+    isPlayerOpen,
+    isDetailModalOpen,
+    isActorModalOpen,
+    isProfileModalOpen,
+    isAuthModalOpen,
+    showUpdateModal,
+    activeTab,
+    selectedProject
+  ]);
 
   const handleSelectNextEpisode = () => {
     if (!selectedProject || !selectedProject.episodes || selectedProject.episodes.length <= 1) return;
@@ -431,9 +523,36 @@ export function App() {
       return;
     }
 
+    // Route: /news
+    if (pathname === '/news' || pathname === '/news/') {
+      setActiveTab('news');
+      setIsDetailModalOpen(false);
+      setIsPlayerOpen(false);
+      setIsActorModalOpen(false);
+      return;
+    }
+
+    // Route: /downloads
+    if (pathname === '/downloads' || pathname === '/downloads/') {
+      setActiveTab('favorites');
+      setFavoritesSubTab('downloads');
+      setIsDetailModalOpen(false);
+      setIsPlayerOpen(false);
+      setIsActorModalOpen(false);
+      return;
+    }
+
     // Route: /:slug (Direct film page)
     const singleSlug = decodeURIComponent(pathname.replace(/^\//, ''));
-    if (singleSlug && singleSlug !== 'main' && singleSlug !== 'search') {
+    if (
+      singleSlug &&
+      singleSlug !== 'main' &&
+      singleSlug !== 'search' &&
+      singleSlug !== 'news' &&
+      singleSlug !== 'downloads' &&
+      singleSlug !== 'my' &&
+      singleSlug !== 'favorites'
+    ) {
       const match = PROJECTS_DATA.find((p) => p.slug === singleSlug || p.id === singleSlug);
       if (match) {
         setSelectedProject(match);
@@ -831,6 +950,16 @@ export function App() {
                   >
                     Мои оценки ({ratedProjects.length})
                   </button>
+                  <button
+                    onClick={() => setFavoritesSubTab('downloads')}
+                    className={`px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-medium transition-all ${
+                      favoritesSubTab === 'downloads'
+                        ? 'bg-[#ff5c00] text-white shadow-md'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    Загрузки ({offlineMovies.length})
+                  </button>
                 </div>
               </div>
             </div>
@@ -955,6 +1084,103 @@ export function App() {
                 )}
               </>
             )}
+
+            {/* DOWNLOADS SUB-VIEW */}
+            {favoritesSubTab === 'downloads' && (
+              <>
+                {offlineMovies.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 pt-4 pb-24">
+                    {offlineMovies.map((movie) => (
+                      <div
+                        key={movie.id}
+                        className="flex flex-col rounded-2xl bg-[#101012] border border-white/10 overflow-hidden shadow-lg hover:border-white/20 transition-all group"
+                      >
+                        <div className="relative aspect-video w-full overflow-hidden bg-zinc-900">
+                          <img
+                            src={movie.backdrop || movie.poster}
+                            alt={movie.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                          <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-[#ff5c00]/90 text-white text-[10px] font-semibold flex items-center gap-1 shadow">
+                            <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24">
+                              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z" />
+                            </svg>
+                            <span>Оффлайн</span>
+                          </div>
+                          <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md border border-white/10 text-zinc-300 text-[10px] font-mono">
+                            {movie.fileSizeMb} МБ
+                          </div>
+                        </div>
+
+                        <div className="p-4 flex flex-col flex-1 justify-between gap-3">
+                          <div>
+                            <h3 className="font-heading font-semibold text-sm sm:text-base text-white truncate">
+                              {movie.title}
+                            </h3>
+                            <p className="text-xs text-zinc-400 mt-0.5">
+                              {movie.year} • {movie.duration}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-2 pt-2 border-t border-white/5">
+                            <button
+                              onClick={() => handlePlayProject(movie.project)}
+                              className="flex-1 py-2 px-3 rounded-xl bg-[#ff5c00] hover:bg-[#e05200] text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-md shadow-[#ff5c00]/25 transition-all active:scale-95 cursor-pointer"
+                            >
+                              <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                              <span>Смотреть оффлайн</span>
+                            </button>
+
+                            <button
+                              onClick={async () => {
+                                triggerHaptic('medium');
+                                await removeOfflineMovie(movie.id);
+                              }}
+                              className="p-2 rounded-xl bg-white/5 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-white/10 hover:border-red-500/30 transition-all cursor-pointer"
+                              title="Удалить из памяти устройства"
+                            >
+                              <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-16 sm:py-20 text-center bg-[#101012] rounded-3xl border border-white/10 space-y-4 max-w-lg mx-auto p-6">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-[#ff5c00]">
+                      <svg className="w-6 h-6 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                    </div>
+                    <h3 className="font-heading font-medium text-base sm:text-lg text-white">
+                      Нет сохранённых фильмов
+                    </h3>
+                    <p className="text-xs text-zinc-400 max-w-sm mx-auto leading-relaxed font-normal">
+                      Нажимайте на значок загрузки на странице любого фильма, чтобы сохранить его для оффлайн-просмотра без интернета.
+                    </p>
+                    <button
+                      onClick={() => setActiveTab('main')}
+                      className="px-6 py-2.5 rounded-full bg-[#ff5c00] text-white text-xs font-medium hover:bg-[#e05200] transition-colors shadow-lg shadow-[#ff5c00]/30 cursor-pointer"
+                    >
+                      Перейти к фильмам
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* TAB 4: OFNEWS DEDICATED NEWS PAGE */}
+        {activeTab === 'news' && (
+          <div className="pt-20 sm:pt-24 max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <OfmediaNewsSection user={user} />
           </div>
         )}
       </main>
@@ -1103,8 +1329,8 @@ export function App() {
         }}
       />
 
-      {/* Footer & App promo: ALWAYS visible on the website (desktop & mobile web), HIDDEN in Native Android App */}
-      {isWeb() && (
+      {/* Footer & App promo: ALWAYS visible on the website (desktop & mobile web), HIDDEN in Native Android App & Telegram Mini App */}
+      {isWeb() && !isTelegramMiniApp() && (
         <div className="w-full">
           {/* Mobile App Download Callout in Footer */}
           <section className="border-t border-white/8 bg-[#09090b] py-8 sm:py-10 text-white select-none">

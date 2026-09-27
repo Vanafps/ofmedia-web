@@ -32,6 +32,8 @@ dist-ssr
 *.apk
 *.aab
 *.jks
+*.pem
+.firebase/
 !public/ofmedia-latest.apk
 android/app/build/
 android/.gradle/

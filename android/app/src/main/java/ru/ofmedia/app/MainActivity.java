@@ -32,6 +32,44 @@ public class MainActivity extends BridgeActivity {
                 settings.setJavaScriptCanOpenWindowsAutomatically(true);
 
                 webView.setWebChromeClient(new WebChromeClient() {
+                    private View customView;
+                    private CustomViewCallback customViewCallback;
+
+                    @Override
+                    public void onShowCustomView(View view, CustomViewCallback callback) {
+                        if (customView != null) {
+                            onHideCustomView();
+                            return;
+                        }
+                        customView = view;
+                        customViewCallback = callback;
+                        runOnUiThread(() -> {
+                            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+                            WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+                            if (controller != null) {
+                                controller.hide(WindowInsetsCompat.Type.systemBars());
+                                controller.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onHideCustomView() {
+                        if (customView == null) return;
+                        runOnUiThread(() -> {
+                            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+                            WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+                            if (controller != null) {
+                                controller.show(WindowInsetsCompat.Type.systemBars());
+                            }
+                        });
+                        if (customViewCallback != null) {
+                            customViewCallback.onCustomViewHidden();
+                        }
+                        customView = null;
+                        customViewCallback = null;
+                    }
+
                     @Override
                     public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, Message resultMsg) {
                         WebView.HitTestResult result = view.getHitTestResult();
