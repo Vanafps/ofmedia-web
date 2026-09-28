@@ -76,7 +76,7 @@ async function uploadToRuStore() {
       appName: 'OFMEDIA',
       appType: 'MAIN',
       publishType: 'INSTANTLY',
-      whatsNew: 'OFMEDIA 1.1.0: Нативный Android-клиент на Kotlin и Jetpack Compose с плеером ExoPlayer (AndroidX Media3). Добавлены: меню настроек в плеере с выбором качества (144p-1080p FHD), звуковых дорожек и субтитров; регулировка скорости (0.5x-2.0x); пропорции экрана (Вписать, Заполнить, Растянуть); вертикальные жесты яркости и громкости; двойной тап перемотки (+/- 10с); режим Картинка-в-картинке (PiP); синхронизация истории просмотров, закладок, оценок и аватаров.',
+      whatsNew: 'OFMEDIA 1.2.0: Полный визуальный редизайн под фирменный стиль OFMEDIA. Внедрена кинематографическая типографика: заголовки Graphik Kinopoisk, основной текст Yandex Sans Text, рейтинги и таймкоды Bebas Neue. Карточки фильмов и обложки стандартизированы под широкоформатный формат 16:9 без искажений. Обновлены градиенты, темный глассморфизм, бейджи рейтинга и прогресс просмотра. В плеере ExoPlayer обновлена типографика настроек, таймлайна и диалогов выбора серии.',
       developerContacts: {
         email: 'support@ofmedia.online',
         website: 'https://ofmedia.online'
@@ -108,7 +108,7 @@ async function uploadToRuStore() {
   const fileBuffer = fs.readFileSync(APK_PATH);
   const blob = new Blob([fileBuffer], { type: 'application/vnd.android.package-archive' });
   const formData = new FormData();
-  formData.append('file', blob, 'ofmedia-v1.1.0.apk');
+  formData.append('file', blob, 'ofmedia-v1.2.0.apk');
 
   const uploadUrl = `https://public-api.rustore.ru/public/v1/application/${PACKAGE_NAME}/version/${versionId}/apk?servicesType=Unknown&isMainApk=true`;
   const uploadRes = await fetch(uploadUrl, {

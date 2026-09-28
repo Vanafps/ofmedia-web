@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Slide 01 - Catalog</title>
+  <style>
+    @font-face {
+      font-family: 'Bebas Cyrillic';
+      src: url('./bebasneuecyrillic.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      width: 1080px;
+      height: 1920px;
+      overflow: hidden;
+      background-color: #070709;
+      background-image: 
+        radial-gradient(ellipse 900px 550px at 50% 12%, rgba(255, 92, 0, 0.28) 0%, transparent 70%),
+        radial-gradient(circle 700px at 85% 60%, rgba(255, 92, 0, 0.16) 0%, transparent 65%),
+        radial-gradient(circle 600px at 15% 75%, rgba(255, 92, 0, 0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 1000px 450px at 50% 98%, rgba(255, 92, 0, 0.25) 0%, transparent 70%);
+      color: #ffffff;
+      font-family: 'Graphik', 'Montserrat', 'Inter', -apple-system, sans-serif;
+      position: relative;
+    }
+
+    /* Subtle Cinematic Grid Pattern matching OfmediaInteractiveHero */
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      opacity: 0.04;
+      background-image: 
+        linear-gradient(#ffffff 1px, transparent 1px),
+        linear-gradient(90deg, #ffffff 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 65px;
+    }
+
+    /* Top Official Brand Header */
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(18, 18, 24, 0.85);
+      border: 1px solid rgba(255, 92, 0, 0.4);
+      border-radius: 9999px;
+      padding: 10px 28px;
+      box-shadow: 0 0 35px rgba(255, 92, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px);
+    }
+    .brand-logo-img {
+      height: 38px;
+      width: auto;
+      object-contain: contain;
+      filter: drop-shadow(0 0 15px rgba(255, 92, 0, 0.5));
+    }
+    .brand-divider {
+      width: 1px;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .brand-tag {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #ff7a1a;
+      text-shadow: 0 0 15px rgba(255, 92, 0, 0.5);
+    }
+
+    /* Grand Headline in Bebas */
+    .headline {
+      font-family: 'Bebas Cyrillic', 'Bebas Neue', Impact, sans-serif;
+      font-size: 96px;
+      line-height: 0.94;
+      letter-spacing: 2px;
+      text-align: center;
+      margin-top: 26px;
+      background: linear-gradient(180deg, #ffffff 0%, #f4f4f5 55%, #a1a1aa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 8px 30px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 45px rgba(255, 92, 0, 0.25));
+    }
+
+    /* Subtitle in Graphik */
+    .subtitle {
+      font-family: 'Graphik', 'Montserrat', 'Inter', sans-serif;
+      font-size: 26px;
+      font-weight: 500;
+      line-height: 1.38;
+      text-align: center;
+      color: #d4d4d8;
+      margin-top: 16px;
+      max-width: 880px;
+      padding: 0 20px;
+    }
+
+    /* Specs Badges with OFMEDIA Orange accents */
+    .badges-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 26px;
+    }
+    .badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(18, 18, 24, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(16px);
+      border-radius: 9999px;
+      padding: 12px 24px;
+      font-size: 20px;
+      font-weight: 600;
+      color: #f4f4f5;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+    .badge-orange {
+      background: rgba(255, 92, 0, 0.12);
+      border-color: rgba(255, 92, 0, 0.45);
+      color: #ff9142;
+      box-shadow: 0 0 25px rgba(255, 92, 0, 0.25);
+    }
+    .badge svg {
+      width: 22px;
+      height: 22px;
+      stroke-width: 2.2;
+    }
+
+    /* 3D Cinema Showcase Container */
+    .showcase-stage {
+      position: absolute;
+      top: 550px;
+      bottom: -120px;
+      width: 1000px;
+      display: flex;
+      justify-content: center;
+      perspective: 1200px;
+    }
+
+    /* Flagship Phone Chassis */
+    .phone-chassis {
+      position: relative;
+      width: 680px;
+      height: 1480px;
+      border-radius: 54px;
+      background: #0d0d12;
+      border: 10px solid #23232c;
+      outline: 2px solid rgba(255, 92, 0, 0.4);
+      box-shadow: 
+        0 40px 100px -15px rgba(0, 0, 0, 0.95),
+        0 0 100px rgba(255, 92, 0, 0.35);
+      overflow: hidden;
+      z-index: 20;
+    }
+
+    /* Dynamic Island */
+    .island {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 135px;
+      height: 32px;
+      background: #000;
+      border-radius: 9999px;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 16px;
+    }
+    .island-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #181822;
+      border: 1px solid #2d2d3d;
+    }
+
+    /* Inside the Phone: Real Interactive Cinema Catalog Mockup */
+    .mock-screen {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: #070709;
+      display: flex;
+      flex-direction: column;
+      padding-top: 60px;
+    }
+
+    /* App Top Bar */
+    .mock-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+    }
+    .mock-logo {
+      height: 34px;
+    }
+    .mock-nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .mock-icon-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #181820;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Hero Banner Inside Phone */
+    .mock-hero {
+      position: relative;
+      margin: 24px 20px 0;
+      height: 420px;
+      border-radius: 28px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+    .mock-hero img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .mock-hero-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, #070709 15%, rgba(0,0,0,0.5) 60%, transparent 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 24px;
+    }
+    .mock-hero-tag {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ff5c00;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .mock-hero-title {
+      font-family: 'Bebas Cyrillic', sans-serif;
+      font-size: 44px;
+      line-height: 1;
+      margin-top: 6px;
+    }
+    .mock-hero-btn {
+      margin-top: 14px;
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #ff5c00;
+      color: #fff;
+      font-weight: 700;
+      font-size: 16px;
+      padding: 12px 24px;
+      border-radius: 16px;
+      box-shadow: 0 0 25px rgba(255, 92, 0, 0.5);
+    }
+
+    /* Carousels Inside Phone */
+    .mock-section-title {
+      font-family: 'Bebas Cyrillic', sans-serif;
+      font-size: 28px;
+      letter-spacing: 1px;
+      color: #fff;
+      margin: 24px 24px 12px;
+    }
+    .mock-row {
+      display: flex;
+      gap: 14px;
+      padding: 0 20px;
+      overflow: hidden;
+    }
+    .mock-card {
+      flex-shrink: 0;
+      width: 180px;
+      height: 260px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+    }
+    .mock-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .mock-card-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.75);
+      border: 1px solid rgba(255,255,255,0.2);
+      font-size: 12px;
+      font-weight: 700;
+      color: #ff9142;
+      padding: 3px 8px;
+      border-radius: 8px;
+    }
+
+    /* 3D Floating Movie Cards Outside Phone */
+    .floating-card-left {
+      position: absolute;
+      left: 10px;
+      top: 360px;
+      width: 320px;
+      height: 200px;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 2px solid rgba(255, 92, 0, 0.65);
+      box-shadow: 
+        0 25px 50px rgba(0, 0, 0, 0.85),
+        0 0 40px rgba(255, 92, 0, 0.35);
+      z-index: 35;
+      transform: rotate(-7deg) translateZ(40px);
+    }
+    .floating-card-left img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .floating-card-left-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.92) 15%, rgba(0,0,0,0.3) 60%, transparent 100%);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .chip-pill {
+      align-self: flex-start;
+      background: #ff5c00;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 9999px;
+      box-shadow: 0 0 15px rgba(255, 92, 0, 0.6);
+    }
+    .film-title-box {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .film-title-box h3 {
+      font-family: 'Bebas Cyrillic', sans-serif;
+      font-size: 24px;
+      color: #fff;
+    }
+    .film-play-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #ff5c00;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px rgba(255, 92, 0, 0.8);
+    }
+
+    .floating-card-right {
+      position: absolute;
+      right: 15px;
+      top: 680px;
+      width: 300px;
+      height: 420px;
+      border-radius: 26px;
+      overflow: hidden;
+      border: 2px solid rgba(255, 92, 0, 0.65);
+      box-shadow: 
+        0 30px 60px rgba(0, 0, 0, 0.9),
+        0 0 45px rgba(255, 92, 0, 0.35);
+      z-index: 35;
+      transform: rotate(6deg) translateZ(50px);
+    }
+    .floating-card-right img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .floating-card-right-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.95) 20%, rgba(0,0,0,0.2) 60%, transparent 100%);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Floating CTA Badge at Bottom Center */
+    .floating-cta {
+      position: absolute;
+      bottom: 220px;
+      z-index: 50;
+      background: linear-gradient(135deg, #ff5c00, #ff7a1a);
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-radius: 9999px;
+      padding: 20px 42px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 
+        0 25px 50px rgba(0, 0, 0, 0.8),
+        0 0 50px rgba(255, 92, 0, 0.7);
+      transform: translateY(0);
+    }
+    .floating-cta svg {
+      width: 32px;
+      height: 32px;
+      fill: #fff;
+    }
+    .floating-cta-text {
+      font-family: 'Bebas Cyrillic', sans-serif;
+      font-size: 34px;
+      letter-spacing: 2px;
+      color: #fff;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-overlay"></div>
+
+  <div class="container">
+    <!-- Official OFMEDIA Logo at Top -->
+    <div class="brand-header">
+      <img class="brand-logo-img" src="./assets/ofmediawhite_clean.png" alt="OFMEDIA" />
+      <div class="brand-divider"></div>
+      <span class="brand-tag">КИНОТЕАТР</span>
+    </div>
+
+    <!-- Grand Typography: Bebas Cyrillic -->
+    <h1 class="headline">ДЕСЯТКИ ОРИГИНАЛЬНЫХ ФИЛЬМОВ</h1>
+    <p class="subtitle">Эксклюзивные премьеры, фильмы, клипы и шоу собственного производства в Full HD</p>
+
+    <!-- Specs Badges: True Specs -->
+    <div class="badges-row">
+      <div class="badge badge-orange">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+        Full HD 1080p
+      </div>
+      <div class="badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ff7a1a"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+        Собственное производство
+      </div>
+      <div class="badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ff7a1a"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        Без рекламы
+      </div>
+    </div>
+
+    <!-- 3D Cinema Showcase -->
+    <div class="showcase-stage">
+      <!-- Left 3D Floating Movie Card -->
+      <div class="floating-card-left">
+        <img src="./assets/hor_still_1.png" alt="Фильм" />
+        <div class="floating-card-left-overlay">
+          <span class="chip-pill">⭐ 8.9 Рейтинг</span>
+          <div class="film-title-box">
+            <h3>ТОП НЕДЕЛИ</h3>
+            <div class="film-play-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right 3D Floating Movie Card -->
+      <div class="floating-card-right">
+        <img src="./assets/poster_clip.png" alt="Постер" />
+        <div class="floating-card-right-overlay">
+          <span class="chip-pill">ОРИГИНАЛЬНЫЙ РЕЛИЗ</span>
+          <div>
+            <h3 style="font-family: 'Bebas Cyrillic'; font-size: 32px; color: #fff;">NP - ШКОЛА 2070</h3>
+            <p style="font-size: 15px; color: #ff9142; margin-top: 4px;">Эксклюзивно на OFMEDIA</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Flagship Phone Chassis -->
+      <div class="phone-chassis">
+        <div class="island">
+          <div class="island-dot"></div>
+        </div>
+
+        <!-- Inside App Interface Mockup -->
+        <div class="mock-screen">
+          <div class="mock-header">
+            <img class="mock-logo" src="./assets/ofmediawhite_clean.png" alt="OFMEDIA" />
+            <div class="mock-nav-actions">
+              <div class="mock-icon-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              </div>
+              <div style="background: #ff5c00; color: #fff; font-size: 14px; font-weight: 700; padding: 8px 16px; border-radius: 14px;">
+                Войти
+              </div>
+            </div>
+          </div>
+
+          <!-- Featured Hero Inside Screen -->
+          <div class="mock-hero">
+            <img src="./assets/ofmedia_hero_bg.png" alt="Hero Banner" />
+            <div class="mock-hero-overlay">
+              <span class="mock-hero-tag">ПРЕМЬЕРА СЕЗОНА</span>
+              <h2 class="mock-hero-title">ТВОЙ НОВЫЙ OFMEDIA</h2>
+              <div class="mock-hero-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                Смотреть фильм
+              </div>
+            </div>
+          </div>
+
+          <!-- Carousels Inside Screen -->
+          <div class="mock-section-title">ПОПУЛЯРНЫЕ ФИЛЬМЫ</div>
+          <div class="mock-row">
+            <div class="mock-card">
+              <img src="./assets/poster_vdnh.png" alt="ВДНХ" />
+              <div class="mock-card-badge">8.7</div>
+            </div>
+            <div class="mock-card">
+              <img src="./assets/poster_nalim.png" alt="Налим" />
+              <div class="mock-card-badge">8.4</div>
+            </div>
+            <div class="mock-card">
+              <img src="./assets/poster_park.png" alt="Парк" />
+              <div class="mock-card-badge">8.1</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Floating Call-To-Action -->
+      <div class="floating-cta">
+        <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        <span class="floating-cta-text">СМОТРЕТЬ В FULL HD</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

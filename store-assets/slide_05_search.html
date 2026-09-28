@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Slide 05 - Search & Genres</title>
+  <style>
+    @font-face {
+      font-family: 'Bebas Cyrillic';
+      src: url('./bebasneuecyrillic.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      width: 1080px;
+      height: 1920px;
+      overflow: hidden;
+      background-color: #070709;
+      background-image: 
+        radial-gradient(ellipse 900px 550px at 50% 12%, rgba(255, 92, 0, 0.28) 0%, transparent 70%),
+        radial-gradient(circle 700px at 85% 55%, rgba(255, 92, 0, 0.16) 0%, transparent 65%),
+        radial-gradient(circle 600px at 15% 75%, rgba(255, 92, 0, 0.14) 0%, transparent 60%),
+        radial-gradient(ellipse 1000px 450px at 50% 98%, rgba(255, 92, 0, 0.25) 0%, transparent 70%);
+      color: #ffffff;
+      font-family: 'Graphik', 'Montserrat', 'Inter', -apple-system, sans-serif;
+      position: relative;
+    }
+
+    .grid-overlay {
+      position: absolute;
+      inset: 0;
+      opacity: 0.04;
+      background-image: 
+        linear-gradient(#ffffff 1px, transparent 1px),
+        linear-gradient(90deg, #ffffff 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .container {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 65px;
+    }
+
+    /* Brand Header */
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(18, 18, 24, 0.85);
+      border: 1px solid rgba(255, 92, 0, 0.4);
+      border-radius: 9999px;
+      padding: 10px 28px;
+      box-shadow: 0 0 35px rgba(255, 92, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px);
+    }
+    .brand-logo-img {
+      height: 38px;
+      width: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 0 15px rgba(255, 92, 0, 0.5));
+    }
+    .brand-divider {
+      width: 1px;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .brand-tag {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #ff7a1a;
+      text-shadow: 0 0 15px rgba(255, 92, 0, 0.5);
+    }
+
+    /* Grand Headline */
+    .headline {
+      font-family: 'Bebas Cyrillic', 'Bebas Neue', Impact, sans-serif;
+      font-size: 94px;
+      line-height: 0.94;
+      letter-spacing: 2px;
+      text-align: center;
+      margin-top: 26px;
+      background: linear-gradient(180deg, #ffffff 0%, #f4f4f5 55%, #a1a1aa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 8px 30px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 45px rgba(255, 92, 0, 0.25));
+    }
+
+    .subtitle {
+      font-family: 'Graphik', 'Montserrat', 'Inter', sans-serif;
+      font-size: 26px;
+      font-weight: 500;
+      line-height: 1.38;
+      text-align: center;
+      color: #d4d4d8;
+      margin-top: 16px;
+      max-width: 900px;
+      padding: 0 20px;
+    }
+
+    /* Specs Badges */
+    .badges-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 26px;
+    }
+    .badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(18, 18, 24, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(16px);
+      border-radius: 9999px;
+      padding: 12px 24px;
+      font-size: 20px;
+      font-weight: 600;
+      color: #f4f4f5;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    }
+    .badge-orange {
+      background: rgba(255, 92, 0, 0.12);
+      border-color: rgba(255, 92, 0, 0.45);
+      color: #ff9142;
+      box-shadow: 0 0 25px rgba(255, 92, 0, 0.25);
+    }
+    .badge svg {
+      width: 22px;
+      height: 22px;
+      stroke-width: 2.2;
+    }
+
+    /* 3D Showcase Container */
+    .showcase-stage {
+      position: absolute;
+      top: 550px;
+      bottom: -120px;
+      width: 1000px;
+      display: flex;
+      justify-content: center;
+      perspective: 1200px;
+    }
+
+    /* Phone Chassis */
+    .phone-chassis {
+      position: relative;
+      width: 720px;
+      height: 1480px;
+      border-radius: 54px;
+      background: #0d0d12;
+      border: 10px solid #23232c;
+      outline: 2px solid rgba(255, 92, 0, 0.4);
+      box-shadow: 
+        0 40px 100px -15px rgba(0, 0, 0, 0.95),
+        0 0 100px rgba(255, 92, 0, 0.35);
+      overflow: hidden;
+      z-index: 20;
+    }
+
+    .island {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 135px;
+      height: 32px;
+      background: #000;
+      border-radius: 9999px;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 16px;
+    }
+    .island-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #181822;
+      border: 1px solid #2d2d3d;
+    }
+
+    /* Inside Screen: High-Res Search & Genres Interface */
+    .screen-content {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: #070709;
+      display: flex;
+      flex-direction: column;
+      padding-top: 65px;
+    }
+
+    /* Search Bar Inside Phone */
+    .mock-search-box {
+      margin: 10px 24px 0;
+      background: #14141d;
+      border: 1.5px solid rgba(255, 92, 0, 0.5);
+      border-radius: 20px;
+      padding: 14px 22px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 0 25px rgba(255, 92, 0, 0.25);
+    }
+    .mock-search-box svg {
+      width: 22px;
+      height: 22px;
+      stroke: #ff7a1a;
+      stroke-width: 2.5;
+      fill: none;
+    }
+    .mock-search-input {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    /* Genres Grid Inside Phone */
+    .mock-section-title {
+      font-family: 'Bebas Cyrillic', sans-serif;
+      font-size: 30px;
+      letter-spacing: 1px;
+      color: #fff;
+      margin: 26px 24px 14px;
+    }
+    .genres-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      padding: 0 24px;
+    }
+    .genre-card {
+      background: #12131b;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 22px 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .genre-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 20%;
+      right: 20%;
+      height: 2px;
+      background: #ff5c00;
+      box-shadow: 0 0 10px #ff5c00;
+    }
+    .genre-card-title {
+      font-family: 'Bebas Cyrillic', sans-serif;
+      font-size: 32px;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+    .genre-card-sub {
+      font-size: 14px;
+      color: #a1a1aa;
+      margin-top: 4px;
+    }
+
+    /* Search Results Row */
+    .results-row {
+      display: flex;
+      gap: 14px;
+      padding: 0 24px;
+      margin-top: 4px;
+    }
+    .result-card {
+      flex-shrink: 0;
+      width: 210px;
+      height: 310px;
+      border-radius: 22px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 92, 0, 0.4);
+      position: relative;
+      box-shadow: 0 15px 30px rgba(0,0,0,0.6);
+    }
+    .result-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .result-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.95) 20%, transparent 70%);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+    }
+    .result-name {
+      font-family: 'Bebas Cyrillic', sans-serif;
+      font-size: 20px;
+      color: #fff;
+    }
+    .result-tag {
+      font-size: 12px;
+      color: #ff9142;
+      font-weight: 600;
+    }
+
+    /* Floating Feature Badges */
+    .floating-card-left {
+      position: absolute;
+      left: 15px;
+      top: 360px;
+      width: 320px;
+      background: rgba(18, 18, 24, 0.92);
+      border: 2px solid rgba(255, 92, 0, 0.65);
+      backdrop-filter: blur(24px);
+      border-radius: 28px;
+      padding: 22px 26px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.85), 0 0 40px rgba(255, 92, 0, 0.35);
+      z-index: 35;
+      transform: rotate(-6deg);
+    }
+    .floating-card-right {
+      position: absolute;
+      right: 15px;
+      top: 680px;
+      width: 310px;
+      background: rgba(18, 18, 24, 0.92);
+      border: 2px solid rgba(255, 92, 0, 0.65);
+      backdrop-filter: blur(24px);
+      border-radius: 28px;
+      padding: 22px 26px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.9), 0 0 45px rgba(255, 92, 0, 0.35);
+      z-index: 35;
+      transform: rotate(6deg);
+    }
+    .floating-icon-box {
+      width: 56px;
+      height: 56px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #ff5c00, #ff7a1a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 20px rgba(255, 92, 0, 0.45);
+      flex-shrink: 0;
+    }
+    .floating-icon-box svg {
+      width: 28px;
+      height: 28px;
+      fill: #fff;
+    }
+    .floating-title {
+      font-family: 'Bebas Cyrillic', sans-serif;
+      font-size: 26px;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+    .floating-sub {
+      font-size: 15px;
+      color: #a1a1aa;
+      margin-top: 3px;
+    }
+
+    /* Bottom Floating Call-To-Action */
+    .floating-cta {
+      position: absolute;
+      bottom: 120px;
+      z-index: 50;
+      background: linear-gradient(135deg, #ff5c00, #ff7a1a);
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-radius: 9999px;
+      padding: 20px 44px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 
+        0 25px 50px rgba(0, 0, 0, 0.8),
+        0 0 50px rgba(255, 92, 0, 0.7);
+    }
+    .floating-cta svg {
+      width: 32px;
+      height: 32px;
+      fill: #fff;
+    }
+    .floating-cta-text {
+      font-family: 'Bebas Cyrillic', sans-serif;
+      font-size: 34px;
+      letter-spacing: 2px;
+      color: #fff;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.4);
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-overlay"></div>
+
+  <div class="container">
+    <!-- Official OFMEDIA Logo at Top -->
+    <div class="brand-header">
+      <img class="brand-logo-img" src="./assets/ofmediawhite_clean.png" alt="OFMEDIA" />
+      <div class="brand-divider"></div>
+      <span class="brand-tag">НАВИГАЦИЯ И ПОИСК</span>
+    </div>
+
+    <!-- Grand Typography: Bebas Cyrillic -->
+    <h1 class="headline">УМНЫЙ ПОИСК И ВСЕ ЖАНРЫ</h1>
+    <p class="subtitle">Мгновенный поиск по актерам и названиям, удобные тематические коллекции</p>
+
+    <!-- Specs Badges -->
+    <div class="badges-row">
+      <div class="badge badge-orange">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        Поиск без задержек
+      </div>
+      <div class="badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ff7a1a"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        Жанровые коллекции
+      </div>
+      <div class="badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ff7a1a"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+        Умные фильтры
+      </div>
+    </div>
+
+    <!-- 3D Cinema Showcase -->
+    <div class="showcase-stage">
+      <!-- Left Floating Card -->
+      <div class="floating-card-left">
+        <div class="floating-icon-box">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </div>
+        <div>
+          <div class="floating-title">БЫСТРЫЙ ПОИСК</div>
+          <div class="floating-sub">По актерам и названиям</div>
+        </div>
+      </div>
+
+      <!-- Right Floating Card -->
+      <div class="floating-card-right">
+        <div class="floating-icon-box">
+          <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+        </div>
+        <div>
+          <div class="floating-title">ПОДБОРКИ И ЖАНРЫ</div>
+          <div class="floating-sub">Фильмы под настроение</div>
+        </div>
+      </div>
+
+      <!-- Flagship Phone Chassis -->
+      <div class="phone-chassis">
+        <div class="island">
+          <div class="island-dot"></div>
+        </div>
+        
+        <!-- Screen Content -->
+        <div class="screen-content">
+          <!-- Search Box -->
+          <div class="mock-search-box">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <span class="mock-search-input">Поиск по фильмам и актерам...</span>
+          </div>
+
+          <!-- Genres Section -->
+          <div class="mock-section-title">ПОПУЛЯРНЫЕ ЖАНРЫ</div>
+          <div class="genres-grid">
+            <div class="genre-card">
+              <span class="genre-card-title">НОВОЕ</span>
+              <span class="genre-card-sub">Премьеры 2026</span>
+            </div>
+            <div class="genre-card">
+              <span class="genre-card-title">КОМЕДИИ</span>
+              <span class="genre-card-sub">5 релизов</span>
+            </div>
+            <div class="genre-card">
+              <span class="genre-card-title">МУЗЫКАЛЬНОЕ</span>
+              <span class="genre-card-sub">4 клипа</span>
+            </div>
+            <div class="genre-card">
+              <span class="genre-card-title">ЭКСКЛЮЗИВЫ</span>
+              <span class="genre-card-sub">OFMEDIA Originals</span>
+            </div>
+          </div>
+
+          <!-- Results Section -->
+          <div class="mock-section-title">РЕЛИЗЫ СТУДИИ</div>
+          <div class="results-row">
+            <div class="result-card">
+              <img src="./assets/poster_clip.png" alt="Школа 2070" />
+              <div class="result-overlay">
+                <span class="result-name">ШКОЛА 2070</span>
+                <span class="result-tag">Клип • 2026</span>
+              </div>
+            </div>
+            <div class="result-card">
+              <img src="./assets/poster_hor.png" alt="Каждый класс" />
+              <div class="result-overlay">
+                <span class="result-name">КАЖДЫЙ КЛАСС</span>
+                <span class="result-tag">Комедия • 2026</span>
+              </div>
+            </div>
+            <div class="result-card">
+              <img src="./assets/poster_vdnh.png" alt="ВДНХ" />
+              <div class="result-overlay">
+                <span class="result-name">ВДНХ</span>
+                <span class="result-tag">Приключения</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Floating Call-To-Action -->
+      <div class="floating-cta">
+        <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        <span class="floating-cta-text">УДОБНЫЙ КАТАЛОГ ПОД РУКОЙ</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
