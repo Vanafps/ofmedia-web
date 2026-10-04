@@ -16,6 +16,8 @@ import {
   ref,
   set,
   get,
+  onValue,
+  remove,
   type Database
 } from 'firebase/database';
 
@@ -436,5 +438,87 @@ export const fetchRatingsFromFirebase = async () => {
     return null;
   }
 };
+
+export const syncNewsToFirebase = async (newsList: unknown[]) => {
+  if (!rtdb) return;
+  try {
+    await set(ref(rtdb, 'news_store'), newsList);
+  } catch (err) {
+    console.warn('Firebase RTDB news sync fallback:', err);
+  }
+};
+
+export const fetchNewsFromFirebase = async (): Promise<any[] | null> => {
+  if (!rtdb) return null;
+  try {
+    const snapshot = await get(ref(rtdb, 'news_store'));
+    if (snapshot.exists()) {
+      const val = snapshot.val();
+      return Array.isArray(val) ? val : Object.values(val);
+    }
+    return null;
+  } catch (err) {
+    console.warn('Firebase RTDB news fetch fallback:', err);
+    return null;
+  }
+};
+
+export const subscribeToNewsFromFirebase = (callback: (newsList: any[] | null) => void): (() => void) => {
+  if (!rtdb) return () => {};
+  try {
+    const newsRef = ref(rtdb, 'news_store');
+    const unsub = onValue(newsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const val = snapshot.val();
+        callback(Array.isArray(val) ? val : Object.values(val));
+      } else {
+        callback(null);
+      }
+    });
+    return unsub;
+  } catch (err) {
+    console.warn('Firebase RTDB subscribeToNews error:', err);
+    return () => {};
+  }
+};
+
+export const saveHiddenTelegramPostToFirebase = async (postId: string) => {
+  if (!rtdb || !postId) return;
+  try {
+    const cleanId = postId.replace(/^tg_/, '');
+    await set(ref(rtdb, `hidden_telegram_posts/${cleanId}`), true);
+  } catch (err) {
+    console.warn('Firebase RTDB hidden telegram post sync error:', err);
+  }
+};
+
+export const subscribeToHiddenTelegramPosts = (callback: (hiddenMap: Record<string, boolean>) => void): (() => void) => {
+  if (!rtdb) return () => {};
+  try {
+    const hiddenRef = ref(rtdb, 'hidden_telegram_posts');
+    const unsub = onValue(hiddenRef, (snapshot) => {
+      if (snapshot.exists()) {
+        callback(snapshot.val() || {});
+      } else {
+        callback({});
+      }
+    });
+    return unsub;
+  } catch (err) {
+    console.warn('Firebase RTDB subscribeToHiddenTelegramPosts error:', err);
+    return () => {};
+  }
+};
+
+export const unhideTelegramPostFromFirebase = async (postId: string) => {
+  if (!rtdb || !postId) return;
+  try {
+    const cleanId = postId.replace(/^tg_/, '');
+    await remove(ref(rtdb, `hidden_telegram_posts/${cleanId}`));
+  } catch (err) {
+    console.warn('Firebase RTDB unhide telegram post sync error:', err);
+  }
+};
+
 
 

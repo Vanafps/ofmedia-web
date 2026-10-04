@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { UserProfile } from '../services/firebase';
+import {
+  subscribeToNewsFromFirebase,
+  syncNewsToFirebase,
+  saveHiddenTelegramPostToFirebase,
+  subscribeToHiddenTelegramPosts,
+} from '../services/firebase';
 
 export interface NewsPost {
   id: string;
@@ -29,17 +35,50 @@ const ADMIN_UID = 'vk_759530692';
 
 const INITIAL_NEWS: NewsPost[] = [
   {
-    id: 'news_1',
-    title: 'Большое обновление OFMEDIA: Кинематографичный плеер и мобильная версия',
-    content: `Мы рады представить масштабное обновление стриминговой платформы OFMEDIA! **Что изменилось:**\n\n* Новый адаптивный видеоплеер с оптически центрированными контролами и поддержкой жестов\n* Мягкий градиент перемотки на 10 секунд и мгновенная пауза по одинарному клику\n* Полноэкранный режим с автоповоротом на мобильных устройствах\n* Новый раздел новостей и обновленный каталог жанров\n\n[cut]\n\n> Мы продолжаем совершенствовать сервис, делая просмотр максимально удобным на любых экранах: от смартфонов до 4K-телевизоров.\n\nСпасибо, что выбираете OFMEDIA! Приятного просмотра!`,
-    date: '21 сентября 2026',
+    id: 'news_v1_2_1',
+    title: 'v1.2.1 • Обновление новостей',
+    content: `Представляем масштабное обновление раздела «Новости» и релиз мобильного приложения OFMEDIA v1.2.1 в RuStore!
+
+**Главные изменения:**
+* **Интеграция Telegram @ofmedi**: прямая трансляция публикаций из официального канала без необходимости использования VPN
+* **Поддержка медиаальбомов**: интерактивная фотогалерея и полноэкранный просмотр изображений высокого разрешения
+* **Сквозная синхронизация**: моментальное обновление и управление публикациями на всех зеркалах через Firebase Realtime Database
+* **Умный фильтр ленты**: автоматическое исключение удаленных постов Telegram и синхронное скрытие публикаций
+* **Мобильный клиент v1.2.1**: обновленная сборка для Android с оптимизацией кэширования и поддержкой жестов доступна в RuStore
+
+[cut]
+
+> Мы непрерывно улучшаем экосистему OFMEDIA, обеспечивая стабильную работу сервиса, быструю загрузку контента на территории РФ и удобство использования на всех устройствах.
+
+Скачивайте официальное приложение в RuStore или продолжайте просмотр на веб-платформе!`,
+    date: '4 октября 2026',
     author: 'OFMEDIA Official',
-    tag: 'Обновление',
+    tag: 'Обновление v1.2.1',
     pinned: true,
     source: 'manual',
   },
   {
-    id: 'news_2',
+    id: 'news_v1_2_0',
+    title: 'v1.2.0 • Кинематографичный плеер и мобильная версия',
+    content: `Релиз стриминговой платформы OFMEDIA версии v1.2.0 с обновленным ядром воспроизведения и официальным дебютом в RuStore!
+
+**Ключевые нововведения:**
+* Новый адаптивный видеоплеер с оптически выверенными контролами
+* Мягкий градиент перемотки на 10 секунд и мгновенная пауза по одинарному клику
+* Поддержка жестов пролистывания и полноэкранный режим с автоматической ориентацией
+* Публикация первого официального APK-релиза в каталоге RuStore
+
+[cut]
+
+> Наслаждайтесь просмотром любимых фильмов и сериалов в высоком разрешении на любых диагоналях экранов.`,
+    date: '21 сентября 2026',
+    author: 'OFMEDIA Official',
+    tag: 'Обновление v1.2.0',
+    pinned: false,
+    source: 'manual',
+  },
+  {
+    id: 'news_premiere',
     title: 'Эксклюзивные релизы и оригинальные проекты осени',
     content: `В каталоге OFMEDIA доступны новые оригинальные проекты в сверхвысоком разрешении 4K Ultra HD. Все релизы сопровождаются студийным дубляжом и расширенными материалами со съемочной площадки.\n\nПереходите в раздел «Главная» или выбирайте интересующий жанр через каталог!`,
     date: '20 сентября 2026',
@@ -71,6 +110,9 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
   const [telegramError, setTelegramError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'telegram' | 'announcements'>('all');
 
+  const [hiddenTgPosts, setHiddenTgPosts] = useState<Record<string, boolean>>({});
+  const [lightbox, setLightbox] = useState<{ images: string[]; index: number } | null>(null);
+
   const [expandedNews, setExpandedNews] = useState<Record<string, boolean>>({});
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
@@ -78,18 +120,56 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
   // Editor Form State
   const [formTitle, setFormTitle] = useState('');
   const [formContent, setFormContent] = useState('');
-  const [formTag, setFormTag] = useState('Новости');
+  const [formTag, setFormTag] = useState('Обновление v1.2.1');
   const [formCover, setFormCover] = useState('');
   const [formPinned, setFormPinned] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
   const isAdmin = user?.uid === ADMIN_UID;
 
+  // Realtime Firebase DB Sync & Listener
   useEffect(() => {
-    try {
-      localStorage.setItem('ofmedia_news', JSON.stringify(manualNews));
-    } catch {}
-  }, [manualNews]);
+    const unsubNews = subscribeToNewsFromFirebase((remoteNews) => {
+      if (remoteNews && Array.isArray(remoteNews) && remoteNews.length > 0) {
+        setManualNews(remoteNews);
+        try {
+          localStorage.setItem('ofmedia_news', JSON.stringify(remoteNews));
+        } catch {}
+      } else {
+        // Initialize default news on server
+        syncNewsToFirebase(INITIAL_NEWS);
+      }
+    });
+
+    const unsubHidden = subscribeToHiddenTelegramPosts((hiddenMap) => {
+      setHiddenTgPosts(hiddenMap || {});
+    });
+
+    return () => {
+      unsubNews();
+      unsubHidden();
+    };
+  }, []);
+
+  // Keyboard navigation for Lightbox
+  useEffect(() => {
+    if (!lightbox) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setLightbox(null);
+      } else if (e.key === 'ArrowRight') {
+        setLightbox((prev) =>
+          prev ? { ...prev, index: (prev.index + 1) % prev.images.length } : null
+        );
+      } else if (e.key === 'ArrowLeft') {
+        setLightbox((prev) =>
+          prev ? { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length } : null
+        );
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightbox]);
 
   const fetchTelegramNews = async () => {
     setIsLoadingTelegram(true);
@@ -160,16 +240,26 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
     fetchTelegramNews();
   }, []);
 
+  const visibleTelegramPosts = useMemo(() => {
+    return telegramPosts.filter((p) => {
+      const cleanId = p.id.replace(/^tg_/, '');
+      return !hiddenTgPosts[cleanId];
+    });
+  }, [telegramPosts, hiddenTgPosts]);
+
   const combinedPosts = useMemo(() => {
-    if (activeFilter === 'telegram') return telegramPosts;
+    if (activeFilter === 'telegram') return visibleTelegramPosts;
     if (activeFilter === 'announcements') return manualNews;
-    const list = [...manualNews.map((n) => ({ ...n, source: 'manual' as const })), ...telegramPosts];
+    const list = [
+      ...manualNews.map((n) => ({ ...n, source: 'manual' as const })),
+      ...visibleTelegramPosts,
+    ];
     return list.sort((a, b) => {
       if (a.pinned && !b.pinned) return -1;
       if (!a.pinned && b.pinned) return 1;
       return 0;
     });
-  }, [activeFilter, manualNews, telegramPosts]);
+  }, [activeFilter, manualNews, visibleTelegramPosts]);
 
   const toggleExpand = (id: string) => {
     setExpandedNews((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -179,7 +269,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
     setEditingPostId(null);
     setFormTitle('');
     setFormContent('');
-    setFormTag('Новости');
+    setFormTag('Обновление v1.2.1');
     setFormCover('');
     setFormPinned(false);
     setShowPreview(false);
@@ -197,10 +287,26 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
     setIsEditorOpen(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDeletePost = (post: NewsPost) => {
     if (!isAdmin) return;
-    if (window.confirm('Удалить эту новость?')) {
-      setManualNews((prev) => prev.filter((n) => n.id !== id));
+    const isTg = post.source === 'telegram' || post.tag === 'Telegram';
+    const confirmMsg = isTg
+      ? 'Скрыть эту публикацию Telegram из ленты для всех пользователей?'
+      : 'Удалить эту новость?';
+
+    if (window.confirm(confirmMsg)) {
+      if (isTg) {
+        const cleanId = post.id.replace(/^tg_/, '');
+        saveHiddenTelegramPostToFirebase(cleanId);
+        setHiddenTgPosts((prev) => ({ ...prev, [cleanId]: true }));
+      } else {
+        const updated = manualNews.filter((n) => n.id !== post.id);
+        setManualNews(updated);
+        syncNewsToFirebase(updated);
+        try {
+          localStorage.setItem('ofmedia_news', JSON.stringify(updated));
+        } catch {}
+      }
     }
   };
 
@@ -227,20 +333,19 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
     const now = new Date();
     const dateStr = `${now.getDate()} ${['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'][now.getMonth()]} ${now.getFullYear()}`;
 
+    let nextNews: NewsPost[];
     if (editingPostId) {
-      setManualNews((prev) =>
-        prev.map((n) =>
-          n.id === editingPostId
-            ? {
-                ...n,
-                title: formTitle.trim(),
-                content: formContent.trim(),
-                tag: formTag.trim(),
-                coverImage: formCover.trim() || undefined,
-                pinned: formPinned,
-              }
-            : n
-        )
+      nextNews = manualNews.map((n) =>
+        n.id === editingPostId
+          ? {
+              ...n,
+              title: formTitle.trim(),
+              content: formContent.trim(),
+              tag: formTag.trim(),
+              coverImage: formCover.trim() || undefined,
+              pinned: formPinned,
+            }
+          : n
       );
     } else {
       const newPost: NewsPost = {
@@ -254,10 +359,126 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
         pinned: formPinned,
         source: 'manual',
       };
-      setManualNews((prev) => [newPost, ...prev]);
+      nextNews = [newPost, ...manualNews];
     }
 
+    setManualNews(nextNews);
+    syncNewsToFirebase(nextNews);
+    try {
+      localStorage.setItem('ofmedia_news', JSON.stringify(nextNews));
+    } catch {}
+
     setIsEditorOpen(false);
+  };
+
+  const renderPostMedia = (post: NewsPost) => {
+    const images =
+      post.images && post.images.length > 0
+        ? post.images
+        : post.coverImage
+        ? [post.coverImage]
+        : [];
+
+    if (images.length === 0) return null;
+
+    if (images.length === 1) {
+      return (
+        <div
+          onClick={() => setLightbox({ images, index: 0 })}
+          className="rounded-2xl overflow-hidden aspect-video w-full bg-zinc-900 border border-white/10 cursor-pointer group relative"
+        >
+          <img
+            src={images[0]}
+            alt={post.title}
+            loading="lazy"
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-102"
+          />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <span className="px-3 py-1.5 rounded-xl bg-black/60 backdrop-blur-md text-white text-xs font-medium border border-white/15">
+              Открыть фото
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    if (images.length === 2) {
+      return (
+        <div className="grid grid-cols-2 gap-2 aspect-video w-full rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 p-1">
+          {images.map((img, idx) => (
+            <div
+              key={idx}
+              onClick={() => setLightbox({ images, index: idx })}
+              className="relative w-full h-full rounded-xl overflow-hidden cursor-pointer group bg-zinc-800"
+            >
+              <img
+                src={img}
+                alt=""
+                loading="lazy"
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-103"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    if (images.length === 3) {
+      return (
+        <div className="grid grid-cols-3 gap-2 aspect-video w-full rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 p-1">
+          {images.map((img, idx) => (
+            <div
+              key={idx}
+              onClick={() => setLightbox({ images, index: idx })}
+              className="relative w-full h-full rounded-xl overflow-hidden cursor-pointer group bg-zinc-800"
+            >
+              <img
+                src={img}
+                alt=""
+                loading="lazy"
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-103"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // 4 or more photos (album)
+    const displayPhotos = images.slice(0, 4);
+    const remainingCount = images.length - 4;
+
+    return (
+      <div className="grid grid-cols-2 grid-rows-2 gap-1.5 aspect-video w-full rounded-2xl overflow-hidden bg-zinc-900 border border-white/10 p-1">
+        {displayPhotos.map((img, idx) => {
+          const isLast = idx === 3 && remainingCount > 0;
+          return (
+            <div
+              key={idx}
+              onClick={() => setLightbox({ images, index: idx })}
+              className="relative w-full h-full rounded-xl overflow-hidden cursor-pointer group bg-zinc-800"
+            >
+              <img
+                src={img}
+                alt=""
+                loading="lazy"
+                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-103"
+              />
+              {isLast ? (
+                <div className="absolute inset-0 bg-black/70 backdrop-blur-[2px] flex flex-col items-center justify-center text-white">
+                  <span className="font-heading font-bold text-base sm:text-lg">+{remainingCount + 1}</span>
+                  <span className="text-[10px] text-zinc-300 uppercase font-semibold">фото</span>
+                </div>
+              ) : (
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   const renderFormattedText = (raw: string, isExpanded: boolean, id: string) => {
@@ -501,7 +722,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
           }`}
         >
           <span>Из Telegram @ofmedi</span>
-          <span className="text-[10px] opacity-75">({telegramPosts.length})</span>
+          <span className="text-[10px] opacity-75">({visibleTelegramPosts.length})</span>
         </button>
 
         <button
@@ -570,24 +791,26 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
                       </span>
                     )}
 
-                    {isAdmin && post.source === 'manual' && (
+                    {isAdmin && (
                       <div className="flex items-center gap-1.5">
+                        {post.source === 'manual' && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(post)}
+                            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                            title="Редактировать новость"
+                          >
+                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                          </button>
+                        )}
                         <button
                           type="button"
-                          onClick={() => handleOpenEdit(post)}
-                          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                          title="Редактировать новость"
-                        >
-                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(post.id)}
+                          onClick={() => handleDeletePost(post)}
                           className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/25 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
-                          title="Удалить новость"
+                          title={isTelegram ? 'Скрыть публикацию Telegram' : 'Удалить новость'}
                         >
                           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -598,17 +821,8 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
                   </div>
                 </div>
 
-                {/* Cover Image (16:9 widescreen) */}
-                {post.coverImage && (
-                  <div className="rounded-2xl overflow-hidden aspect-video w-full bg-zinc-900 border border-white/10">
-                    <img
-                      src={post.coverImage}
-                      alt={post.title}
-                      loading="lazy"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
+                {/* Media (Album grid or single cover with Lightbox support) */}
+                {renderPostMedia(post)}
 
                 {/* Title */}
                 <h3 className="font-heading font-bold text-lg sm:text-xl text-white leading-snug">
@@ -817,6 +1031,104 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Lightbox Modal */}
+      {lightbox && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-3 sm:p-6 select-none">
+          <div
+            className="fixed inset-0 bg-black/90 backdrop-blur-2xl transition-opacity cursor-pointer"
+            onClick={() => setLightbox(null)}
+          />
+
+          <div className="relative z-10 max-w-5xl w-full flex flex-col items-center gap-3">
+            {/* Top Bar with counter & close button */}
+            <div className="w-full flex items-center justify-between text-white px-2">
+              <span className="text-xs font-semibold text-zinc-300 bg-white/10 px-3.5 py-1.5 rounded-full border border-white/10">
+                Изображение {lightbox.index + 1} из {lightbox.images.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => setLightbox(null)}
+                className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+                title="Закрыть (Esc)"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Main Image Stage */}
+            <div className="relative w-full flex items-center justify-center max-h-[75vh] overflow-hidden rounded-3xl bg-black/60 border border-white/10 shadow-2xl">
+              <img
+                src={lightbox.images[lightbox.index]}
+                alt=""
+                className="max-h-[75vh] w-auto max-w-full object-contain"
+              />
+
+              {/* Prev Button */}
+              {lightbox.images.length > 1 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLightbox((prev) =>
+                      prev
+                        ? { ...prev, index: (prev.index - 1 + prev.images.length) % prev.images.length }
+                        : null
+                    );
+                  }}
+                  className="absolute left-3 p-3 rounded-2xl bg-black/60 hover:bg-black/85 text-white border border-white/15 backdrop-blur-md transition-all active:scale-90 cursor-pointer"
+                  title="Предыдущее фото (Стрелка влево)"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+              )}
+
+              {/* Next Button */}
+              {lightbox.images.length > 1 && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLightbox((prev) =>
+                      prev ? { ...prev, index: (prev.index + 1) % prev.images.length } : null
+                    );
+                  }}
+                  className="absolute right-3 p-3 rounded-2xl bg-black/60 hover:bg-black/85 text-white border border-white/15 backdrop-blur-md transition-all active:scale-90 cursor-pointer"
+                  title="Следующее фото (Стрелка вправо)"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Thumbnails strip if multiple */}
+            {lightbox.images.length > 1 && (
+              <div className="flex items-center gap-2 max-w-full overflow-x-auto py-1 px-2">
+                {lightbox.images.map((thumb, tIdx) => (
+                  <button
+                    key={tIdx}
+                    type="button"
+                    onClick={() => setLightbox((prev) => (prev ? { ...prev, index: tIdx } : null))}
+                    className={`w-14 h-14 rounded-xl overflow-hidden border-2 shrink-0 transition-all cursor-pointer ${
+                      tIdx === lightbox.index
+                        ? 'border-[#ff5c00] scale-105'
+                        : 'border-white/20 opacity-60 hover:opacity-100'
+                    }`}
+                  >
+                    <img src={thumb} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

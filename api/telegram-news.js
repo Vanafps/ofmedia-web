@@ -1,9 +1,14 @@
 const BOT_TOKEN = '8811060825:AAFbFQjE060LOPqwgnzvC_iEnsXPpPpAIAA';
 const CHANNEL_USERNAME = 'ofmedi';
+const RTDB_URL = 'https://ofmedia-web-default-rtdb.europe-west1.firebasedatabase.app';
 
 function cleanHtmlTags(html) {
   if (!html) return '';
   return html
+    .replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, (match, inner) => {
+      const cleanInner = inner.replace(/<br\s*[\/]?>/gi, '\n> ');
+      return `\n> ${cleanInner}\n`;
+    })
     .replace(/<br\s*[\/]?>/gi, '\n')
     .replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (match, href, text) => {
       const cleanText = text.replace(/<\/?[^>]+(>|$)/g, '').trim();
@@ -46,6 +51,18 @@ export default async function handler(req, res) {
   const beforeParam = urlObj.searchParams.get('before');
   const limitParam = parseInt(urlObj.searchParams.get('limit') || '30', 10);
 
+  // 1. Fetch hidden posts from Firebase RTDB
+  let hiddenPosts = {};
+  try {
+    const hiddenRes = await fetch(`${RTDB_URL}/hidden_telegram_posts.json`);
+    if (hiddenRes.ok) {
+      const data = await hiddenRes.json();
+      if (data && typeof data === 'object') {
+        hiddenPosts = data;
+      }
+    }
+  } catch {}
+
   let targetUrl = `https://t.me/s/${CHANNEL_USERNAME}`;
   if (beforeParam) {
     targetUrl += `?before=${encodeURIComponent(beforeParam)}`;
@@ -66,7 +83,7 @@ export default async function handler(req, res) {
 
     const html = await upstreamRes.text();
 
-    // 1. Channel Info
+    // 2. Channel Info
     let channelTitle = 'OFMEDIA';
     let channelDescription = '';
     let subscribers = '';
@@ -93,7 +110,7 @@ export default async function handler(req, res) {
       channelAvatar = `/api/telegram-image?url=${encodeURIComponent(rawAvatar)}`;
     }
 
-    // 2. Parse Posts
+    // 3. Parse Posts
     const posts = [];
     const messageBlocks = html.split('<div class="tgme_widget_message_wrap');
 
@@ -107,6 +124,11 @@ export default async function handler(req, res) {
       const idParts = fullPostId.split('/');
       const postId = idParts[1] || fullPostId;
 
+      // Skip if post was hidden/deleted by admin in RTDB
+      if (hiddenPosts[postId] || hiddenPosts[`tg_${postId}`]) {
+        continue;
+      }
+
       // Extract Text
       let rawTextHtml = '';
       let plainText = '';
@@ -116,31 +138,21 @@ export default async function handler(req, res) {
         plainText = cleanHtmlTags(rawTextHtml);
       }
 
-      // Extract Images - ignore emojis and telegram system icons
+      // Extract Images - capture single photos and full albums from .tgme_widget_message_grouped
       const images = [];
       const originalImages = [];
-      const photoRegex = /style="background-image:url\('([^']+)'\)"/gi;
+
+      // Regex matching any background-image URL inside the message block
+      const photoRegex = /background-image:\s*url\((?:'|&quot;|"|)?([^'")&]+)(?:'|&quot;|"|)?\)/gi;
       let photoMatch;
       while ((photoMatch = photoRegex.exec(block)) !== null) {
-        const rawUrl = photoMatch[1];
+        const rawUrl = photoMatch[1].trim();
         if (rawUrl && !rawUrl.includes('/emoji/') && !originalImages.includes(rawUrl)) {
           originalImages.push(rawUrl);
           const proxiedUrl = rawUrl.startsWith('http')
             ? `/api/telegram-image?url=${encodeURIComponent(rawUrl)}`
             : rawUrl;
           images.push(proxiedUrl);
-        }
-      }
-
-      // Check for video thumbnail if no images found
-      if (images.length === 0) {
-        const videoThumbMatch = block.match(/class="[^"]*tgme_widget_message_video_thumb[^"]*"[^>]*style="background-image:url\('([^']+)'\)"/i);
-        if (videoThumbMatch) {
-          const rawUrl = videoThumbMatch[1];
-          if (!originalImages.includes(rawUrl)) {
-            originalImages.push(rawUrl);
-            images.push(`/api/telegram-image?url=${encodeURIComponent(rawUrl)}`);
-          }
         }
       }
 
@@ -171,17 +183,23 @@ export default async function handler(req, res) {
         forwardedFrom = cleanHtmlTags(fwdMatch[1]);
       }
 
+      // CRITICAL: Filter out deleted/empty posts from Telegram!
+      // When a post is deleted in Telegram, t.me/s still emits an empty block without text, media or forwards.
+      if (!plainText && images.length === 0 && !forwardedFrom) {
+        continue;
+      }
+
       if (!plainText) {
         if (forwardedFrom) {
           plainText = `Переслано из: ${forwardedFrom}`;
         } else if (images.length > 0) {
-          plainText = 'Медиаматериал из официального канала OFMEDIA';
+          plainText = images.length > 1 ? `Фотоальбом (${images.length} фото)` : 'Медиаматериал канала OFMEDIA';
         }
       }
 
-      // Title extraction (first non-empty line or snippet)
+      // Title extraction
       const lines = plainText.split('\n').map((l) => l.trim()).filter(Boolean);
-      let title = lines[0] || (images.length > 0 ? 'Медиа OFMEDIA' : `Публикация #${postId}`);
+      let title = lines[0] || (images.length > 1 ? `Фотоальбом (${images.length} фото)` : images.length > 0 ? 'Медиаматериал OFMEDIA' : `Публикация #${postId}`);
       if (title.length > 80) {
         title = title.substring(0, 77) + '...';
       }
