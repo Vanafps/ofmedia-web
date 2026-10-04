@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { UserProfile } from '../services/firebase';
 
 export interface NewsPost {
@@ -10,6 +10,19 @@ export interface NewsPost {
   tag: string;
   coverImage?: string;
   pinned?: boolean;
+  views?: string;
+  url?: string;
+  source?: 'telegram' | 'manual';
+  images?: string[];
+}
+
+interface TelegramChannelInfo {
+  title: string;
+  username: string;
+  description: string;
+  subscribers: string;
+  avatar: string;
+  url: string;
 }
 
 const ADMIN_UID = 'vk_759530692';
@@ -23,6 +36,7 @@ const INITIAL_NEWS: NewsPost[] = [
     author: 'OFMEDIA Official',
     tag: 'Обновление',
     pinned: true,
+    source: 'manual',
   },
   {
     id: 'news_2',
@@ -31,6 +45,7 @@ const INITIAL_NEWS: NewsPost[] = [
     date: '20 сентября 2026',
     author: 'Редакция OFMEDIA',
     tag: 'Премьеры',
+    source: 'manual',
   },
 ];
 
@@ -39,7 +54,7 @@ interface OfmediaNewsSectionProps {
 }
 
 export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) => {
-  const [news, setNews] = useState<NewsPost[]>(() => {
+  const [manualNews, setManualNews] = useState<NewsPost[]>(() => {
     try {
       const saved = localStorage.getItem('ofmedia_news');
       if (saved) {
@@ -49,6 +64,12 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
     } catch {}
     return INITIAL_NEWS;
   });
+
+  const [telegramPosts, setTelegramPosts] = useState<NewsPost[]>([]);
+  const [channelInfo, setChannelInfo] = useState<TelegramChannelInfo | null>(null);
+  const [isLoadingTelegram, setIsLoadingTelegram] = useState(false);
+  const [telegramError, setTelegramError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'telegram' | 'announcements'>('all');
 
   const [expandedNews, setExpandedNews] = useState<Record<string, boolean>>({});
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -66,9 +87,89 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
 
   useEffect(() => {
     try {
-      localStorage.setItem('ofmedia_news', JSON.stringify(news));
+      localStorage.setItem('ofmedia_news', JSON.stringify(manualNews));
     } catch {}
-  }, [news]);
+  }, [manualNews]);
+
+  const fetchTelegramNews = async () => {
+    setIsLoadingTelegram(true);
+    setTelegramError(null);
+    try {
+      const apiBase =
+        typeof window !== 'undefined' &&
+        (window.location.hostname.includes('ofmedia.ru') || window.location.hostname.includes('localhost'))
+          ? ''
+          : 'https://ofmedia.ru';
+
+      const res = await fetch(`${apiBase}/api/telegram-news`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      if (data.ok && Array.isArray(data.posts)) {
+        const mapped: NewsPost[] = data.posts.map((p: any) => {
+          const rawCover = p.coverImage || '';
+          const resolvedCover = rawCover
+            ? rawCover.startsWith('/')
+              ? `${apiBase}${rawCover}`
+              : rawCover
+            : undefined;
+
+          const mappedImages = Array.isArray(p.images)
+            ? p.images.map((img: string) => (img.startsWith('/') ? `${apiBase}${img}` : img))
+            : [];
+
+          return {
+            id: `tg_${p.id}`,
+            title: p.title || `Публикация #${p.id}`,
+            content: p.content || '',
+            date: p.dateFormatted || p.date || '',
+            author: '@ofmedi',
+            tag: 'Telegram',
+            coverImage: resolvedCover,
+            images: mappedImages,
+            pinned: !!p.pinned,
+            views: p.views || '',
+            url: p.url || `https://t.me/ofmedi/${p.id}`,
+            source: 'telegram' as const,
+          };
+        });
+
+        setTelegramPosts(mapped);
+
+        if (data.channel) {
+          setChannelInfo({
+            ...data.channel,
+            avatar:
+              data.channel.avatar && data.channel.avatar.startsWith('/')
+                ? `${apiBase}${data.channel.avatar}`
+                : data.channel.avatar,
+          });
+        }
+      } else {
+        throw new Error(data.error || 'Ошибка формата постов');
+      }
+    } catch (err: any) {
+      console.warn('Failed to load telegram posts:', err);
+      setTelegramError('Не удалось загрузить публикации Telegram');
+    } finally {
+      setIsLoadingTelegram(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTelegramNews();
+  }, []);
+
+  const combinedPosts = useMemo(() => {
+    if (activeFilter === 'telegram') return telegramPosts;
+    if (activeFilter === 'announcements') return manualNews;
+    const list = [...manualNews.map((n) => ({ ...n, source: 'manual' as const })), ...telegramPosts];
+    return list.sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      return 0;
+    });
+  }, [activeFilter, manualNews, telegramPosts]);
 
   const toggleExpand = (id: string) => {
     setExpandedNews((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -99,7 +200,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
   const handleDelete = (id: string) => {
     if (!isAdmin) return;
     if (window.confirm('Удалить эту новость?')) {
-      setNews((prev) => prev.filter((n) => n.id !== id));
+      setManualNews((prev) => prev.filter((n) => n.id !== id));
     }
   };
 
@@ -127,7 +228,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
     const dateStr = `${now.getDate()} ${['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'][now.getMonth()]} ${now.getFullYear()}`;
 
     if (editingPostId) {
-      setNews((prev) =>
+      setManualNews((prev) =>
         prev.map((n) =>
           n.id === editingPostId
             ? {
@@ -151,8 +252,9 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
         tag: formTag.trim(),
         coverImage: formCover.trim() || undefined,
         pinned: formPinned,
+        source: 'manual',
       };
-      setNews((prev) => [newPost, ...prev]);
+      setManualNews((prev) => [newPost, ...prev]);
     }
 
     setIsEditorOpen(false);
@@ -167,7 +269,6 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
       textToRender = raw.replace('[cut]', '\n\n');
     }
 
-    // Process blocks: quotes, images, paragraphs, inline formatting
     const lines = textToRender.split('\n');
     return (
       <div className="space-y-2 text-xs sm:text-sm text-zinc-300 font-normal leading-relaxed">
@@ -191,8 +292,8 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
           const imgMatch = trimmed.match(/^!\[(.*?)\]\((.*?)\)$/);
           if (imgMatch) {
             return (
-              <div key={idx} className="my-2 rounded-2xl overflow-hidden border border-white/10 max-h-80">
-                <img src={imgMatch[2]} alt={imgMatch[1]} className="w-full h-auto object-cover" />
+              <div key={idx} className="my-2 rounded-2xl overflow-hidden border border-white/10 max-h-80 aspect-video">
+                <img src={imgMatch[2]} alt={imgMatch[1]} className="w-full h-full object-cover" />
               </div>
             );
           }
@@ -267,85 +368,245 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#ff5c00]/20 text-[#ff5c00] border border-[#ff5c00]/30">
               OFNEWS
             </span>
-            <span className="text-xs text-zinc-400 font-normal">Новости платформы и релизы</span>
+            <span className="text-xs text-zinc-400 font-normal">Новости платформы и прямой эфир @ofmedi</span>
           </div>
           <h2 className="font-heading font-bold text-2xl sm:text-3xl text-white tracking-wide">
             Новости и обновления
           </h2>
         </div>
 
-        {isAdmin && (
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={handleOpenCreate}
-            className="self-start sm:self-auto px-4 py-2.5 rounded-2xl bg-[#ff5c00] hover:bg-[#e05200] text-white text-xs font-semibold flex items-center gap-2 transition-all hover:scale-103 active:scale-95 shadow-lg shadow-[#ff5c00]/25 cursor-pointer"
+            onClick={fetchTelegramNews}
+            disabled={isLoadingTelegram}
+            className="px-3.5 py-2.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-semibold flex items-center gap-2 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+            title="Обновить ленту постов"
           >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            <svg
+              className={`w-4 h-4 text-zinc-300 ${isLoadingTelegram ? 'animate-spin' : ''}`}
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            <span>Опубликовать новость</span>
+            <span>{isLoadingTelegram ? 'Загрузка...' : 'Обновить'}</span>
           </button>
-        )}
+
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={handleOpenCreate}
+              className="px-4 py-2.5 rounded-2xl bg-[#ff5c00] hover:bg-[#e05200] text-white text-xs font-semibold flex items-center gap-2 transition-all hover:scale-103 active:scale-95 shadow-lg shadow-[#ff5c00]/25 cursor-pointer"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Опубликовать</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* News Grid */}
+      {/* Telegram Channel Feature Card */}
+      <div className="mb-6 p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-[#229ED9]/15 via-black/40 to-white/[0.02] border border-[#229ED9]/30 backdrop-blur-xl relative overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-[#229ED9] flex items-center justify-center shrink-0 shadow-lg shadow-[#229ED9]/30">
+              {channelInfo?.avatar ? (
+                <img
+                  src={channelInfo.avatar}
+                  alt="OFMEDIA"
+                  className="w-full h-full rounded-2xl object-cover"
+                />
+              ) : (
+                <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
+                </svg>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <h3 className="font-heading font-bold text-lg text-white">
+                  Официальный Telegram-канал @ofmedi
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#229ED9]/20 text-[#229ED9] border border-[#229ED9]/40">
+                  Без VPN
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400 max-w-xl">
+                {channelInfo?.description || 'Прямые публикации, новости киноиндустрии, анонсы новых серий и эксклюзивные материалы.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            {channelInfo?.subscribers && (
+              <span className="text-xs font-semibold text-zinc-400 bg-white/5 px-3 py-2 rounded-xl border border-white/10">
+                {channelInfo.subscribers} подписчиков
+              </span>
+            )}
+            <a
+              href="https://t.me/ofmedi"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2.5 rounded-xl bg-[#229ED9] hover:bg-[#1e8ec3] text-white text-xs font-bold transition-all shadow-lg shadow-[#229ED9]/30 flex items-center gap-2"
+            >
+              <span>Подписаться на @ofmedi</span>
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {telegramError && (
+        <div className="mb-6 p-4 rounded-2xl bg-red-500/10 border border-red-500/25 text-red-300 text-xs flex items-center justify-between">
+          <span>{telegramError}</span>
+          <button
+            type="button"
+            onClick={fetchTelegramNews}
+            className="text-white underline hover:no-underline font-semibold cursor-pointer"
+          >
+            Повторить попытку
+          </button>
+        </div>
+      )}
+
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
+        <button
+          type="button"
+          onClick={() => setActiveFilter('all')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+            activeFilter === 'all'
+              ? 'bg-white text-black font-bold'
+              : 'bg-white/5 text-zinc-400 hover:text-white border border-white/10'
+          }`}
+        >
+          Все публикации ({combinedPosts.length})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveFilter('telegram')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+            activeFilter === 'telegram'
+              ? 'bg-[#229ED9] text-white font-bold'
+              : 'bg-white/5 text-zinc-400 hover:text-white border border-white/10'
+          }`}
+        >
+          <span>Из Telegram @ofmedi</span>
+          <span className="text-[10px] opacity-75">({telegramPosts.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveFilter('announcements')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+            activeFilter === 'announcements'
+              ? 'bg-[#ff5c00] text-white font-bold'
+              : 'bg-white/5 text-zinc-400 hover:text-white border border-white/10'
+          }`}
+        >
+          <span>Релизы платформы</span>
+          <span className="text-[10px] opacity-75">({manualNews.length})</span>
+        </button>
+      </div>
+
+      {/* Posts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        {news.map((post) => {
+        {combinedPosts.map((post) => {
           const isExpanded = !!expandedNews[post.id];
+          const isTelegram = post.source === 'telegram' || post.tag === 'Telegram';
+
           return (
             <article
               key={post.id}
               className={`relative rounded-3xl glass-card p-5 sm:p-6 transition-all duration-300 flex flex-col justify-between ${
-                post.pinned ? 'border-[#ff5c00]/40 shadow-[0_8px_30px_rgba(255,92,0,0.08)]' : ''
+                post.pinned
+                  ? 'border-[#ff5c00]/40 shadow-[0_8px_30px_rgba(255,92,0,0.08)]'
+                  : isTelegram
+                  ? 'border-[#229ED9]/25 hover:border-[#229ED9]/50'
+                  : 'border-white/10'
               }`}
             >
               <div className="space-y-3">
                 {/* Meta Top Bar */}
                 <div className="flex items-center justify-between gap-2 text-xs">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-semibold bg-white/10 text-zinc-300 border border-white/10">
-                      {post.tag}
+                    <span
+                      className={`px-2.5 py-0.5 rounded-lg text-[10px] font-semibold border ${
+                        isTelegram
+                          ? 'bg-[#229ED9]/15 text-[#229ED9] border-[#229ED9]/30'
+                          : 'bg-white/10 text-zinc-300 border-white/10'
+                      }`}
+                    >
+                      {isTelegram ? 'Telegram @ofmedi' : post.tag}
                     </span>
+
                     {post.pinned && (
                       <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-semibold bg-[#ff5c00]/20 text-[#ff5c00] border border-[#ff5c00]/30">
                         Закреплено
                       </span>
                     )}
+
                     <span className="text-zinc-500">•</span>
                     <span className="text-zinc-400">{post.date}</span>
                   </div>
 
-                  {isAdmin && (
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEdit(post)}
-                        className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                        title="Редактировать новость"
-                      >
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  <div className="flex items-center gap-2">
+                    {post.views && (
+                      <span className="text-[11px] text-zinc-400 flex items-center gap-1">
+                        <svg className="w-3.5 h-3.5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                          <circle cx="12" cy="12" r="3" />
                         </svg>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(post.id)}
-                        className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/25 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
-                        title="Удалить новость"
-                      >
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
-                      </button>
-                    </div>
-                  )}
+                        <span>{post.views}</span>
+                      </span>
+                    )}
+
+                    {isAdmin && post.source === 'manual' && (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEdit(post)}
+                          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                          title="Редактировать новость"
+                        >
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(post.id)}
+                          className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/25 text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                          title="Удалить новость"
+                        >
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Optional Cover */}
+                {/* Cover Image (16:9 widescreen) */}
                 {post.coverImage && (
                   <div className="rounded-2xl overflow-hidden aspect-video w-full bg-zinc-900 border border-white/10">
-                    <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover" />
+                    <img
+                      src={post.coverImage}
+                      alt={post.title}
+                      loading="lazy"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                 )}
 
@@ -354,14 +615,29 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
                   {post.title}
                 </h3>
 
-                {/* Formatted Content */}
+                {/* Content */}
                 {renderFormattedText(post.content, isExpanded, post.id)}
               </div>
 
-              {/* Author footer */}
+              {/* Footer */}
               <div className="pt-4 mt-4 border-t border-white/8 flex items-center justify-between text-[11px] text-zinc-500">
                 <span>Автор: <strong className="text-zinc-400 font-medium">{post.author}</strong></span>
-                <span>OFMEDIA Live</span>
+
+                {post.url ? (
+                  <a
+                    href={post.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-[#229ED9] hover:underline font-semibold"
+                  >
+                    <span>В Telegram</span>
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                ) : (
+                  <span>OFMEDIA Live</span>
+                )}
               </div>
             </article>
           );
@@ -454,7 +730,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
                       className="px-2 py-1 rounded bg-white/5 hover:bg-white/15 text-xs text-zinc-300 font-serif"
                       title="Цитата"
                     >
-                      ” Цитата
+                      Цитата
                     </button>
                     <button
                       type="button"

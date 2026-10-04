@@ -1,9 +1,7 @@
 {
-  "versionCode": 8,
-  "versionName": "1.2.0",
-  "minVersionCode": 1,
-  "apkUrl": "https://ofmedia.vercel.app/app/apk",
-  "apkDirectUrl": "https://ofmedia.vercel.app/ofmedia-latest.apk",
-  "releaseNotes": "• Полный редизайн интерфейса под фирменную типографику OFMEDIA (Graphik Kinopoisk, YS Text, Bebas Neue)\n• Переход на широкоформатные обложки 16:9 во всех разделах каталога, медиатеки и подборок\n• Кинематографичные многоступенчатые градиенты и темный глассморфизм\n• Оптимизация карточек контента, акцентных бейджей рейтинга и прогресса\n• Профессиональный видеоплеер AndroidX Media3 ExoPlayer с поддержкой PiP, выбора качества, звука и субтитров\n• Полная поддержка оффлайн-просмотра в памяти устройства\n• Синхронизация истории просмотров, закладок, оценок и профиля киномана",
-  "releaseDate": "2026-09-28"
+  "versionCode": 9,
+  "versionName": "1.2.1",
+  "minSupportedVersionCode": 1,
+  "apkUrl": "https://ofmedia.ru/ofmedia-latest.apk",
+  "releaseNotes": "Интеграция живой ленты постов Telegram-канала @ofmedi без VPN, обновленный дизайн страницы новостей, оптимизация видеоплеера."
 }

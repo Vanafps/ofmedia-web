@@ -9,6 +9,16 @@
     ],
     "redirects": [
       {
+        "source": "/api/telegram-news",
+        "destination": "https://ofmedia.ru/api/telegram-news",
+        "type": 302
+      },
+      {
+        "source": "/api/telegram-image",
+        "destination": "https://ofmedia.ru/api/telegram-image",
+        "type": 302
+      },
+      {
         "source": "/ofmedia-latest.apk",
         "destination": "https://ofmedia.ru/ofmedia-latest.apk",
         "type": 302
