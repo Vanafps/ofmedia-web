@@ -1204,11 +1204,11 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
           key={flashFeedback.id}
           className="absolute inset-0 flex items-center justify-center pointer-events-none z-30"
         >
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#101012]/90 backdrop-blur-2xl border-2 border-white/25 flex items-center justify-center text-white shadow-[0_0_45px_rgba(255,92,0,0.5)] animate-center-pop">
+          <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-[#ff5c00]/90 md:bg-[#101012]/90 backdrop-blur-2xl border-2 border-white/40 md:border-white/25 flex items-center justify-center text-white shadow-[0_0_35px_rgba(255,92,0,0.8)] md:shadow-[0_0_45px_rgba(255,92,0,0.5)] animate-center-pop">
             {flashFeedback.type === 'play' ? (
-              <ModernPlayIcon className="w-10 h-10 text-white" />
+              <ModernPlayIcon className="w-8 h-8 md:w-10 md:h-10 text-white translate-x-[2.5px] md:translate-x-0.5" />
             ) : (
-              <PauseIcon className="w-10 h-10 text-white" />
+              <PauseIcon className="w-8 h-8 md:w-10 md:h-10 text-white" />
             )}
           </div>
         </div>
@@ -1269,42 +1269,42 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
         )}
       </div>
 
-      {/* MOBILE CENTER HUD CONTROLS */}
+      {/* MOBILE CENTER HUD CONTROLS (Only visible on mobile web, hidden on PC desktop) */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`absolute inset-0 flex items-center justify-center gap-6 sm:gap-10 pointer-events-none z-25 transition-all duration-300 ${
+        className={`absolute inset-0 flex md:hidden items-center justify-center gap-6 pointer-events-none z-25 transition-all duration-300 ${
           showControls ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
         }`}
       >
         {/* Rewind 10s */}
         <button
           onClick={() => skip(-10)}
-          className="pointer-events-auto w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white shadow-xl active:scale-90 hover:scale-105 transition-all cursor-pointer"
+          className="pointer-events-auto w-12 h-12 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white shadow-xl active:scale-90 hover:scale-105 transition-all cursor-pointer"
           title="Назад на 10 сек"
         >
-          <Rewind10Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+          <Rewind10Icon className="w-6 h-6 text-white" />
         </button>
 
-        {/* Center Big Play/Pause (64px mobile, 72px desktop) */}
+        {/* Center Big Play/Pause (Mobile: 64px Orange Circle with optically centered triangle) */}
         <button
           onClick={togglePlay}
-          className="pointer-events-auto w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-[#ff5c00] hover:bg-[#e05200] text-white flex items-center justify-center shadow-[0_0_30px_rgba(255,92,0,0.6)] active:scale-95 hover:scale-105 transition-all cursor-pointer border border-white/30"
+          className="pointer-events-auto w-16 h-16 rounded-full bg-[#ff5c00] hover:bg-[#e05200] text-white flex items-center justify-center shadow-[0_0_30px_rgba(255,92,0,0.6)] active:scale-95 hover:scale-105 transition-all cursor-pointer border border-white/30"
           title={isPlaying ? 'Пауза' : 'Воспроизведение'}
         >
           {isPlaying ? (
-            <PauseIcon className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+            <PauseIcon className="w-8 h-8 text-white" />
           ) : (
-            <ModernPlayIcon className="w-8 h-8 sm:w-10 sm:h-10 text-white translate-x-0.5" />
+            <ModernPlayIcon className="w-8 h-8 text-white translate-x-[2.5px]" />
           )}
         </button>
 
         {/* Forward 10s */}
         <button
           onClick={() => skip(10)}
-          className="pointer-events-auto w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white shadow-xl active:scale-90 hover:scale-105 transition-all cursor-pointer"
+          className="pointer-events-auto w-12 h-12 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white shadow-xl active:scale-90 hover:scale-105 transition-all cursor-pointer"
           title="Вперёд на 10 сек"
         >
-          <Forward10Icon className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+          <Forward10Icon className="w-6 h-6 text-white" />
         </button>
       </div>
 

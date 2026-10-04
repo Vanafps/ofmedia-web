@@ -129,13 +129,16 @@ export const fetchVkUserProfile = async (
   // 2. Serverless proxy fallback
   try {
     const isVercelHost = typeof window !== 'undefined' && (
+      window.location.hostname.includes('ofmedia.ru') ||
       window.location.hostname.includes('vercel.app') ||
       window.location.hostname.includes('ofmedia.online') ||
-      window.location.hostname.startsWith('ver.')
+      window.location.hostname.startsWith('ver.') ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1'
     );
     const apiUrl = isVercelHost
       ? `/api/vk-user?user_id=${encodeURIComponent(userId)}`
-      : `https://ofmedia.online/api/vk-user?user_id=${encodeURIComponent(userId)}`;
+      : `https://ofmedia.ru/api/vk-user?user_id=${encodeURIComponent(userId)}`;
 
     const res = await fetch(apiUrl);
     if (res.ok) {
@@ -263,11 +266,14 @@ export const exchangeVkCodeSecurely = async (code: string, deviceId?: string): P
   try {
     const redirectUri = getRedirectUrl();
     const isVercelHost = typeof window !== 'undefined' && (
+      window.location.hostname.includes('ofmedia.ru') ||
       window.location.hostname.includes('vercel.app') ||
       window.location.hostname.includes('ofmedia.online') ||
-      window.location.hostname.startsWith('ver.')
+      window.location.hostname.startsWith('ver.') ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1'
     );
-    const apiUrl = isVercelHost ? '/api/vk-exchange' : 'https://ofmedia.online/api/vk-exchange';
+    const apiUrl = isVercelHost ? '/api/vk-exchange' : 'https://ofmedia.ru/api/vk-exchange';
     const res = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -396,13 +402,28 @@ export const renderVkFloatingOneTap = (
 export const loginWithVkId = async (): Promise<void> => {
   initVkId();
 
+  const appId = getVkAppId();
+  const redirectUri = encodeURIComponent(getRedirectUrl());
+  const state = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
+
+  // Direct redirection for mobile to prevent browser popup blockers from suppressing VK ID login
+  const isMobile = typeof window !== 'undefined' && (
+    isMobileApp() ||
+    window.innerWidth < 768 ||
+    'ontouchstart' in window ||
+    ((navigator as any).maxTouchPoints && (navigator as any).maxTouchPoints > 0) ||
+    /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+  );
+
+  if (isMobile) {
+    window.location.href = `https://oauth.vk.com/authorize?client_id=${appId}&redirect_uri=${redirectUri}&response_type=code&display=mobile&scope=&state=${state}`;
+    return;
+  }
+
   try {
     await VKID.Auth.login();
   } catch (e: any) {
     console.warn('VKID.Auth.login notice:', e?.message);
-    const appId = getVkAppId();
-    const redirectUri = encodeURIComponent(getRedirectUrl());
-    const state = typeof window !== 'undefined' ? encodeURIComponent(window.location.href) : '';
     window.location.href = `https://oauth.vk.com/authorize?client_id=${appId}&redirect_uri=${redirectUri}&response_type=code&display=mobile&scope=&state=${state}`;
   }
 };

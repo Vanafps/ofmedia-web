@@ -273,7 +273,7 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
           </div>
 
           {/* User Profile / Auth Button */}
-          {user ? (
+          {user && !user.isAnonymous && !user.uid?.startsWith('guest_') ? (
             <button
               onClick={onOpenProfile}
               className="h-9 sm:h-10 flex items-center gap-2 p-1 sm:p-1.5 sm:pr-3.5 rounded-full glass-pill text-white transition-all shadow-lg hover:scale-102 active:scale-95 cursor-pointer border border-white/15 hover:border-[#ff5c00]/50"

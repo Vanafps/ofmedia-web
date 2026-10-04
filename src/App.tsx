@@ -1218,6 +1218,7 @@ export function App() {
         onLogout={logoutUser}
         onSelectProject={handleOpenDetails}
         onPlayProject={handlePlayProject}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
       />
 
       {/* Video Player */}
@@ -1312,13 +1313,13 @@ export function App() {
           window.dispatchEvent(new CustomEvent('ofmedia_open_search'));
         }}
         onOpenProfile={() => {
-          if (user) {
+          if (user && !user.isAnonymous && !user.uid?.startsWith('guest_')) {
             setIsProfileModalOpen((prev) => !prev);
           } else {
             setIsAuthModalOpen(true);
           }
         }}
-        isLoggedIn={!!user}
+        isLoggedIn={!!user && !user.isAnonymous && !user.uid?.startsWith('guest_')}
         isProfileOpen={isProfileModalOpen}
         onGoHome={() => {
           setIsProfileModalOpen(false);
