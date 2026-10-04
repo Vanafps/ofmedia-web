@@ -44,7 +44,7 @@ const parseDurationToSeconds = (durStr?: string): number => {
 // Modern Geometric Play SVG Icon - Optically and Mathematically Centered
 export const ModernPlayIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M8 5.14v13.72a1.2 1.2 0 0 0 1.85 1.02l11-6.86a1.2 1.2 0 0 0 0-2.04l-11-6.86A1.2 1.2 0 0 0 8 5.14z" />
+    <path d="M7.5 5.5v13a1 1 0 0 0 1.5.86l10-6.5a1 1 0 0 0 0-1.72l-10-6.5a1 1 0 0 0-1.5.86z" />
   </svg>
 );
 
@@ -714,18 +714,33 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
   const handleScreenClick = (e: React.MouseEvent | React.TouchEvent) => {
     const container = containerRef.current;
     if (!container) return;
+
+    const isTouch =
+      'touches' in e ||
+      Boolean(e.nativeEvent && 'touches' in (e.nativeEvent as any)) ||
+      (typeof window !== 'undefined' &&
+        ('ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0)) &&
+        window.innerWidth < 1024);
+
+    if (!isTouch) {
+      // Desktop PC: Instantaneous click anywhere toggles play/pause with 0ms lag
+      togglePlay();
+      return;
+    }
+
+    // Touch screen devices: tap to toggle controls, double-tap left/right to skip 10s
     const rect = container.getBoundingClientRect();
-    const isTouch = 'touches' in e || (e.nativeEvent && 'touches' in (e.nativeEvent as any));
-    const clientX = 'touches' in e
-      ? ((e as React.TouchEvent).touches[0] || (e as any).changedTouches?.[0])?.clientX
-      : (e as React.MouseEvent).clientX;
+    const clientX =
+      'touches' in e
+        ? ((e as React.TouchEvent).touches[0] || (e as any).changedTouches?.[0])?.clientX
+        : (e as React.MouseEvent).clientX;
     if (clientX === undefined) return;
 
     const side = clientX < rect.left + rect.width / 2 ? 'left' : 'right';
     const now = Date.now();
 
-    if (now - lastTapRef.current.time < 320 && lastTapRef.current.side === side) {
-      // Double Tap / Double Click detected: skip 10s and cancel single-click play/pause
+    if (now - lastTapRef.current.time < 300 && lastTapRef.current.side === side) {
+      // Double Tap detected: skip 10s and cancel single-tap toggle
       if (singleTapTimerRef.current) {
         clearTimeout(singleTapTimerRef.current);
         singleTapTimerRef.current = null;
@@ -751,19 +766,10 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     } else {
       lastTapRef.current = { time: now, x: clientX, side };
 
-      if (isTouch) {
-        // Mobile/touch screens: single tap toggles HUD controls visibility
-        if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
-        singleTapTimerRef.current = setTimeout(() => {
-          setShowControls((prev) => !prev);
-        }, 260);
-      } else {
-        // Desktop PC: single click anywhere on the video immediately toggles play/pause!
-        if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
-        singleTapTimerRef.current = setTimeout(() => {
-          togglePlay();
-        }, 200);
-      }
+      if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
+      singleTapTimerRef.current = setTimeout(() => {
+        setShowControls((prev) => !prev);
+      }, 220);
     }
   };
 
@@ -1158,6 +1164,12 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     <div
       ref={containerRef}
       onClick={handleScreenClick}
+      onDoubleClick={() => {
+        // Prevent triggering on mobile touch double taps
+        if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+          toggleFullscreen();
+        }
+      }}
       className={`fixed inset-0 z-[200] bg-black flex items-center justify-center select-none ${
         !showControls && isPlaying ? 'cursor-none' : 'cursor-default'
       }`}
