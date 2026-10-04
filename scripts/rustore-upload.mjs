@@ -76,7 +76,7 @@ async function uploadToRuStore() {
       appName: 'OFMEDIA',
       appType: 'MAIN',
       publishType: 'INSTANTLY',
-      whatsNew: 'v.1.2.3: Официальная авторизация VK ID по современному протоколу с брендовыми кнопками, мультимедийные альбомы фотографий в новостях Telegram с интерактивным просмотром и зумом, стеклянный матовый интерфейс (glassmorphism), исправление центрирования плеера.',
+      whatsNew: 'v1.2.5: Оптически центрированные элементы управления плеера, полная поддержка фотоальбомов Telegram с плавным масштабированием и панорамированием, матовое стекло (Glassmorphism) в навигации, нативная авторизация VK ID.',
       developerContacts: {
         email: 'support@ofmedia.online',
         website: 'https://ofmedia.online'
@@ -108,7 +108,7 @@ async function uploadToRuStore() {
   const fileBuffer = fs.readFileSync(APK_PATH);
   const blob = new Blob([fileBuffer], { type: 'application/vnd.android.package-archive' });
   const formData = new FormData();
-  formData.append('file', blob, 'ofmedia-v1.2.3.apk');
+  formData.append('file', blob, 'ofmedia-v1.2.5.apk');
 
   const uploadUrl = `https://public-api.rustore.ru/public/v1/application/${PACKAGE_NAME}/version/${versionId}/apk?servicesType=Unknown&isMainApk=true`;
   const uploadRes = await fetch(uploadUrl, {
