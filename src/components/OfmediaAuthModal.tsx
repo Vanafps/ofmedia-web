@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { loginAsGuest, loginWithEmail, registerWithEmail, type UserProfile } from '../services/firebase';
-import { loginWithVkId } from '../services/vkIdService';
+import { renderVkOneTap, loginWithVkId } from '../services/vkIdService';
 
 interface OfmediaAuthModalProps {
   isOpen: boolean;
@@ -22,6 +22,46 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showVkFallback, setShowVkFallback] = useState(false);
+  const oneTapRef = useRef<HTMLDivElement>(null);
+
+  // Render official VK ID SDK OneTap widget when modal opens and VK tab is active
+  useEffect(() => {
+    if (!isOpen || authMethod !== 'vk') return;
+
+    const container = oneTapRef.current;
+    if (!container) return;
+
+    container.innerHTML = '';
+    setShowVkFallback(false);
+
+    const fallbackTimer = setTimeout(() => {
+      if (container && container.childElementCount === 0) {
+        setShowVkFallback(true);
+      }
+    }, 2000);
+
+    renderVkOneTap(
+      container,
+      (user) => {
+        clearTimeout(fallbackTimer);
+        onSuccess(user);
+        onClose();
+      },
+      (err) => {
+        clearTimeout(fallbackTimer);
+        console.warn('VK OneTap SDK notice:', err);
+        setShowVkFallback(true);
+      }
+    );
+
+    return () => {
+      clearTimeout(fallbackTimer);
+      if (container) {
+        container.innerHTML = '';
+      }
+    };
+  }, [isOpen, authMethod, onSuccess, onClose]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -156,29 +196,35 @@ export const OfmediaAuthModal: React.FC<OfmediaAuthModalProps> = ({
               </div>
             )}
 
-            {/* Tab 1: VK ID Authentication */}
+            {/* Tab 1: Official VK ID OneTap SDK Widget */}
             {authMethod === 'vk' && (
               <div className="w-full flex flex-col items-center justify-center pt-1 min-h-[56px] space-y-3">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      setLoading(true);
-                      setError(null);
-                      await loginWithVkId();
-                    } catch (err: any) {
-                      setError(err?.message || 'Ошибка авторизации через VK ID');
-                      setLoading(false);
-                    }
-                  }}
-                  disabled={loading}
-                  className="w-full py-3.5 px-4 rounded-2xl bg-[#0077ff] hover:bg-[#0066ee] text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all shadow-md active:scale-95 disabled:opacity-50 cursor-pointer"
-                >
-                  <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                    <path d="M15.684 0H8.316C3.592 0 0 3.592 0 8.316v7.368C0 20.408 3.592 24 8.316 24h7.368C20.408 24 24 20.408 24 15.684V8.316C24 3.592 20.408 0 15.684 0zm3.602 17.154h-1.634c-.618 0-.808-.492-1.921-1.61-.97-.946-1.4-.997-1.637-.997-.332 0-.427.094-.427.551v1.464c0 .393-.127.592-1.183.592-1.748 0-3.69-1.06-5.06-3.033-2.073-2.91-2.64-5.105-2.64-5.556 0-.25.095-.483.565-.483h1.634c.421 0 .577.193.738.65.805 2.338 2.152 4.385 2.709 4.385.209 0 .304-.095.304-.616V10.15c-.066-1.104-.648-1.198-.648-1.59 0-.19.16-.38.414-.38h2.57c.35 0 .474.184.474.6v3.238c0 .351.157.474.257.474.209 0 .38-.123.766-.51 1.18-1.326 2.023-3.292 2.023-3.292.11-.247.332-.47.753-.47h1.634c.49 0 .6.247.49.6-.208.97-2.228 3.82-2.327 3.974-.23.364-.32.527 0 .954.23.31 1.01 1.002 1.528 1.602.955 1.077 1.69 1.979 1.887 2.603.1.317-.07.48-.567.48z" />
-                  </svg>
-                  <span>{loading ? 'Подключение к VK ID...' : 'Войти через VK ID'}</span>
-                </button>
+                <div
+                  ref={oneTapRef}
+                  className="w-full flex justify-center items-center"
+                />
+                {showVkFallback && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        setLoading(true);
+                        setError(null);
+                        await loginWithVkId();
+                      } catch (err: any) {
+                        setError(err?.message || 'Ошибка авторизации через VK ID');
+                        setLoading(false);
+                      }
+                    }}
+                    disabled={loading}
+                    className="w-full py-3.5 px-4 rounded-2xl bg-[#0077ff] hover:bg-[#0066ee] text-white font-semibold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-all shadow-md active:scale-95 disabled:opacity-50 cursor-pointer"
+                  >
+                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                      <path d="M15.684 0H8.316C3.592 0 0 3.592 0 8.316v7.368C0 20.408 3.592 24 8.316 24h7.368C20.408 24 24 20.408 24 15.684V8.316C24 3.592 20.408 0 15.684 0zm3.602 17.154h-1.634c-.618 0-.808-.492-1.921-1.61-.97-.946-1.4-.997-1.637-.997-.332 0-.427.094-.427.551v1.464c0 .393-.127.592-1.183.592-1.748 0-3.69-1.06-5.06-3.033-2.073-2.91-2.64-5.105-2.64-5.556 0-.25.095-.483.565-.483h1.634c.421 0 .577.193.738.65.805 2.338 2.152 4.385 2.709 4.385.209 0 .304-.095.304-.616V10.15c-.066-1.104-.648-1.198-.648-1.59 0-.19.16-.38.414-.38h2.57c.35 0 .474.184.474.6v3.238c0 .351.157.474.257.474.209 0 .38-.123.766-.51 1.18-1.326 2.023-3.292 2.023-3.292.11-.247.332-.47.753-.47h1.634c.49 0 .6.247.49.6-.208.97-2.228 3.82-2.327 3.974-.23.364-.32.527 0 .954.23.31 1.01 1.002 1.528 1.602.955 1.077 1.69 1.979 1.887 2.603.1.317-.07.48-.567.48z" />
+                    </svg>
+                    <span>{loading ? 'Подключение к VK ID...' : 'Войти через VK ID'}</span>
+                  </button>
+                )}
               </div>
             )}
 

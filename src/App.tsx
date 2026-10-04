@@ -1302,33 +1302,35 @@ export function App() {
       </AnimatePresence>
 
       {/* Mobile App Smart Notice (Floating above navigation) */}
-      <OfmediaMobileAppNotice />
+      {!isPlayerOpen && <OfmediaMobileAppNotice />}
 
-      {/* Mobile Bottom Navigation Bar */}
-      <OfmediaMobileNav
-        activeTab={activeTab}
-        setActiveTab={handleSelectTab}
-        favoritesCount={favorites.length}
-        onOpenSearch={() => {
-          window.dispatchEvent(new CustomEvent('ofmedia_open_search'));
-        }}
-        onOpenProfile={() => {
-          if (user && !user.isAnonymous && !user.uid?.startsWith('guest_')) {
-            setIsProfileModalOpen((prev) => !prev);
-          } else {
-            setIsAuthModalOpen(true);
-          }
-        }}
-        isLoggedIn={!!user && !user.isAnonymous && !user.uid?.startsWith('guest_')}
-        isProfileOpen={isProfileModalOpen}
-        onGoHome={() => {
-          setIsProfileModalOpen(false);
-          setIsDetailModalOpen(false);
-          setIsAuthModalOpen(false);
-          setIsActorModalOpen(false);
-          setActiveTab('main');
-        }}
-      />
+      {/* Mobile Bottom Navigation Bar - strictly hidden when player is open */}
+      {!isPlayerOpen && (
+        <OfmediaMobileNav
+          activeTab={activeTab}
+          setActiveTab={handleSelectTab}
+          favoritesCount={favorites.length}
+          onOpenSearch={() => {
+            window.dispatchEvent(new CustomEvent('ofmedia_open_search'));
+          }}
+          onOpenProfile={() => {
+            if (user && !user.isAnonymous && !user.uid?.startsWith('guest_')) {
+              setIsProfileModalOpen((prev) => !prev);
+            } else {
+              setIsAuthModalOpen(true);
+            }
+          }}
+          isLoggedIn={!!user && !user.isAnonymous && !user.uid?.startsWith('guest_')}
+          isProfileOpen={isProfileModalOpen}
+          onGoHome={() => {
+            setIsProfileModalOpen(false);
+            setIsDetailModalOpen(false);
+            setIsAuthModalOpen(false);
+            setIsActorModalOpen(false);
+            setActiveTab('main');
+          }}
+        />
+      )}
 
       {/* Footer & App promo: ALWAYS visible on the website (desktop & mobile web), HIDDEN in Native Android App & Telegram Mini App */}
       {isWeb() && !isTelegramMiniApp() && (

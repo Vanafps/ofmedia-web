@@ -41,10 +41,10 @@ const parseDurationToSeconds = (durStr?: string): number => {
   return Number(durStr) || 0;
 };
 
-// Modern Geometric Play SVG Icon - Optically Centered
+// Modern Geometric Play SVG Icon - Optically and Mathematically Centered
 export const ModernPlayIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M7.5 6.2c0-.95 1.05-1.53 1.85-1.02l10.2 6.3c.78.48.78 1.56 0 2.04l-10.2 6.3c-.8.5-1.85-.07-1.85-1.02V6.2z" />
+    <path d="M8 5.14v13.72a1.2 1.2 0 0 0 1.85 1.02l11-6.86a1.2 1.2 0 0 0 0-2.04l-11-6.86A1.2 1.2 0 0 0 8 5.14z" />
   </svg>
 );
 
@@ -715,6 +715,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     const container = containerRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
+    const isTouch = 'touches' in e || (e.nativeEvent && 'touches' in (e.nativeEvent as any));
     const clientX = 'touches' in e
       ? ((e as React.TouchEvent).touches[0] || (e as any).changedTouches?.[0])?.clientX
       : (e as React.MouseEvent).clientX;
@@ -724,7 +725,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     const now = Date.now();
 
     if (now - lastTapRef.current.time < 320 && lastTapRef.current.side === side) {
-      // Double Tap detected: skip 10s and cancel single-click play/pause
+      // Double Tap / Double Click detected: skip 10s and cancel single-click play/pause
       if (singleTapTimerRef.current) {
         clearTimeout(singleTapTimerRef.current);
         singleTapTimerRef.current = null;
@@ -749,11 +750,20 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
       lastTapRef.current = { time: 0, x: clientX, side };
     } else {
       lastTapRef.current = { time: now, x: clientX, side };
-      // Single tap on mobile/touch screens: toggle controls visibility instead of pausing playback
-      if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
-      singleTapTimerRef.current = setTimeout(() => {
-        setShowControls((prev) => !prev);
-      }, 260);
+
+      if (isTouch) {
+        // Mobile/touch screens: single tap toggles HUD controls visibility
+        if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
+        singleTapTimerRef.current = setTimeout(() => {
+          setShowControls((prev) => !prev);
+        }, 260);
+      } else {
+        // Desktop PC: single click anywhere on the video immediately toggles play/pause!
+        if (singleTapTimerRef.current) clearTimeout(singleTapTimerRef.current);
+        singleTapTimerRef.current = setTimeout(() => {
+          togglePlay();
+        }, 200);
+      }
     }
   };
 
@@ -1148,7 +1158,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     <div
       ref={containerRef}
       onClick={handleScreenClick}
-      className={`fixed inset-0 z-[100] bg-black flex items-center justify-center select-none ${
+      className={`fixed inset-0 z-[200] bg-black flex items-center justify-center select-none ${
         !showControls && isPlaying ? 'cursor-none' : 'cursor-default'
       }`}
     >
@@ -1206,7 +1216,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
         >
           <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-[#ff5c00]/90 md:bg-[#101012]/90 backdrop-blur-2xl border-2 border-white/40 md:border-white/25 flex items-center justify-center text-white shadow-[0_0_35px_rgba(255,92,0,0.8)] md:shadow-[0_0_45px_rgba(255,92,0,0.5)] animate-center-pop">
             {flashFeedback.type === 'play' ? (
-              <ModernPlayIcon className="w-8 h-8 md:w-10 md:h-10 text-white translate-x-[2.5px] md:translate-x-0.5" />
+              <ModernPlayIcon className="w-8 h-8 md:w-10 md:h-10 text-white" />
             ) : (
               <PauseIcon className="w-8 h-8 md:w-10 md:h-10 text-white" />
             )}
@@ -1294,7 +1304,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
           {isPlaying ? (
             <PauseIcon className="w-8 h-8 text-white" />
           ) : (
-            <ModernPlayIcon className="w-8 h-8 text-white translate-x-[2.5px]" />
+            <ModernPlayIcon className="w-8 h-8 text-white" />
           )}
         </button>
 
