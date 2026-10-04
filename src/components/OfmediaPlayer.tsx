@@ -44,7 +44,7 @@ const parseDurationToSeconds = (durStr?: string): number => {
 // Modern Geometric Play SVG Icon - Optically and Mathematically Centered
 export const ModernPlayIcon: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
   <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M7.5 5.5v13a1 1 0 0 0 1.5.86l10-6.5a1 1 0 0 0 0-1.72l-10-6.5a1 1 0 0 0-1.5.86z" />
+    <path d="M8 7.5v9c0 .77.83 1.25 1.5.87l7.5-4.5a1 1 0 0 0 0-1.74L9.5 6.63A1 1 0 0 0 8 7.5z" />
   </svg>
 );
 
@@ -494,7 +494,13 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     window.addEventListener('touchstart', handleActivity);
     window.addEventListener('keydown', handleActivity);
 
+    document.body.classList.add('ofmedia-player-active');
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     return () => {
+      document.body.classList.remove('ofmedia-player-active');
+      document.body.style.overflow = originalOverflow;
       if (timerId) clearTimeout(timerId);
       window.removeEventListener('mousemove', handleActivity);
       window.removeEventListener('mousedown', handleActivity);
@@ -715,15 +721,14 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     const container = containerRef.current;
     if (!container) return;
 
+    // Detect true touch interaction: touch event or touch pointer
     const isTouch =
-      'touches' in e ||
-      Boolean(e.nativeEvent && 'touches' in (e.nativeEvent as any)) ||
-      (typeof window !== 'undefined' &&
-        ('ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0)) &&
-        window.innerWidth < 1024);
+      ('touches' in e && (e as React.TouchEvent).touches?.length > 0) ||
+      (e.nativeEvent && 'touches' in (e.nativeEvent as any) && (e.nativeEvent as any).touches?.length > 0) ||
+      ((e.nativeEvent as any)?.pointerType === 'touch');
 
     if (!isTouch) {
-      // Desktop PC: Instantaneous click anywhere toggles play/pause with 0ms lag
+      // Desktop PC (mouse click): Instantaneous toggle play/pause anywhere on the screen with 0ms lag
       togglePlay();
       return;
     }

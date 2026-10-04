@@ -9,6 +9,14 @@ html, body, #root {
   width: 100%;
 }
 
+/* Force-hide mobile navigation and notice overlays while player is active */
+body.ofmedia-player-active .ofmedia-mobile-nav,
+body.ofmedia-player-active .ofmedia-notice {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 /* Modals and vertical scrollable containers must contain their scroll to prevent window bounce */
 .overflow-y-auto, .custom-scrollbar {
   overscroll-behavior: contain !important;

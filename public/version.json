@@ -1,7 +1,7 @@
 {
-  "versionCode": 9,
-  "versionName": "1.2.1",
+  "versionCode": 13,
+  "versionName": "1.2.5",
   "minSupportedVersionCode": 1,
   "apkUrl": "https://ofmedia.ru/ofmedia-latest.apk",
-  "releaseNotes": "Интеграция живой ленты постов Telegram-канала @ofmedi без VPN, обновленный дизайн страницы новостей, оптимизация видеоплеера."
+  "releaseNotes": "Оптически центрированные кнопки воспроизведения, поддержка полных фотоальбомов Telegram с плавным масштабированием и панорамированием, матовое стекло (Glassmorphism) в навигации, нативная авторизация VK ID."
 }
