@@ -76,7 +76,7 @@ async function uploadToRuStore() {
       appName: 'OFMEDIA',
       appType: 'MAIN',
       publishType: 'INSTANTLY',
-      whatsNew: 'OFMEDIA 1.2.1: Прямая интеграция официального Telegram-канала @ofmedi в раздел Новости без необходимости VPN. Загрузка живых постов, медиаматериалов и анонсов. Обновленный дизайн карточек новостей, оптимизация видеоплеера и повышение стабильности.',
+      whatsNew: 'v.1.2.2: Обновление плеера и авторизации. Новый ультратонкий таймлайн CinemaSeekBar, оптическое центрирование элементов управления, полноценная авторизация по почте и паролю, удаление дублирующих элементов входа, улучшенное форматирование новостей и общая оптимизация стабильности.',
       developerContacts: {
         email: 'support@ofmedia.online',
         website: 'https://ofmedia.online'
@@ -108,7 +108,7 @@ async function uploadToRuStore() {
   const fileBuffer = fs.readFileSync(APK_PATH);
   const blob = new Blob([fileBuffer], { type: 'application/vnd.android.package-archive' });
   const formData = new FormData();
-  formData.append('file', blob, 'ofmedia-v1.2.1.apk');
+  formData.append('file', blob, 'ofmedia-v1.2.2.apk');
 
   const uploadUrl = `https://public-api.rustore.ru/public/v1/application/${PACKAGE_NAME}/version/${versionId}/apk?servicesType=Unknown&isMainApk=true`;
   const uploadRes = await fetch(uploadUrl, {

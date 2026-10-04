@@ -49,10 +49,10 @@ runGit('git remote remove origin');
 runGit('git remote add origin https://github.com/ofmedia-web/ofmedia-web.github.io.git');
 runGit('git add -A');
 runGit('git commit -m "deploy: update OFMEDIA mirror"');
-execSync('git -c http.proxy= push -f origin main', {
+execSync('git -c http.proxy="" -c https.proxy="" push -f origin main', {
   cwd: distDir,
   stdio: 'inherit',
-  env: { ...process.env, HTTPS_PROXY: '', HTTP_PROXY: '' }
+  env: { ...process.env, HTTPS_PROXY: '', HTTP_PROXY: '', all_proxy: '', ALL_PROXY: '' }
 });
 
 // Cleanup .git inside dist so it does not pollute subsequent builds or capacitor syncs
