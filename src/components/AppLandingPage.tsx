@@ -68,6 +68,9 @@ export const AppLandingPage: React.FC = () => {
               <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
                 Официальный российский магазин приложений. Автоматические обновления, проверенная безопасность и быстрая установка в 1 клик.
               </p>
+              <div className="text-[11px] text-zinc-500 font-mono">
+                Версия 1.2.5 • ru.ofmedia.app
+              </div>
             </div>
 
             <a
@@ -101,7 +104,7 @@ export const AppLandingPage: React.FC = () => {
                 Официальный релизный установочный файл без магазинов приложений. Подходит для смартфонов, планшетов и Android TV.
               </p>
               <div className="text-[11px] text-zinc-500 font-mono">
-                Версия 1.1.0 • 96.5 МБ • ru.ofmedia.app
+                Версия 1.2.5 • 97.2 МБ • ru.ofmedia.app
               </div>
             </div>
 

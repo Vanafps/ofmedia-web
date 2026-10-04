@@ -10,8 +10,8 @@ export interface AppVersionInfo {
   releaseDate: string;
 }
 
-export const CURRENT_APP_VERSION = '1.0.5';
-export const CURRENT_APP_CODE = 6;
+export const CURRENT_APP_VERSION = '1.2.5';
+export const CURRENT_APP_CODE = 13;
 
 export const checkForAppUpdate = async (): Promise<{
   updateAvailable: boolean;
@@ -33,7 +33,7 @@ export const checkForAppUpdate = async (): Promise<{
       }
     } catch {}
 
-    const res = await fetch('https://ofmedia.vercel.app/version.json?_t=' + Date.now());
+    const res = await fetch('https://ofmedia.ru/version.json?_t=' + Date.now());
     if (!res.ok) return { updateAvailable: false };
     const latest: AppVersionInfo = await res.json();
 
@@ -48,7 +48,7 @@ export const checkForAppUpdate = async (): Promise<{
 };
 
 export const triggerApkDownload = (apkUrl?: string) => {
-  const target = apkUrl || 'https://ofmedia.vercel.app/ofmedia-latest.apk';
+  const target = apkUrl || 'https://ofmedia.ru/ofmedia-latest.apk';
   const a = document.createElement('a');
   a.href = target;
   a.target = '_blank';
