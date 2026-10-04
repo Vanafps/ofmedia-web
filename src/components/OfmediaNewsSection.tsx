@@ -198,10 +198,17 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
             ? p.images.map((img: string) => (img.startsWith('/') ? `${apiBase}${img}` : img))
             : [];
 
+          const cleanTitle = (p.title || '')
+            .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{2388}-\u{2B55}\u{E0020}-\u{E007F}\u{FE0F}]/gu, '')
+            .trim();
+          const cleanContent = (p.content || '')
+            .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{2388}-\u{2B55}\u{E0020}-\u{E007F}\u{FE0F}]/gu, '')
+            .trim();
+
           return {
             id: `tg_${p.id}`,
-            title: p.title || `Публикация #${p.id}`,
-            content: p.content || '',
+            title: cleanTitle || `Публикация #${p.id}`,
+            content: cleanContent,
             date: p.dateFormatted || p.date || '',
             author: '@ofmedi',
             tag: 'Telegram',
