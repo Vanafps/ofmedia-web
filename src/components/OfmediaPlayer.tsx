@@ -16,15 +16,34 @@ interface OfmediaPlayerProps {
 
 export type VideoQuality = '144p' | '240p' | '360p' | '480p' | '720p' | '1080p' | 'auto';
 
+export interface StreamLevelItem {
+  id: VideoQuality;
+  label: string;
+  height: number;
+  bitrate: number;
+  index: number;
+}
+
+// Adaptive Buffer Management Architecture:
+// Deep protective cushion during normal streaming (saves user from VPN/network spikes)
+const BUFFER_CUSHION_NORMAL = 90; // 90s forward buffer
+const BUFFER_CEILING_NORMAL = 180; // 180s max buffer length
+const BUFFER_SIZE_NORMAL = 80 * 1024 * 1024; // 80 MB buffer in memory
+const BACK_BUFFER_NORMAL = 60; // 60s kept in back-buffer for instant zero-fetch rewind
+
+// Fast startup & fast seek priority mode:
+const BUFFER_SEEK_PRIORITY = 8; // Only 1-2 immediate segments required to start playback instantly
+const BUFFER_SEEK_CEILING = 16;
+
 const SPEED_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
 const QUALITY_STEPS: { id: VideoQuality; label: string }[] = [
-  { id: '144p', label: 'Эко' },
-  { id: '240p', label: 'LD' },
-  { id: '360p', label: 'LQ' },
-  { id: '480p', label: 'SD' },
-  { id: '720p', label: 'HD' },
   { id: '1080p', label: 'FHD' },
+  { id: '720p', label: 'HD' },
+  { id: '480p', label: 'SD' },
+  { id: '360p', label: 'LQ' },
+  { id: '240p', label: 'LD' },
+  { id: '144p', label: 'Эко' },
   { id: 'auto', label: 'Авто' },
 ];
 
@@ -405,7 +424,10 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
 
   // Quality & Speed & Settings Menus (Okko style)
   const [quality, setQuality] = useState<VideoQuality>('auto');
+  const [availableLevels, setAvailableLevels] = useState<StreamLevelItem[]>([]);
   const [currentAutoHeight, setCurrentAutoHeight] = useState<number | null>(null);
+  const [currentBitrate, setCurrentBitrate] = useState<number | null>(null);
+  const [bandwidthEstimate, setBandwidthEstimate] = useState<number | null>(null);
   const [speed, setSpeed] = useState<number>(1);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [settingsSubView, setSettingsSubView] = useState<'main' | 'quality' | 'speed' | 'audio' | 'subtitles'>('main');
@@ -415,6 +437,25 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
   const [selectedSubtitle, setSelectedSubtitle] = useState<string>('off');
   const [isBuffering, setIsBuffering] = useState(false);
   const [qualityToast, setQualityToast] = useState<string | null>(null);
+
+  // Dynamic Buffer Management: smoothly expand to 90s safety cushion once playing
+  const expandBufferToDeepCushion = () => {
+    const hls = hlsRef.current;
+    if (!hls) return;
+    if (hls.config.maxBufferLength < BUFFER_CUSHION_NORMAL) {
+      hls.config.maxBufferLength = BUFFER_CUSHION_NORMAL;
+      hls.config.maxMaxBufferLength = BUFFER_CEILING_NORMAL;
+      hls.config.maxBufferSize = BUFFER_SIZE_NORMAL;
+    }
+  };
+
+  // Immediate seek priority: focus 100% network on immediate 1-2 segments to resume playback in <200ms
+  const enterSeekPriorityMode = () => {
+    const hls = hlsRef.current;
+    if (!hls) return;
+    hls.config.maxBufferLength = BUFFER_SEEK_PRIORITY;
+    hls.config.maxMaxBufferLength = BUFFER_SEEK_CEILING;
+  };
 
   const fallbackDuration = parseDurationToSeconds(currentEpisode.duration) || parseDurationToSeconds(project.duration) || 120;
   const effectiveDuration = duration > 0 ? duration : fallbackDuration;
@@ -551,37 +592,45 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
 
   const skip = (seconds: number) => {
     if (!videoRef.current) return;
-    videoRef.current.currentTime = Math.max(
+    enterSeekPriorityMode();
+    const target = Math.max(
       0,
       Math.min(effectiveDuration || 0, videoRef.current.currentTime + seconds)
     );
-    setCurrentTime(videoRef.current.currentTime);
+    videoRef.current.currentTime = target;
+    setCurrentTime(target);
   };
 
-  // Ultra-Smooth Drag & Click Seeking
+  // Ultra-Smooth Drag & Click Seeking with Fast-Seek Priority Mode
   const handleSeekStart = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!videoRef.current || !effectiveDuration) return;
     isDraggingScrubberRef.current = true;
+    enterSeekPriorityMode();
     const rect = e.currentTarget.getBoundingClientRect();
     setTrackWidth(rect.width);
     const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     const targetTime = pos * effectiveDuration;
-    videoRef.current.currentTime = targetTime;
+    let latestTime = targetTime;
     setCurrentTime(targetTime);
+    setHoverPos(e.clientX - rect.left);
+    setHoverTime(targetTime);
 
     const onMouseMove = (moveEvent: MouseEvent) => {
-      if (!videoRef.current || !effectiveDuration || !scrubberTrackRef.current) return;
+      if (!effectiveDuration || !scrubberTrackRef.current) return;
       const trackRect = scrubberTrackRef.current.getBoundingClientRect();
       const movePos = Math.max(0, Math.min(1, (moveEvent.clientX - trackRect.left) / trackRect.width));
-      const newTime = movePos * effectiveDuration;
-      videoRef.current.currentTime = newTime;
-      setCurrentTime(newTime);
+      latestTime = movePos * effectiveDuration;
+      // Fluid 60fps visual update without crashing HLS network pipeline
+      setCurrentTime(latestTime);
       setHoverPos(moveEvent.clientX - trackRect.left);
-      setHoverTime(newTime);
+      setHoverTime(latestTime);
     };
 
     const onMouseUp = () => {
       isDraggingScrubberRef.current = false;
+      if (videoRef.current) {
+        videoRef.current.currentTime = latestTime;
+      }
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
     };
@@ -590,34 +639,37 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     window.addEventListener('mouseup', onMouseUp);
   };
 
-  // Mobile Touch Scrubbing Support
+  // Mobile Touch Scrubbing Support with Fast-Seek Priority Mode
   const handleTouchSeek = (e: React.TouchEvent<HTMLDivElement>) => {
     e.stopPropagation();
     if (!videoRef.current || !effectiveDuration || !scrubberTrackRef.current) return;
     isDraggingScrubberRef.current = true;
+    enterSeekPriorityMode();
     const rect = scrubberTrackRef.current.getBoundingClientRect();
     setTrackWidth(rect.width);
     const touch = e.touches[0];
     const pos = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
     const targetTime = pos * effectiveDuration;
-    videoRef.current.currentTime = targetTime;
+    let latestTime = targetTime;
     setCurrentTime(targetTime);
 
     const onTouchMove = (moveEv: TouchEvent) => {
-      if (!videoRef.current || !effectiveDuration || !scrubberTrackRef.current) return;
+      if (!effectiveDuration || !scrubberTrackRef.current) return;
       const trackRect = scrubberTrackRef.current.getBoundingClientRect();
       const moveTouch = moveEv.touches[0];
       const movePos = Math.max(0, Math.min(1, (moveTouch.clientX - trackRect.left) / trackRect.width));
-      const newTime = movePos * effectiveDuration;
-      videoRef.current.currentTime = newTime;
-      setCurrentTime(newTime);
+      latestTime = movePos * effectiveDuration;
+      setCurrentTime(latestTime);
       setHoverPos(moveTouch.clientX - trackRect.left);
-      setHoverTime(newTime);
+      setHoverTime(latestTime);
     };
 
     const onTouchEnd = () => {
       isDraggingScrubberRef.current = false;
       setHoverTime(null);
+      if (videoRef.current) {
+        videoRef.current.currentTime = latestTime;
+      }
       window.removeEventListener('touchmove', onTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
     };
@@ -803,29 +855,21 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
 
   const handleQualityChange = (newQuality: VideoQuality) => {
     setQuality(newQuality);
-    const label = QUALITY_STEPS.find((q) => q.id === newQuality)?.label || newQuality;
-    setQualityToast(`Качество: ${label}`);
-    setTimeout(() => {
-      setQualityToast(null);
-    }, 1800);
-
     const hls = hlsRef.current;
     if (hls && hls.levels && hls.levels.length > 0) {
       if (newQuality === 'auto') {
-        // Seamless ABR auto-selection without buffer flush or player stall
+        // True Dynamic ABR: reset currentLevel and nextLevel so AbrController takes full dynamic control
+        hls.currentLevel = -1;
+        hls.loadLevel = -1;
         hls.nextLevel = -1;
+        const currentH = currentAutoHeight || hls.levels[hls.currentLevel]?.height;
+        const badge = currentH ? ` (${getQualityBadge(currentH)})` : '';
+        setQualityToast(`Качество: Авто${badge}`);
       } else {
         const targetHeight = parseInt(newQuality, 10);
-        let chosenIdx = -1;
+        let chosenIdx = hls.levels.findIndex((l) => l.height === targetHeight);
 
-        // Try exact match first
-        hls.levels.forEach((l, idx) => {
-          if (l.height === targetHeight) {
-            chosenIdx = idx;
-          }
-        });
-
-        // Fallback to closest match
+        // Fallback to closest match if exact height not found
         if (chosenIdx === -1) {
           let minDiff = Infinity;
           hls.levels.forEach((l, idx) => {
@@ -838,11 +882,21 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
         }
 
         if (chosenIdx !== -1) {
-          // nextLevel loads the next fragment at the target resolution without evicting current buffer
-          hls.nextLevel = chosenIdx;
+          hls.currentLevel = chosenIdx;
+          const actualHeight = hls.levels[chosenIdx]?.height || targetHeight;
+          setCurrentAutoHeight(actualHeight);
+          setCurrentBitrate(hls.levels[chosenIdx]?.bitrate || null);
+          setQualityToast(`Качество: ${getQualityBadge(actualHeight)} (${actualHeight}p)`);
         }
       }
+    } else {
+      const label = QUALITY_STEPS.find((q) => q.id === newQuality)?.label || newQuality;
+      setQualityToast(`Качество: ${label}`);
     }
+
+    setTimeout(() => {
+      setQualityToast(null);
+    }, 1800);
 
     // Proactively prevent video freeze on level change
     if (videoRef.current && !videoRef.current.paused) {
@@ -871,7 +925,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
   const currentQualityLabel =
     quality === 'auto'
       ? currentAutoHeight
-        ? `Авто (${getQualityBadge(currentAutoHeight)})`
+        ? `Авто (${getQualityBadge(currentAutoHeight)}${currentBitrate && currentBitrate > 0 ? ` · ${(currentBitrate / 1000000).toFixed(1)}M` : ''})`
         : 'Авто'
       : QUALITY_STEPS.find((q) => q.id === quality)?.label || 'FHD';
 
@@ -961,7 +1015,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
 
           // In master.m3u8: 0=1080p, 1=720p, 2=480p, 3=360p, 4=240p
           // Start at 360p (mobile) or 480p (desktop) so the first 200KB segment renders in <250ms,
-          // then immediately hand over to ABR (nextLevel = -1) to scale up to 1080p.
+          // then smoothly hand over full control to dynamic AbrController.
           const fastInitialLevel = isMobileDevice ? 3 : 2;
 
           const hls = new Hls({
@@ -970,13 +1024,15 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
             lowLatencyMode: false,
             startLevel: fastInitialLevel,
             startFragPrefetch: true,
+            capLevelToPlayerSize: true, // Scale down decode resolution on small viewports
             abrEwmaDefaultEstimate: isMobileDevice ? 1800000 : 3500000,
             abrBandWidthFactor: 0.9,
             abrBandWidthUpFactor: 0.7,
-            backBufferLength: 30,
-            maxBufferLength: 30,
-            maxMaxBufferLength: 60,
-            maxBufferSize: 40 * 1000 * 1000,
+            abrSwitchInterval: 2000,
+            backBufferLength: BACK_BUFFER_NORMAL, // 60s kept in back-buffer for instant rewind
+            maxBufferLength: BUFFER_SEEK_PRIORITY, // 8s fast startup & seek response mode
+            maxMaxBufferLength: BUFFER_SEEK_CEILING,
+            maxBufferSize: BUFFER_SIZE_NORMAL, // 80 MB deep memory cushion
             maxBufferHole: 0.5,
             nudgeOffset: 0.1,
             nudgeMaxRetry: 10,
@@ -997,14 +1053,32 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
 
           hls.on(Hls.Events.MANIFEST_PARSED, (_ev, data) => {
             if (data.levels && data.levels.length > 0) {
-              const safeIdx = Math.min(fastInitialLevel, data.levels.length - 1);
-              hls.startLevel = safeIdx;
-              // Allow ABR to scale up immediately after the fast startup segment
-              setTimeout(() => {
-                if (hlsRef.current === hls) {
-                  hls.nextLevel = -1;
-                }
-              }, 400);
+              // Extract and sort real available levels from stream
+              const mapped: StreamLevelItem[] = data.levels.map((lvl, idx) => {
+                const h = lvl.height || 720;
+                return {
+                  id: `${h}p` as VideoQuality,
+                  label: `${getQualityBadge(h)} (${h}p)`,
+                  height: h,
+                  bitrate: lvl.bitrate || 0,
+                  index: idx,
+                };
+              });
+              mapped.sort((a, b) => b.height - a.height);
+              setAvailableLevels(mapped);
+
+              if (quality === 'auto') {
+                const safeIdx = Math.min(fastInitialLevel, data.levels.length - 1);
+                hls.startLevel = safeIdx;
+                // Allow ABR to take full dynamic control right after the fast startup segment
+                setTimeout(() => {
+                  if (hlsRef.current === hls && quality === 'auto') {
+                    hls.currentLevel = -1;
+                    hls.loadLevel = -1;
+                    hls.nextLevel = -1;
+                  }
+                }, 400);
+              }
             }
             tryRestore();
             video.play().catch(() => {});
@@ -1012,10 +1086,31 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
 
           video.addEventListener('loadedmetadata', tryRestore, { once: true });
 
-          // Level Switch Tracking for live resolution UI badge
+          // Level Switch Tracking for live resolution UI badge and bitrate
           hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
             if (hls.levels && hls.levels[data.level]) {
-              setCurrentAutoHeight(hls.levels[data.level].height);
+              const lvl = hls.levels[data.level];
+              setCurrentAutoHeight(lvl.height);
+              setCurrentBitrate(lvl.bitrate || null);
+            }
+          });
+
+          // Track fragment loads to measure real bandwidth and expand buffer to deep cushion
+          hls.on(Hls.Events.FRAG_LOADED, () => {
+            if (hls.bandwidthEstimate && isFinite(hls.bandwidthEstimate)) {
+              setBandwidthEstimate(hls.bandwidthEstimate);
+            }
+            if (video && video.buffered && video.buffered.length > 0) {
+              const pos = video.currentTime;
+              for (let i = 0; i < video.buffered.length; i++) {
+                if (pos >= video.buffered.start(i) && pos <= video.buffered.end(i)) {
+                  const forwardBuffered = video.buffered.end(i) - pos;
+                  if (forwardBuffered >= 3.0) {
+                    expandBufferToDeepCushion();
+                  }
+                  break;
+                }
+              }
             }
           });
 
@@ -1121,13 +1216,19 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
       setIsBuffering(true);
     };
 
+    const onSeeking = () => {
+      enterSeekPriorityMode();
+    };
+
     const onPlaying = () => {
       setIsBuffering(false);
       setIsPlaying(true);
+      expandBufferToDeepCushion();
     };
 
     const onPlay = () => {
       setIsPlaying(true);
+      expandBufferToDeepCushion();
     };
 
     const onPause = () => {
@@ -1138,6 +1239,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     video.addEventListener('durationchange', onDurationChange);
     video.addEventListener('progress', onProgress);
     video.addEventListener('waiting', onWaiting);
+    video.addEventListener('seeking', onSeeking);
     video.addEventListener('playing', onPlaying);
     video.addEventListener('play', onPlay);
     video.addEventListener('pause', onPause);
@@ -1159,6 +1261,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
       video.removeEventListener('durationchange', onDurationChange);
       video.removeEventListener('progress', onProgress);
       video.removeEventListener('waiting', onWaiting);
+      video.removeEventListener('seeking', onSeeking);
       video.removeEventListener('playing', onPlaying);
       video.removeEventListener('play', onPlay);
       video.removeEventListener('pause', onPause);
@@ -1504,16 +1607,60 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
                 <div
                   data-lenis-prevent="true"
                   onWheel={(e) => e.stopPropagation()}
-                  className="flex flex-col space-y-0.5 max-h-[60vh] sm:max-h-80 overflow-y-auto custom-scrollbar pr-1 overscroll-contain"
+                  className="flex flex-col space-y-1 max-h-[60vh] sm:max-h-80 overflow-y-auto custom-scrollbar pr-1 overscroll-contain"
                 >
-                  {QUALITY_STEPS.map((q) => {
-                    const isSelected = quality === q.id;
+                  {/* Option 1: True Dynamic ABR (Авто) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleQualityChange('auto');
+                      setSettingsSubView('main');
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 cursor-pointer ${
+                      quality === 'auto'
+                        ? 'bg-[#ff5c00]/25 text-white font-semibold shadow-[0_0_18px_rgba(255,92,0,0.25)] border border-[#ff5c00]/30'
+                        : 'text-zinc-300 hover:text-white hover:bg-white/10 active:scale-[0.98]'
+                    }`}
+                  >
+                    <div className="flex flex-col items-start gap-0.5">
+                      <div className="flex items-center gap-2">
+                        <span>Авто</span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/10 text-[#00e575] font-semibold border border-[#00e575]/30">
+                          ABR
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-zinc-400">
+                        {quality === 'auto'
+                          ? currentAutoHeight
+                            ? `Сейчас: ${currentAutoHeight}p (${getQualityBadge(currentAutoHeight)})${bandwidthEstimate ? ` · ${(bandwidthEstimate / 1000000).toFixed(1)} Мбит/с` : ''}`
+                            : 'Адаптивный подбор битрейта'
+                          : 'Автоматический выбор под скорость сети'}
+                      </span>
+                    </div>
+                    {quality === 'auto' && <CheckIcon className="w-4 h-4 text-[#ff5c00] shrink-0" />}
+                  </button>
+
+                  <div className="h-px bg-white/10 my-1 mx-1" />
+
+                  {/* Option 2+: Manual Stream Levels */}
+                  {(availableLevels.length > 0
+                    ? availableLevels
+                    : QUALITY_STEPS.filter((q) => q.id !== 'auto').map((q, idx) => ({
+                        id: q.id,
+                        label: q.label,
+                        height: parseInt(q.id, 10) || 720,
+                        bitrate: 0,
+                        index: idx,
+                      }))
+                  ).map((lvl) => {
+                    const isSelected = quality === lvl.id;
+                    const mbps = lvl.bitrate > 0 ? `${(lvl.bitrate / 1000000).toFixed(1)} Мбит/с` : null;
                     return (
                       <button
-                        key={q.id}
+                        key={lvl.id}
                         type="button"
                         onClick={() => {
-                          handleQualityChange(q.id);
+                          handleQualityChange(lvl.id);
                           setSettingsSubView('main');
                         }}
                         className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all duration-200 cursor-pointer ${
@@ -1523,12 +1670,14 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
                         }`}
                       >
                         <div className="flex items-center gap-2">
-                          <span>{q.label}</span>
-                          <span className="text-[10px] text-zinc-400">
-                            {q.id === '1080p' ? '(1080p)' : q.id === '720p' ? '(720p)' : q.id === '480p' ? '(480p)' : q.id === '360p' ? '(360p)' : q.id === '240p' ? '(240p)' : q.id === '144p' ? '(144p)' : ''}
-                          </span>
+                          <span>{lvl.label || `${lvl.height}p`}</span>
+                          {mbps && (
+                            <span className="text-[10px] text-zinc-400">
+                              · {mbps}
+                            </span>
+                          )}
                         </div>
-                        {isSelected && <CheckIcon className="w-4 h-4 text-[#ff5c00]" />}
+                        {isSelected && <CheckIcon className="w-4 h-4 text-[#ff5c00] shrink-0" />}
                       </button>
                     );
                   })}

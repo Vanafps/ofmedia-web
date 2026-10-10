@@ -44,6 +44,7 @@ const runGit = (cmd) => {
 };
 
 runGit('git init');
+runGit('git config http.postBuffer 524288000');
 runGit('git branch -M main');
 runGit('git remote remove origin');
 runGit('git remote add origin https://github.com/ofmedia-web/ofmedia-web.github.io.git');

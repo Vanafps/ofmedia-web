@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import Lenis from 'lenis';
 import { PROJECTS_DATA } from './data/projects';
 import type { Project, Episode } from './data/projects';
@@ -8,17 +8,10 @@ import { OfmediaHeader } from './components/OfmediaHeader';
 import { OfmediaInteractiveHero } from './components/OfmediaInteractiveHero';
 import { OfmediaCardRow } from './components/OfmediaCardRow';
 import { OfmediaMovieCard } from './components/OfmediaMovieCard';
-import { OfmediaDetailModal } from './components/OfmediaDetailModal';
-import { OfmediaPlayer } from './components/OfmediaPlayer';
 import { OfmediaGenreCards, type GenreCategoryId } from './components/OfmediaGenreCards';
-import { OfmediaAuthModal } from './components/OfmediaAuthModal';
-import { OfmediaActorModal } from './components/OfmediaActorModal';
-import { OfmediaProfileModal } from './components/OfmediaProfileModal';
 import { OfmediaMobileNav } from './components/OfmediaMobileNav';
 import { OfmediaSearchPage } from './components/OfmediaSearchPage';
 import { motion, AnimatePresence } from 'framer-motion';
-import { DownloadApkPage } from './components/DownloadApkPage';
-import { AppLandingPage } from './components/AppLandingPage';
 import { OfmediaMobileAppNotice } from './components/OfmediaMobileAppNotice';
 import { CustomSelect } from './components/ui/CustomSelect';
 import { subscribeToAuth, logoutUser, type UserProfile } from './services/firebase';
@@ -30,9 +23,18 @@ import { isMobileApp, isWeb, isTelegramMiniApp } from './services/platform';
 import { useBodyScrollLock } from './hooks/useBodyScrollLock';
 import { checkForAppUpdate, triggerApkDownload, type AppVersionInfo } from './services/updateService';
 import { OfmediaNewsSection } from './components/OfmediaNewsSection';
-import { TelegramPortalModal } from './components/TelegramPortalModal';
 import { CustomTooltipProvider } from './components/ui/CustomTooltipProvider';
 import { getOfflineMovies, removeOfflineMovie, type OfflineMovie } from './services/offlineStorageService';
+
+// Asynchronously Lazy-Loaded Heavy Modals and Sub-Pages (Chunk Splitting & Instant FCP)
+const OfmediaDetailModal = lazy(() => import('./components/OfmediaDetailModal').then(m => ({ default: m.OfmediaDetailModal })));
+const OfmediaPlayer = lazy(() => import('./components/OfmediaPlayer').then(m => ({ default: m.OfmediaPlayer })));
+const OfmediaAuthModal = lazy(() => import('./components/OfmediaAuthModal').then(m => ({ default: m.OfmediaAuthModal })));
+const OfmediaActorModal = lazy(() => import('./components/OfmediaActorModal').then(m => ({ default: m.OfmediaActorModal })));
+const OfmediaProfileModal = lazy(() => import('./components/OfmediaProfileModal').then(m => ({ default: m.OfmediaProfileModal })));
+const DownloadApkPage = lazy(() => import('./components/DownloadApkPage').then(m => ({ default: m.DownloadApkPage })));
+const AppLandingPage = lazy(() => import('./components/AppLandingPage').then(m => ({ default: m.AppLandingPage })));
+const TelegramPortalModal = lazy(() => import('./components/TelegramPortalModal').then(m => ({ default: m.TelegramPortalModal })));
 import {
   initTelegramWebApp,
   isTelegramWebApp,
@@ -719,31 +721,41 @@ export function App() {
     currentPath.startsWith('/telegram/');
 
   if (isApkDownloadRoute) {
-    return <DownloadApkPage />;
+    return (
+      <Suspense fallback={null}>
+        <DownloadApkPage />
+      </Suspense>
+    );
   }
 
   if (isAppLandingRoute) {
-    return <AppLandingPage />;
+    return (
+      <Suspense fallback={null}>
+        <AppLandingPage />
+      </Suspense>
+    );
   }
 
   if (isTelegramRoute) {
     return (
-      <TelegramPortalModal
-        isOpen={true}
-        user={user}
-        defaultUserName={user?.displayName || user?.username || null}
-        onOpenAuth={() => setIsAuthModalOpen(true)}
-        onClose={() => {
-          setIsTelegramModalOpen(false);
-          if (
-            window.location.pathname.toLowerCase().startsWith('/telegram') ||
-            window.location.hash.toLowerCase() === '#telegram'
-          ) {
-            window.history.pushState(null, '', '/');
-          }
-          syncRouteFromLocation();
-        }}
-      />
+      <Suspense fallback={null}>
+        <TelegramPortalModal
+          isOpen={true}
+          user={user}
+          defaultUserName={user?.displayName || user?.username || null}
+          onOpenAuth={() => setIsAuthModalOpen(true)}
+          onClose={() => {
+            setIsTelegramModalOpen(false);
+            if (
+              window.location.pathname.toLowerCase().startsWith('/telegram') ||
+              window.location.hash.toLowerCase() === '#telegram'
+            ) {
+              window.history.pushState(null, '', '/');
+            }
+            syncRouteFromLocation();
+          }}
+        />
+      </Suspense>
     );
   }
 
@@ -1258,58 +1270,60 @@ export function App() {
       </main>
 
       {/* Fullscreen Standalone Film Page */}
-      <OfmediaDetailModal
-        project={selectedProject}
-        isOpen={isDetailModalOpen}
-        onClose={handleCloseDetails}
-        onPlay={handlePlayProject}
-        onOpenActor={handleOpenActor}
-        isFavorite={selectedProject ? favorites.includes(selectedProject.id) : false}
-        onToggleFavorite={toggleFavorite}
-        onSelectProject={handleOpenDetails}
-        onSelectGenre={handleSelectGenre}
-        favorites={favorites}
-      />
-
-      {/* Actor & Creator Profile Fullscreen Page */}
-      <OfmediaActorModal
-        actor={selectedActor}
-        isOpen={isActorModalOpen}
-        onClose={handleCloseActor}
-        onSelectProject={handleOpenDetails}
-        onPlayProject={handlePlayProject}
-        favorites={favorites}
-        onToggleFavorite={toggleFavorite}
-      />
-
-      {/* User Profile & Dashboard Modal */}
-      <OfmediaProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        user={user}
-        onLogout={logoutUser}
-        onSelectProject={handleOpenDetails}
-        onPlayProject={handlePlayProject}
-        onOpenAuth={() => setIsAuthModalOpen(true)}
-      />
-
-      {/* Video Player */}
-      {selectedProject && (
-        <OfmediaPlayer
+      <Suspense fallback={null}>
+        <OfmediaDetailModal
           project={selectedProject}
-          initialEpisode={selectedEpisode}
-          isOpen={isPlayerOpen}
-          onClose={handleClosePlayer}
-          onSelectNext={handleSelectNextEpisode}
+          isOpen={isDetailModalOpen}
+          onClose={handleCloseDetails}
+          onPlay={handlePlayProject}
+          onOpenActor={handleOpenActor}
+          isFavorite={selectedProject ? favorites.includes(selectedProject.id) : false}
+          onToggleFavorite={toggleFavorite}
+          onSelectProject={handleOpenDetails}
+          onSelectGenre={handleSelectGenre}
+          favorites={favorites}
         />
-      )}
 
-      {/* Firebase Auth Modal */}
-      <OfmediaAuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onSuccess={(u) => setUser(u)}
-      />
+        {/* Actor & Creator Profile Fullscreen Page */}
+        <OfmediaActorModal
+          actor={selectedActor}
+          isOpen={isActorModalOpen}
+          onClose={handleCloseActor}
+          onSelectProject={handleOpenDetails}
+          onPlayProject={handlePlayProject}
+          favorites={favorites}
+          onToggleFavorite={toggleFavorite}
+        />
+
+        {/* User Profile & Dashboard Modal */}
+        <OfmediaProfileModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          user={user}
+          onLogout={logoutUser}
+          onSelectProject={handleOpenDetails}
+          onPlayProject={handlePlayProject}
+          onOpenAuth={() => setIsAuthModalOpen(true)}
+        />
+
+        {/* Video Player */}
+        {selectedProject && (
+          <OfmediaPlayer
+            project={selectedProject}
+            initialEpisode={selectedEpisode}
+            isOpen={isPlayerOpen}
+            onClose={handleClosePlayer}
+            onSelectNext={handleSelectNextEpisode}
+          />
+        )}
+
+        {/* Firebase Auth Modal */}
+        <OfmediaAuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          onSuccess={(u) => setUser(u)}
+        />
+      </Suspense>
 
 
 
