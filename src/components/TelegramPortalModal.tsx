@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 
 export interface TelegramReplyPreview {
   id: string;
@@ -178,7 +178,7 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
   isOpen,
   onClose,
   user,
-  defaultUserName,
+  defaultUserName: _defaultUserName,
   onOpenAuth,
 }) => {
   const [activeChannel, setActiveChannel] = useState<'ofmedi' | 'chanel9of'>('ofmedi');
@@ -242,14 +242,29 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
     };
   };
 
-  // Check Telegram account linkage for current user
+  // Helper to get persistent client identifier (either OFMEDIA user ID or persistent anonymous client ID)
+  const getClientTelegramId = useCallback((): string => {
+    if (user?.id) return String(user.id);
+    if (user?.uid) return String(user.uid);
+    if (typeof window !== 'undefined') {
+      let localId = localStorage.getItem('ofmedia_tg_client_id');
+      if (!localId) {
+        localId = 'client_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+        localStorage.setItem('ofmedia_tg_client_id', localId);
+      }
+      return localId;
+    }
+    return 'client_default';
+  }, [user]);
+
+  // Check Telegram account linkage for current user or client ID
   useEffect(() => {
     const checkUserLink = async () => {
-      const uid = user?.id || user?.uid;
-      if (!uid) return;
+      const clientId = getClientTelegramId();
+      if (!clientId) return;
       try {
         const apiBase = getApiHost() || 'https://ofmedia.ru';
-        const res = await fetch(`${apiBase}/api/telegram-news?action=get_link&userId=${encodeURIComponent(uid)}`);
+        const res = await fetch(`${apiBase}/api/telegram-news?action=get_link&userId=${encodeURIComponent(clientId)}`);
         if (res.ok) {
           const data = await res.json();
           if (data && data.linked && data.data?.telegramUsername) {
@@ -261,19 +276,15 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
     };
 
     checkUserLink();
-  }, [user]);
+  }, [user, getClientTelegramId]);
 
   const handleVerifyTelegramLink = async () => {
-    const uid = user?.id || user?.uid;
-    if (!uid) {
-      if (onOpenAuth) onOpenAuth();
-      return;
-    }
+    const clientId = getClientTelegramId();
     setIsCheckingLink(true);
     setLinkNotice(null);
     try {
       const apiBase = getApiHost() || 'https://ofmedia.ru';
-      const res = await fetch(`${apiBase}/api/telegram-news?action=get_link&userId=${encodeURIComponent(uid)}`);
+      const res = await fetch(`${apiBase}/api/telegram-news?action=get_link&userId=${encodeURIComponent(clientId)}`);
       if (res.ok) {
         const data = await res.json();
         if (data && data.linked && data.data?.telegramUsername) {
@@ -284,7 +295,7 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
           return;
         }
       }
-      setLinkNotice('Бот пока не получил команду /start. Нажмите кнопку «Открыть @ofmedia_apibot» и отправьте боту старт.');
+      setLinkNotice('Бот пока не получил команду /start. Нажмите «Открыть @ofmedia_apibot» и запустите бота в Telegram.');
     } catch {
       setLinkNotice('Не удалось связаться с сервером проверки.');
     } finally {
@@ -293,11 +304,7 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
   };
 
   const handleManualConfirmTg = async () => {
-    const uid = user?.id || user?.uid;
-    if (!uid) {
-      if (onOpenAuth) onOpenAuth();
-      return;
-    }
+    const clientId = getClientTelegramId();
     const cleanHandle = manualTgInput.trim().replace(/^@/, '');
     if (!cleanHandle) return;
     setIsCheckingLink(true);
@@ -305,7 +312,7 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
       const apiBase = getApiHost() || 'https://ofmedia.ru';
       const fullHandle = `@${cleanHandle}`;
       const res = await fetch(
-        `${apiBase}/api/telegram-news?action=confirm_link&userId=${encodeURIComponent(uid)}&username=${encodeURIComponent(fullHandle)}`
+        `${apiBase}/api/telegram-news?action=confirm_link&userId=${encodeURIComponent(clientId)}&username=${encodeURIComponent(fullHandle)}`
       );
       if (res.ok) {
         const data = await res.json();
@@ -321,6 +328,12 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
     } finally {
       setIsCheckingLink(false);
     }
+  };
+
+  const handleUnlinkTelegram = () => {
+    localStorage.removeItem('ofmedia_tg_username');
+    setLinkedTelegramUsername(null);
+    setLinkNotice('Привязка Telegram отключена на этом устройстве.');
   };
 
   const fetchChannelData = async (
@@ -499,10 +512,10 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatText.trim() || isSending) return;
-    const uid = user?.id || user?.uid;
-    const authorUsername = linkedTelegramUsername || user?.username || defaultUserName;
-    if (!uid || !authorUsername) {
-      if (onOpenAuth) onOpenAuth();
+    const clientId = getClientTelegramId();
+    const authorUsername = linkedTelegramUsername;
+    if (!authorUsername) {
+      setSendNotice('Сначала привяжите ваш Telegram-аккаунт через @ofmedia_apibot');
       return;
     }
 
@@ -516,7 +529,7 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
         body: JSON.stringify({
           action: 'sendMessage',
           channel: 'chanel9of',
-          userId: uid,
+          userId: clientId,
           author: authorUsername,
           text: chatText.trim(),
           replyToId: replyingTo?.id,
@@ -1183,47 +1196,31 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
                   </div>
                 )}
 
-                {!user ? (
-                  /* Case 1: Visitor NOT authenticated in OFMEDIA */
-                  <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <div className="text-center sm:text-left">
-                      <div className="font-heading font-bold text-sm text-white">
-                        Вход в OFMEDIA ID
-                      </div>
-                      <div className="text-xs text-zinc-400 mt-0.5">
-                        Для отправки сообщений в чат 9OF войдите в свой аккаунт
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={onOpenAuth}
-                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#FF5C00] to-[#FF7700] hover:brightness-110 text-white font-heading font-bold text-xs shadow-md transition-all cursor-pointer shrink-0"
-                    >
-                      Войти через OFMEDIA ID
-                    </button>
-                  </div>
-                ) : !linkedTelegramUsername ? (
-                  /* Case 2: Authenticated in OFMEDIA, but Telegram NOT linked yet */
+                {!linkedTelegramUsername ? (
+                  /* Case: Telegram NOT linked yet — available to both visitors and registered users */
                   <div className="p-3.5 rounded-2xl bg-white/[0.03] border border-[#FF5C00]/30 space-y-3">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                       <div>
                         <div className="font-heading font-bold text-sm text-white flex items-center gap-2">
                           <span className="text-[#FF5C00]">●</span>
-                          <span>Привязка Telegram (@ofmedia_apibot)</span>
+                          <span>Привязка Telegram для отправки сообщений</span>
                         </div>
                         <div className="text-xs text-zinc-400 mt-0.5">
-                          Чтобы исключить анонимный спам, сообщения отправляются от вашего реального Telegram-юзернейма
+                          Чтобы исключить спам, сообщения в чат 9OF отправляются от вашего проверенного Telegram-юзернейма
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2">
                         <a
-                          href={`https://t.me/ofmedia_apibot?start=link_${user.id || user.uid}`}
+                          href={`https://t.me/ofmedia_apibot?start=link_${getClientTelegramId()}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-3.5 py-1.5 rounded-xl bg-[#00E575] hover:bg-[#00C853] text-black font-heading font-bold text-xs transition-all shadow-md shrink-0"
+                          className="px-3.5 py-1.5 rounded-xl bg-[#00E575] hover:bg-[#00C853] text-black font-heading font-bold text-xs transition-all shadow-md shrink-0 flex items-center gap-1.5"
                         >
-                          Открыть @ofmedia_apibot
+                          <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
+                          </svg>
+                          <span>Открыть @ofmedia_apibot</span>
                         </a>
                         <button
                           type="button"
@@ -1255,7 +1252,7 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
                     </div>
                   </div>
                 ) : (
-                  /* Case 3: Authenticated AND Telegram Linked — Full Composer */
+                  /* Case: Telegram Linked — Full Composer Unlocked */
                   <form onSubmit={handleSendMessage} className="space-y-2">
                     {/* Active verified sender badge & Reply preview */}
                     <div className="flex items-center justify-between gap-2 text-xs">
@@ -1265,6 +1262,14 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
                           </svg>
                           <span>От имени {linkedTelegramUsername}</span>
+                          <button
+                            type="button"
+                            onClick={handleUnlinkTelegram}
+                            className="text-zinc-400 hover:text-red-400 text-[10px] underline ml-1 cursor-pointer transition-colors"
+                            title="Отвязать или сменить Telegram-аккаунт"
+                          >
+                            сменить
+                          </button>
                         </span>
 
                         {replyingTo && (

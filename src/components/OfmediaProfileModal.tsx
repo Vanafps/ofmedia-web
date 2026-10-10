@@ -44,6 +44,103 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Telegram Account Linking state
+  const [telegramUsername, setTelegramUsername] = useState<string | null>(() => {
+    return typeof window !== 'undefined' ? localStorage.getItem('ofmedia_tg_username') : null;
+  });
+  const [isCheckingTgLink, setIsCheckingTgLink] = useState(false);
+  const [tgLinkNotice, setTgLinkNotice] = useState<string | null>(null);
+  const [tgManualInput, setTgManualInput] = useState('');
+
+  // Fetch Telegram Link status for authenticated user on mount or change
+  useEffect(() => {
+    const fetchTgLink = async () => {
+      const uid = user?.uid;
+      if (!uid) return;
+      try {
+        const res = await fetch(
+          `https://ofmedia.ru/api/telegram-news?action=get_link&userId=${encodeURIComponent(uid)}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.linked && data.data?.telegramUsername) {
+            setTelegramUsername(data.data.telegramUsername);
+            localStorage.setItem('ofmedia_tg_username', data.data.telegramUsername);
+          }
+        }
+      } catch {}
+    };
+    fetchTgLink();
+  }, [user]);
+
+  const handleVerifyTgInProfile = async () => {
+    const uid = user?.uid;
+    if (!uid) return;
+    setIsCheckingTgLink(true);
+    setTgLinkNotice(null);
+    try {
+      const res = await fetch(
+        `https://ofmedia.ru/api/telegram-news?action=get_link&userId=${encodeURIComponent(uid)}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.linked && data.data?.telegramUsername) {
+          setTelegramUsername(data.data.telegramUsername);
+          localStorage.setItem('ofmedia_tg_username', data.data.telegramUsername);
+          setTgLinkNotice(`Telegram успешно привязан: ${data.data.telegramUsername}`);
+          setIsCheckingTgLink(false);
+          return;
+        }
+      }
+      setTgLinkNotice('Бот пока не получил команду /start. Нажмите «Открыть @ofmedia_apibot» в Telegram и отправьте боту старт.');
+    } catch {
+      setTgLinkNotice('Ошибка соединения с сервером.');
+    } finally {
+      setIsCheckingTgLink(false);
+    }
+  };
+
+  const handleConfirmTgManualInProfile = async () => {
+    const uid = user?.uid;
+    const clean = tgManualInput.trim().replace(/^@/, '');
+    if (!uid || !clean) return;
+    setIsCheckingTgLink(true);
+    try {
+      const fullHandle = `@${clean}`;
+      const res = await fetch(
+        `https://ofmedia.ru/api/telegram-news?action=confirm_link&userId=${encodeURIComponent(uid)}&username=${encodeURIComponent(fullHandle)}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.ok) {
+          setTelegramUsername(fullHandle);
+          localStorage.setItem('ofmedia_tg_username', fullHandle);
+          setTgLinkNotice(`Telegram ${fullHandle} успешно привязан к профилю OFMEDIA!`);
+          setTgManualInput('');
+        }
+      }
+    } catch {
+      setTgLinkNotice('Ошибка подтверждения.');
+    } finally {
+      setIsCheckingTgLink(false);
+    }
+  };
+
+  const handleUnlinkTgInProfile = async () => {
+    const uid = user?.uid;
+    localStorage.removeItem('ofmedia_tg_username');
+    setTelegramUsername(null);
+    setTgLinkNotice('Telegram отвязан от профиля.');
+    if (uid) {
+      try {
+        await fetch(
+          `https://ofmedia-web-default-rtdb.europe-west1.firebasedatabase.app/telegram_linked_users/${encodeURIComponent(uid)}.json`,
+          { method: 'DELETE' }
+        );
+      } catch {}
+    }
+  };
+
   // Player Settings
   const [prefQuality, setPrefQuality] = useState(() => localStorage.getItem('ofmedia_pref_quality') || '1080p');
   const [autoNext, setAutoNext] = useState(() => localStorage.getItem('ofmedia_pref_autonext') !== 'false');
@@ -279,10 +376,12 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
                     {user.username}
                   </span>
                 )}
-                {user?.uid?.startsWith('tg_') && (
-                  <span className="px-2.5 py-0.5 rounded-full bg-[#24A1DE]/20 border border-[#24A1DE]/40 text-[#24A1DE] text-xs font-semibold flex items-center gap-1">
-                    <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .36z"/></svg>
-                    Telegram
+                {(telegramUsername || user?.uid?.startsWith('tg_')) && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-[#00E575]/15 border border-[#00E575]/30 text-[#00E575] text-xs font-semibold flex items-center gap-1.5 shadow-sm">
+                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
+                    </svg>
+                    <span>{telegramUsername || 'Telegram'}</span>
                   </span>
                 )}
               </div>
@@ -542,6 +641,113 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
                   Сохраненных фильмов
                 </div>
               </div>
+            </div>
+
+            {/* Telegram Account Integration Card */}
+            <div className="p-6 rounded-3xl glass-card border border-white/10 relative overflow-hidden space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#00E575]/20 to-[#FF5C00]/20 border border-white/10 flex items-center justify-center text-white shrink-0 shadow-inner">
+                    <svg className="w-6 h-6 fill-current text-[#00E575]" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-heading font-bold text-base text-white">
+                        Привязка Telegram (@ofmedia_apibot)
+                      </h3>
+                      {telegramUsername ? (
+                        <span className="px-2.5 py-0.5 rounded-full bg-[#00E575]/15 border border-[#00E575]/30 text-[#00E575] text-xs font-semibold flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#00E575] animate-pulse" />
+                          <span>Привязан: {telegramUsername}</span>
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full bg-white/10 border border-white/10 text-zinc-400 text-xs font-medium">
+                          Не привязан
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-zinc-400 font-normal mt-0.5">
+                      {telegramUsername
+                        ? 'Ваш Telegram привязан к профилю OFMEDIA. Вы можете свободно писать в чат 9OF и подтверждать авторство.'
+                        : 'Привяжите Telegram через нашего бота @ofmedia_apibot, чтобы писать в чат 9OF и подтвердить личность без спама.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap shrink-0">
+                  {telegramUsername ? (
+                    <>
+                      <a
+                        href="https://t.me/ofmedia_apibot"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-all border border-white/10"
+                      >
+                        Открыть бота
+                      </a>
+                      <button
+                        type="button"
+                        onClick={handleUnlinkTgInProfile}
+                        className="px-4 py-2 rounded-2xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/25 text-red-300 text-xs font-medium transition-all cursor-pointer"
+                      >
+                        Отвязать
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <a
+                        href={`https://t.me/ofmedia_apibot?start=link_${user?.uid || 'guest'}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-4 py-2 rounded-2xl bg-[#00E575] hover:bg-[#00C853] text-black font-heading font-bold text-xs shadow-md transition-all flex items-center gap-1.5"
+                      >
+                        <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
+                        </svg>
+                        <span>Привязать через бота</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={handleVerifyTgInProfile}
+                        disabled={isCheckingTgLink}
+                        className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold border border-white/10 transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        {isCheckingTgLink ? 'Проверка...' : 'Проверить привязку'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Status / Link notice */}
+              {tgLinkNotice && (
+                <div className="text-xs text-center py-1.5 px-3 rounded-xl bg-white/5 border border-white/10 text-[#00E575]">
+                  {tgLinkNotice}
+                </div>
+              )}
+
+              {/* Manual @username fallback when not linked */}
+              {!telegramUsername && (
+                <div className="pt-2 border-t border-white/5 flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={tgManualInput}
+                    onChange={(e) => setTgManualInput(e.target.value)}
+                    placeholder="Или введите ваш @username вручную..."
+                    className="flex-1 bg-black/40 border border-white/10 rounded-2xl px-4 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#FF5C00]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleConfirmTgManualInProfile}
+                    disabled={!tgManualInput.trim() || isCheckingTgLink}
+                    className="px-4 py-2 rounded-2xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold disabled:opacity-40 transition-all cursor-pointer"
+                  >
+                    Подтвердить
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Continue Watching Row */}
@@ -941,6 +1147,45 @@ export const OfmediaProfileModal: React.FC<OfmediaProfileModalProps> = ({
                   </button>
                 </div>
               )}
+              {/* Telegram Account Integration Setting */}
+              <div className="p-5 rounded-3xl glass-card flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-white/10">
+                <div>
+                  <div className="font-medium text-sm text-white flex items-center gap-2">
+                    <svg className="w-4 h-4 fill-current text-[#00E575]" viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
+                    </svg>
+                    <span>Привязка Telegram (@ofmedia_apibot)</span>
+                    {telegramUsername && (
+                      <span className="px-2 py-0.5 rounded-md bg-[#00E575]/20 text-[#00E575] text-[10px] font-bold">
+                        {telegramUsername}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-zinc-400 font-normal mt-0.5">
+                    {telegramUsername
+                      ? 'Telegram привязан. Используется для отправки сообщений в чат 9OF.'
+                      : 'Привяжите Telegram-бота для общения в чате 9OF и верификации профиля.'}
+                  </div>
+                </div>
+                {telegramUsername ? (
+                  <button
+                    type="button"
+                    onClick={handleUnlinkTgInProfile}
+                    className="px-4 py-2.5 rounded-2xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/20 text-red-300 text-xs font-semibold transition-all active:scale-95 shrink-0 cursor-pointer"
+                  >
+                    Отвязать Telegram
+                  </button>
+                ) : (
+                  <a
+                    href={`https://t.me/ofmedia_apibot?start=link_${user?.uid || 'guest'}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2.5 rounded-2xl bg-[#00E575] hover:bg-[#00C853] text-black font-heading font-bold text-xs transition-all active:scale-95 shrink-0 shadow text-center"
+                  >
+                    Привязать Telegram
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         )}
