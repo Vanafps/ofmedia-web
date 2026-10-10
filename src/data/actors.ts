@@ -370,9 +370,10 @@ export const ACTORS_DATA: Actor[] = [
   }
 ];
 
-export const getActorByName = (name: string): Actor | undefined => {
+export const getActorByName = (name: string | undefined | null): Actor | undefined => {
+  if (!name || typeof name !== 'string') return undefined;
   const norm = name.trim().toLowerCase();
-  return ACTORS_DATA.find((a) => a.name.toLowerCase().includes(norm) || norm.includes(a.name.toLowerCase()));
+  return ACTORS_DATA.find((a) => a.name && (a.name.toLowerCase().includes(norm) || norm.includes(a.name.toLowerCase())));
 };
 
 // Generate a full filmography actor card dynamically for any actor or creator in OFMEDIA

@@ -730,7 +730,9 @@ export function App() {
     return (
       <TelegramPortalModal
         isOpen={true}
+        user={user}
         defaultUserName={user?.displayName || user?.username || null}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
         onClose={() => {
           setIsTelegramModalOpen(false);
           if (

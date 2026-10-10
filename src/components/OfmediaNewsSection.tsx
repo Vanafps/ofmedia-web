@@ -574,7 +574,8 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
     );
   };
 
-  const renderFormattedText = (raw: string, isExpanded: boolean, id: string) => {
+  const renderFormattedText = (raw: string | undefined | null, isExpanded: boolean, id: string) => {
+    if (!raw || typeof raw !== 'string') return null;
     let textToRender = raw;
     const hasCut = raw.includes('[cut]');
     if (hasCut && !isExpanded) {

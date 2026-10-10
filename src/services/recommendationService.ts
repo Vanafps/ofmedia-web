@@ -16,12 +16,12 @@ export const calculateSimilarityScore = (p1: Project, p2: Project): number => {
   let score = 0;
 
   // 1. Shared genres (up to 40 pts)
-  const sharedGenres = p1.genres.filter((g) => p2.genres.includes(g));
+  const sharedGenres = (p1.genres || []).filter((g) => p2.genres && Array.isArray(p2.genres) && p2.genres.includes(g));
   score += sharedGenres.length * 15;
 
   // 2. Shared cast / creators (up to 45 pts)
-  const p1CastNames = p1.cast.map((c) => c.name.toLowerCase());
-  const p2CastNames = p2.cast.map((c) => c.name.toLowerCase());
+  const p1CastNames = (p1.cast || []).map((c) => c?.name?.toLowerCase()).filter(Boolean);
+  const p2CastNames = (p2.cast || []).map((c) => c?.name?.toLowerCase()).filter(Boolean);
   const sharedCast = p1CastNames.filter((name) => p2CastNames.includes(name));
   score += sharedCast.length * 20;
 

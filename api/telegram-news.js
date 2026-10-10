@@ -804,13 +804,29 @@ export default async function handler(req, res) {
     // Case A: User sending a message from the OFMEDIA Telegram Portal into 9OF chat
     if (body && body.action === 'sendMessage') {
       const text = String(body.text || '').trim();
-      const senderName = String(body.author || 'Гость OFMEDIA').trim();
+      const userId = String(body.userId || '').trim();
+      let senderName = String(body.author || '').trim();
       const replyToMessageId = body.replyToId ? parseInt(String(body.replyToId), 10) : undefined;
       if (!text) {
         res.statusCode = 400;
         return res.json({ ok: false, error: 'Пустое сообщение' });
       }
-      const formattedText = senderName ? `${senderName}: ${text}` : text;
+
+      // If userId is provided, verify linked Telegram username from Firebase RTDB to prevent spoofing
+      if (userId) {
+        try {
+          const lRes = await fetch(`${RTDB_URL}/telegram_linked_users/${encodeURIComponent(userId)}.json`);
+          if (lRes.ok) {
+            const lData = await lRes.json();
+            if (lData && lData.telegramUsername) {
+              senderName = lData.telegramUsername;
+            }
+          }
+        } catch {}
+      }
+
+      const effectiveSender = senderName || 'Участник 9OF';
+      const formattedText = `${effectiveSender}: ${text}`;
       const sendParams = {
         chat_id: `@${CHAT_USERNAME}`,
         text: formattedText
@@ -823,8 +839,8 @@ export default async function handler(req, res) {
       if (sendRes.ok && sendRes.result) {
         const newPost = convertBotMessageToPost(sendRes.result, false);
         if (newPost) {
-          newPost.author = senderName || newPost.author;
-          newPost.title = senderName || newPost.title;
+          newPost.author = effectiveSender;
+          newPost.title = effectiveSender;
           newPost.content = text;
           newPost.rawHtml = text;
           await fetch(`${RTDB_URL}/telegram_chat_9of/messages/${newPost.id}.json`, {
@@ -840,9 +856,36 @@ export default async function handler(req, res) {
       }
     }
 
-    // Case B: Incoming Telegram Bot Webhook update (both 9OF chat and OFMEDIA channel)
+    // Case B: Incoming Telegram Bot Webhook update
     const msg =
       body.message || body.edited_message || body.channel_post || body.edited_channel_post;
+
+    // Handle Telegram Account Linking via bot (@ofmedia_apibot /start link_<userId>)
+    if (msg && msg.chat && msg.chat.type === 'private' && msg.text && msg.text.startsWith('/start link_')) {
+      const linkUserId = msg.text.replace('/start link_', '').trim();
+      const tgUsername = msg.from && msg.from.username ? `@${msg.from.username}` : (msg.from ? `${msg.from.first_name || ''} ${msg.from.last_name || ''}`.trim() : 'Пользователь');
+      const tgId = msg.from ? msg.from.id : null;
+      if (linkUserId && tgUsername) {
+        await fetch(`${RTDB_URL}/telegram_linked_users/${encodeURIComponent(linkUserId)}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: linkUserId,
+            telegramId: tgId,
+            telegramUsername: tgUsername,
+            firstName: msg.from?.first_name || '',
+            lastName: msg.from?.last_name || '',
+            linkedAt: Date.now()
+          })
+        }).catch(() => {});
+        await callTelegramBot('sendMessage', {
+          chat_id: msg.chat.id,
+          text: `✅ Ваш аккаунт Telegram (${tgUsername}) успешно привязан к профилю OFMEDIA!\n\nТеперь вы можете писать сообщения в чат 9OF с сайта и из приложения под своим именем без спама и анонимности.`
+        }).catch(() => {});
+        return res.json({ ok: true, linked: true });
+      }
+    }
+
     if (msg && msg.chat) {
       const chatUser = (msg.chat.username || '').toLowerCase();
       const chatTitle = (msg.chat.title || '').toUpperCase();
@@ -896,6 +939,43 @@ export default async function handler(req, res) {
     rawLimit && rawLimit !== 'all' && parseInt(rawLimit, 10) > 0
       ? parseInt(rawLimit, 10)
       : Infinity;
+
+  const actionParam = urlObj.searchParams.get('action');
+  if (actionParam === 'get_link') {
+    const userId = urlObj.searchParams.get('userId');
+    if (!userId) return res.json({ ok: false, error: 'userId required' });
+    try {
+      const lRes = await fetch(`${RTDB_URL}/telegram_linked_users/${encodeURIComponent(userId)}.json`);
+      if (lRes.ok) {
+        const lData = await lRes.json();
+        return res.json({ ok: true, linked: Boolean(lData && lData.telegramUsername), data: lData });
+      }
+    } catch {}
+    return res.json({ ok: true, linked: false });
+  }
+
+  if (actionParam === 'confirm_link') {
+    const userId = urlObj.searchParams.get('userId');
+    const tgHandle = (urlObj.searchParams.get('username') || '').trim();
+    if (!userId || !tgHandle) return res.json({ ok: false, error: 'userId and username required' });
+    const normalizedHandle = tgHandle.startsWith('@') ? tgHandle : `@${tgHandle}`;
+    const payload = {
+      userId,
+      telegramUsername: normalizedHandle,
+      linkedAt: Date.now(),
+      manualConfirmed: true
+    };
+    try {
+      await fetch(`${RTDB_URL}/telegram_linked_users/${encodeURIComponent(userId)}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      return res.json({ ok: true, linked: true, data: payload });
+    } catch (e) {
+      return res.json({ ok: false, error: e.message });
+    }
+  }
 
   // 1. Fetch hidden posts from Firebase RTDB
   let hiddenPosts = {};
@@ -1082,9 +1162,42 @@ export default async function handler(req, res) {
         title = title.substring(0, 77) + '...';
       }
 
+      // Extract author for de-anonymized or signed channel posts
+      let signedAuthor = null;
+      let signedAuthorUsername = null;
+      const signedMatch = block.match(/<span class="tgme_widget_message_signed"[^>]*>([\s\S]*?)<\/span>/i);
+      const fromAuthorMatch = block.match(/<div class="tgme_widget_message_from_author"[^>]*>([\s\S]*?)<\/div>/i);
+      const authorNameMatch = block.match(/<a class="tgme_widget_message_author_name"[^>]*>([\s\S]*?)<\/a>/i);
+      if (signedMatch) {
+        signedAuthor = cleanHtmlTags(signedMatch[1]);
+      } else if (fromAuthorMatch) {
+        signedAuthor = cleanHtmlTags(fromAuthorMatch[1]);
+      } else if (authorNameMatch) {
+        const parsedName = cleanHtmlTags(authorNameMatch[1]);
+        if (parsedName && !parsedName.toUpperCase().includes('OFMEDIA')) {
+          signedAuthor = parsedName;
+        }
+        const hrefMatch = authorNameMatch[0].match(/href="https?:\/\/t\.me\/([^\/"]+)"/i);
+        if (hrefMatch && hrefMatch[1] && hrefMatch[1].toLowerCase() !== channelName.toLowerCase()) {
+          signedAuthorUsername = `@${hrefMatch[1]}`;
+        }
+      }
+
+      // Check author signature at end of text (e.g. - Лидия Павловна)
+      if (!signedAuthor && lines.length > 1) {
+        const lastLine = lines[lines.length - 1];
+        if (lastLine.startsWith('- ') && lastLine.length > 2 && lastLine.length < 40) {
+          signedAuthor = lastLine.replace(/^-\s*/, '').trim();
+        }
+      }
+
+      const effectiveAuthor = signedAuthor || channelTitle || 'OFMEDIA';
+
       postsList.push({
         id: postId,
         title,
+        author: effectiveAuthor,
+        authorUsername: signedAuthorUsername || null,
         content: plainText,
         rawHtml: rawTextHtml,
         date: dateIso || dateFormatted,
