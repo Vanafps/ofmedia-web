@@ -58,43 +58,73 @@ export const isMovieOffline = (id: string): boolean => {
  */
 export function getOfflineHlsLoaderClass(BaseLoaderClass: any): any {
   return class OfflineHlsLoader extends (BaseLoaderClass || class {}) {
+    constructor(config: any) {
+      super(config);
+      if (!(this as any).stats) {
+        (this as any).stats = {
+          aborted: false,
+          loaded: 0,
+          retry: 0,
+          total: 0,
+          chunkCount: 0,
+          bwEstimate: 0,
+          loading: { start: 0, first: 0, end: 0 },
+          parsing: { start: 0, end: 0 },
+          buffering: { start: 0, first: 0, end: 0 },
+        };
+      }
+    }
+
     load(context: any, config: any, callbacks: any) {
       const url = context.url;
       if (typeof window !== 'undefined' && 'caches' in window) {
-        caches.open(OFFLINE_CACHE_NAME).then((cache) => {
-          cache.match(url).then((matched) => {
-            if (matched) {
-              const isBinary = context.responseType === 'arraybuffer';
-              if (isBinary) {
-                matched.arrayBuffer().then((buf) => {
-                  callbacks.onSuccess(
-                    { url, data: buf },
-                    { trequest: performance.now(), tfirst: performance.now(), tload: performance.now() },
-                    context
-                  );
-                }).catch(() => {
-                  super.load(context, config, callbacks);
-                });
-              } else {
-                matched.text().then((txt) => {
-                  callbacks.onSuccess(
-                    { url, data: txt },
-                    { trequest: performance.now(), tfirst: performance.now(), tload: performance.now() },
-                    context
-                  );
-                }).catch(() => {
-                  super.load(context, config, callbacks);
-                });
-              }
+        const now = performance.now();
+        caches
+          .open(OFFLINE_CACHE_NAME)
+          .then((cache) => cache.match(url))
+          .then((matched) => {
+            if (!matched) {
+              super.load(context, config, callbacks);
               return;
             }
-            super.load(context, config, callbacks);
-          }).catch(() => {
+            const isBinary = context.responseType === 'arraybuffer';
+            if (isBinary) {
+              matched
+                .arrayBuffer()
+                .then((buf) => {
+                  const stats = (this as any).stats || {
+                    trequest: now,
+                    tfirst: now + 1,
+                    tload: performance.now(),
+                    loaded: buf.byteLength,
+                    total: buf.byteLength,
+                  };
+                  callbacks.onSuccess({ url, data: buf }, stats, context, null);
+                })
+                .catch(() => {
+                  super.load(context, config, callbacks);
+                });
+            } else {
+              matched
+                .text()
+                .then((txt) => {
+                  const stats = (this as any).stats || {
+                    trequest: now,
+                    tfirst: now + 1,
+                    tload: performance.now(),
+                    loaded: txt.length,
+                    total: txt.length,
+                  };
+                  callbacks.onSuccess({ url, data: txt }, stats, context, null);
+                })
+                .catch(() => {
+                  super.load(context, config, callbacks);
+                });
+            }
+          })
+          .catch(() => {
             super.load(context, config, callbacks);
           });
-        }).catch(() => {
-          super.load(context, config, callbacks);
-        });
       } else {
         super.load(context, config, callbacks);
       }

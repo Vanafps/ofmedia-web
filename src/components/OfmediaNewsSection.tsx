@@ -36,6 +36,29 @@ const ADMIN_UID = 'vk_759530692';
 
 const INITIAL_NEWS: NewsPost[] = [
   {
+    id: 'news_v1_3_0',
+    title: 'v1.3.0 • Масштабное обновление Web и Android, портал Telegram и ускорение HLS',
+    content: `Представляем крупное обновление платформы OFMEDIA v1.3.0 для Web и Android!
+
+**Главные изменения:**
+* **Встроенный портал Telegram без VPN**: прямой доступ к официальному каналу @ofmedi и чату @chanel9of на сайте и в приложении с поддержкой всех фотоальбомов
+* **Ускоренная HLS-буферизация**: мгновенный старт воспроизведения (1.5 с), визуальная шкала буферизации в плеере и кэширование HLS-сегментов для просмотра офлайн на ПК и Android
+* **Единый Glassmorphism-дизайн**: синхронизация матового стекла (blur), плавающей навигации и типографики между веб-версией и Android-приложением
+* **Авторизация и проверка обновлений**: исправлен вход через VK ID и Email, добавлена реальная проверка свежих сборок APK
+* **Расширенный архив публикаций**: снят лимит в 20 постов Telegram за счет многостраничной подгрузки ленты
+
+[cut]
+
+> Мы непрерывно улучшаем экосистему OFMEDIA, обеспечивая стабильную работу сервиса, быструю загрузку контента на территории РФ и удобство использования на всех устройствах.
+
+Скачивайте официальное приложение v1.3.0 на странице /app или продолжайте просмотр на веб-платформе!`,
+    date: '10 октября 2026',
+    author: 'OFMEDIA Official',
+    tag: 'Обновление v1.3.0',
+    pinned: true,
+    source: 'manual',
+  },
+  {
     id: 'news_v1_2_5',
     title: 'v1.2.5 • Масштабное обновление плеера, фотоальбомов и дизайна',
     content: `Представляем масштабное обновление стриминговой платформы OFMEDIA v1.2.5 для Web и Android!
@@ -55,7 +78,7 @@ const INITIAL_NEWS: NewsPost[] = [
     date: '4 октября 2026',
     author: 'OFMEDIA Official',
     tag: 'Обновление v1.2.5',
-    pinned: true,
+    pinned: false,
     source: 'manual',
   },
   {
@@ -144,7 +167,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
   // Editor Form State
   const [formTitle, setFormTitle] = useState('');
   const [formContent, setFormContent] = useState('');
-  const [formTag, setFormTag] = useState('Обновление v1.2.1');
+  const [formTag, setFormTag] = useState('Обновление v1.3.0');
   const [formCover, setFormCover] = useState('');
   const [formPinned, setFormPinned] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -207,30 +230,29 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
     setIsLoadingTelegram(true);
     setTelegramError(null);
     try {
-      const isLocal =
+      const isDirectVercelDomain =
         typeof window !== 'undefined' &&
-        (window.location.hostname === 'localhost' ||
-          window.location.hostname === '127.0.0.1' ||
-          window.location.hostname.endsWith('.github.io'));
+        (window.location.hostname === 'ofmedia.ru' ||
+          window.location.hostname === 'www.ofmedia.ru');
 
-      const apiBase = isLocal ? 'https://ofmedia.ru' : '';
+      const apiBase = isDirectVercelDomain ? '' : 'https://ofmedia.ru';
+      const imageHostBase = 'https://ofmedia.ru';
 
       let data: any = null;
       try {
-        const res = await fetch(`${apiBase}/api/telegram-news`);
+        const res = await fetch(`${apiBase}/api/telegram-news?channel=ofmedi`);
         const contentType = res.headers.get('content-type') || '';
         if (res.ok && contentType.includes('application/json')) {
           data = await res.json();
         } else {
-          // If local environment served static JS file or non-JSON, fetch from production
-          const fallbackRes = await fetch('https://ofmedia.ru/api/telegram-news');
+          const fallbackRes = await fetch('https://ofmedia.ru/api/telegram-news?channel=ofmedi');
           if (fallbackRes.ok) {
             data = await fallbackRes.json();
           }
         }
       } catch (netErr) {
         console.warn('Primary telegram news fetch notice, attempting fallback:', netErr);
-        const fallbackRes = await fetch('https://ofmedia.ru/api/telegram-news');
+        const fallbackRes = await fetch('https://ofmedia.ru/api/telegram-news?channel=ofmedi');
         if (fallbackRes.ok) {
           data = await fallbackRes.json();
         }
@@ -241,12 +263,12 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
           const rawCover = p.coverImage || '';
           const resolvedCover = rawCover
             ? rawCover.startsWith('/')
-              ? `${apiBase}${rawCover}`
+              ? `${imageHostBase}${rawCover}`
               : rawCover
             : undefined;
 
           const mappedImages = Array.isArray(p.images)
-            ? p.images.map((img: string) => (img.startsWith('/') ? `${apiBase}${img}` : img))
+            ? p.images.map((img: string) => (img.startsWith('/') ? `${imageHostBase}${img}` : img))
             : [];
 
           const cleanTitle = (p.title || '')
@@ -279,7 +301,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
             ...data.channel,
             avatar:
               data.channel.avatar && data.channel.avatar.startsWith('/')
-                ? `${apiBase}${data.channel.avatar}`
+                ? `${imageHostBase}${data.channel.avatar}`
                 : data.channel.avatar,
           });
         }
@@ -327,7 +349,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
     setEditingPostId(null);
     setFormTitle('');
     setFormContent('');
-    setFormTag('Обновление v1.2.1');
+    setFormTag('Обновление v1.3.0');
     setFormCover('');
     setFormPinned(false);
     setShowPreview(false);
@@ -390,21 +412,26 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
 
     const now = new Date();
     const dateStr = `${now.getDate()} ${['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'][now.getMonth()]} ${now.getFullYear()}`;
+    const cleanCover = formCover.trim();
 
     let nextNews: NewsPost[];
     if (editingPostId) {
-      nextNews = manualNews.map((n) =>
-        n.id === editingPostId
-          ? {
-              ...n,
-              title: formTitle.trim(),
-              content: formContent.trim(),
-              tag: formTag.trim(),
-              coverImage: formCover.trim() || undefined,
-              pinned: formPinned,
-            }
-          : n
-      );
+      nextNews = manualNews.map((n) => {
+        if (n.id !== editingPostId) return n;
+        const updated: NewsPost = {
+          ...n,
+          title: formTitle.trim(),
+          content: formContent.trim(),
+          tag: formTag.trim(),
+          pinned: formPinned,
+        };
+        if (cleanCover) {
+          updated.coverImage = cleanCover;
+        } else {
+          delete updated.coverImage;
+        }
+        return updated;
+      });
     } else {
       const newPost: NewsPost = {
         id: `news_${Date.now()}`,
@@ -413,9 +440,9 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
         date: dateStr,
         author: user?.displayName || 'Администратор',
         tag: formTag.trim(),
-        coverImage: formCover.trim() || undefined,
         pinned: formPinned,
         source: 'manual',
+        ...(cleanCover ? { coverImage: cleanCover } : {}),
       };
       nextNews = [newPost, ...manualNews];
     }

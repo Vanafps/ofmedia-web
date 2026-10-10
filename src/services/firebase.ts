@@ -439,32 +439,57 @@ export const fetchRatingsFromFirebase = async () => {
   }
 };
 
-export const syncNewsToFirebase = async (newsList: unknown[]) => {
-  // 1. Direct REST PUT to Firebase RTDB for 100% reliability without WebSocket drops or timeouts
-  try {
-    await fetch('https://ofmedia-web-default-rtdb.europe-west1.firebasedatabase.app/news_store.json', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newsList)
-    });
-  } catch (err) {
-    console.warn('Firebase REST news sync fallback notice:', err);
-  }
+let lastNewsWriteTimestamp = 0;
+let isWritingNews = false;
 
-  // 2. Also sync to local Firebase SDK RTDB instance if initialized
-  if (rtdb) {
-    try {
-      await set(ref(rtdb, 'news_store'), newsList);
-    } catch (err) {
-      console.warn('Firebase RTDB SDK news sync fallback:', err);
+export const syncNewsToFirebase = async (newsList: unknown[]) => {
+  lastNewsWriteTimestamp = Date.now();
+  isWritingNews = true;
+
+  // Strip all undefined properties so Firebase SDK set() never throws
+  const cleanList = JSON.parse(JSON.stringify(newsList));
+
+  // 1. Update local Firebase SDK RTDB cache first so onValue listeners immediately see the new state
+  const sdkPromise = (async () => {
+    if (rtdb) {
+      try {
+        await set(ref(rtdb, 'news_store'), cleanList);
+      } catch (err) {
+        console.warn('Firebase RTDB SDK news sync fallback:', err);
+      }
     }
+  })();
+
+  // 2. Direct REST PUT to Firebase RTDB for 100% reliability without WebSocket drops
+  const restPromise = (async () => {
+    try {
+      await fetch('https://ofmedia-web-default-rtdb.europe-west1.firebasedatabase.app/news_store.json', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cleanList)
+      });
+    } catch (err) {
+      console.warn('Firebase REST news sync fallback notice:', err);
+    }
+  })();
+
+  try {
+    await Promise.allSettled([sdkPromise, restPromise]);
+  } finally {
+    lastNewsWriteTimestamp = Date.now();
+    isWritingNews = false;
   }
 };
 
 export const fetchNewsFromFirebase = async (): Promise<any[] | null> => {
+  const fetchStartedAt = Date.now();
+
   // 1. Fetch directly from Firebase RTDB REST API
   try {
     const res = await fetch('https://ofmedia-web-default-rtdb.europe-west1.firebasedatabase.app/news_store.json');
+    if (isWritingNews || fetchStartedAt < lastNewsWriteTimestamp) {
+      return null;
+    }
     if (res.ok) {
       const val = await res.json();
       if (val !== null && val !== undefined) {
@@ -476,9 +501,12 @@ export const fetchNewsFromFirebase = async (): Promise<any[] | null> => {
   }
 
   // 2. Fallback to Firebase SDK
-  if (!rtdb) return null;
+  if (!rtdb || isWritingNews || fetchStartedAt < lastNewsWriteTimestamp) return null;
   try {
     const snapshot = await get(ref(rtdb, 'news_store'));
+    if (isWritingNews || fetchStartedAt < lastNewsWriteTimestamp) {
+      return null;
+    }
     if (snapshot.exists()) {
       const val = snapshot.val();
       return Array.isArray(val) ? val : Object.values(val);
@@ -495,6 +523,10 @@ export const subscribeToNewsFromFirebase = (callback: (newsList: any[] | null) =
   try {
     const newsRef = ref(rtdb, 'news_store');
     const unsub = onValue(newsRef, (snapshot) => {
+      // Ignore lagging WebSocket initial emissions while a local write is in flight or just completed
+      if (isWritingNews || Date.now() - lastNewsWriteTimestamp < 15000) {
+        return;
+      }
       if (snapshot.exists()) {
         const val = snapshot.val();
         callback(Array.isArray(val) ? val : Object.values(val));

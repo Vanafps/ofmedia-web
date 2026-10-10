@@ -17,7 +17,15 @@ export const isStandalonePwa = (): boolean => {
 export const isMobileApp = (): boolean => {
   if (typeof window === 'undefined') return false;
 
-  // 1. Runtime native platform checks (highest precedence)
+  // 1. Explicit build target override
+  if (import.meta.env.VITE_TARGET === 'web') {
+    return false;
+  }
+  if (import.meta.env.VITE_TARGET === 'mobile') {
+    return true;
+  }
+
+  // 2. Runtime native Capacitor / Android bridge checks ONLY
   try {
     if (Capacitor.isNativePlatform()) return true;
   } catch {}
@@ -26,26 +34,9 @@ export const isMobileApp = (): boolean => {
   if (
     anyWindow?.Capacitor?.isNativePlatform?.() ||
     anyWindow?.AndroidScreen?.isNative?.() ||
-    window.location.protocol === 'capacitor:' ||
-    ((window.location.protocol === 'http:' || window.location.protocol === 'https:') &&
-      window.location.hostname === 'localhost' &&
-      !window.location.port) ||
-    /;\s*wv\b|Android.*Version\/[0-9.]+\s+Chrome/i.test(navigator.userAgent)
+    window.location.protocol === 'capacitor:'
   ) {
     return true;
-  }
-
-  // 2. Standalone PWA installation check
-  if (isStandalonePwa()) {
-    return true;
-  }
-
-  // 3. Build target flag check
-  if (import.meta.env.VITE_TARGET === 'mobile') {
-    return true;
-  }
-  if (import.meta.env.VITE_TARGET === 'web') {
-    return false;
   }
 
   return false;
@@ -68,4 +59,3 @@ export const isTelegramMiniApp = (): boolean => {
     window.location.hash.includes('tgWebAppData')
   );
 };
-

@@ -3,7 +3,7 @@ import Hls from 'hls.js';
 import type { Project, Episode } from '../data/projects';
 import { saveWatchProgress, getWatchProgress } from '../services/watchHistoryService';
 import { isMobileApp } from '../services/platform';
-import { getOfflineVideoBlobUrl, getOfflineHlsLoaderClass } from '../services/offlineStorageService';
+import { getOfflineVideoBlobUrl, getOfflineHlsLoaderClass, isMovieOffline } from '../services/offlineStorageService';
 import { SpeakerVolumeIcon } from './SpeakerVolumeIcon';
 
 interface OfmediaPlayerProps {
@@ -404,7 +404,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
   const [flashFeedback, setFlashFeedback] = useState<{ type: 'play' | 'pause'; id: number } | null>(null);
 
   // Quality & Speed & Settings Menus (Okko style)
-  const [quality, setQuality] = useState<VideoQuality>('1080p');
+  const [quality, setQuality] = useState<VideoQuality>('auto');
   const [currentAutoHeight, setCurrentAutoHeight] = useState<number | null>(null);
   const [speed, setSpeed] = useState<number>(1);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
@@ -954,15 +954,29 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     if (videoSrc) {
       if (videoSrc.includes('.m3u8')) {
         if (Hls.isSupported()) {
-          const OfflineLoader = getOfflineHlsLoaderClass(Hls.DefaultConfig.loader);
+          const isCachedOffline = isMovieOffline(project.id);
+          const ActiveLoader = isCachedOffline
+            ? getOfflineHlsLoaderClass(Hls.DefaultConfig.loader)
+            : Hls.DefaultConfig.loader;
+
+          // In master.m3u8: 0=1080p, 1=720p, 2=480p, 3=360p, 4=240p
+          // Start at 360p (mobile) or 480p (desktop) so the first 200KB segment renders in <250ms,
+          // then immediately hand over to ABR (nextLevel = -1) to scale up to 1080p.
+          const fastInitialLevel = isMobileDevice ? 3 : 2;
+
           const hls = new Hls({
-            loader: OfflineLoader as any,
+            loader: ActiveLoader as any,
             enableWorker: true,
             lowLatencyMode: false,
+            startLevel: fastInitialLevel,
+            startFragPrefetch: true,
+            abrEwmaDefaultEstimate: isMobileDevice ? 1800000 : 3500000,
+            abrBandWidthFactor: 0.9,
+            abrBandWidthUpFactor: 0.7,
             backBufferLength: 30,
-            maxBufferLength: 60,
-            maxMaxBufferLength: 90,
-            maxBufferSize: 60 * 1000 * 1000,
+            maxBufferLength: 30,
+            maxMaxBufferLength: 60,
+            maxBufferSize: 40 * 1000 * 1000,
             maxBufferHole: 0.5,
             nudgeOffset: 0.1,
             nudgeMaxRetry: 10,
@@ -981,7 +995,17 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
             }
           };
 
-          hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          hls.on(Hls.Events.MANIFEST_PARSED, (_ev, data) => {
+            if (data.levels && data.levels.length > 0) {
+              const safeIdx = Math.min(fastInitialLevel, data.levels.length - 1);
+              hls.startLevel = safeIdx;
+              // Allow ABR to scale up immediately after the fast startup segment
+              setTimeout(() => {
+                if (hlsRef.current === hls) {
+                  hls.nextLevel = -1;
+                }
+              }, 400);
+            }
             tryRestore();
             video.play().catch(() => {});
           });
