@@ -198,17 +198,36 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
     setIsLoadingTelegram(true);
     setTelegramError(null);
     try {
-      const apiBase =
+      const isLocal =
         typeof window !== 'undefined' &&
-        (window.location.hostname.includes('ofmedia.ru') || window.location.hostname.includes('localhost'))
-          ? ''
-          : 'https://ofmedia.ru';
+        (window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1' ||
+          window.location.hostname.endsWith('.github.io'));
 
-      const res = await fetch(`${apiBase}/api/telegram-news`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+      const apiBase = isLocal ? 'https://ofmedia.ru' : '';
 
-      if (data.ok && Array.isArray(data.posts)) {
+      let data: any = null;
+      try {
+        const res = await fetch(`${apiBase}/api/telegram-news`);
+        const contentType = res.headers.get('content-type') || '';
+        if (res.ok && contentType.includes('application/json')) {
+          data = await res.json();
+        } else {
+          // If local environment served static JS file or non-JSON, fetch from production
+          const fallbackRes = await fetch('https://ofmedia.ru/api/telegram-news');
+          if (fallbackRes.ok) {
+            data = await fallbackRes.json();
+          }
+        }
+      } catch (netErr) {
+        console.warn('Primary telegram news fetch notice, attempting fallback:', netErr);
+        const fallbackRes = await fetch('https://ofmedia.ru/api/telegram-news');
+        if (fallbackRes.ok) {
+          data = await fallbackRes.json();
+        }
+      }
+
+      if (data && data.ok && Array.isArray(data.posts)) {
         const mapped: NewsPost[] = data.posts.map((p: any) => {
           const rawCover = p.coverImage || '';
           const resolvedCover = rawCover

@@ -120,15 +120,26 @@ export function App() {
   // Rock-solid background scroll lock across all mobile & desktop browsers
   useBodyScrollLock(isAnyModalOpen);
 
-  // Official VK ID Floating One Tap ("Шторка авторизации") for unauthenticated visitors (Desktop and Mobile)
+  // Official VK ID Floating One Tap ("Шторка авторизации") for unauthenticated visitors (Desktop only)
   useEffect(() => {
     if (user || isAnyModalOpen || isTelegramWebApp()) return;
+
+    // Suppress floating widget on mobile (< 768px) or touch screens to prevent blocking content
+    const isMobileViewport = typeof window !== 'undefined' && (
+      window.innerWidth < 768 ||
+      ('ontouchstart' in window && window.innerWidth < 1024) ||
+      /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+    );
+    if (isMobileViewport) return;
 
     const isDismissed = sessionStorage.getItem('ofmedia_auth_prompt_dismissed');
     if (isDismissed) return;
 
     let floatingInstance: any = null;
     const timer = setTimeout(() => {
+      // Re-check after timeout in case user dismissed or opened a modal in the meantime
+      if (sessionStorage.getItem('ofmedia_auth_prompt_dismissed')) return;
+
       floatingInstance = renderVkFloatingOneTap(
         (authedUser) => {
           setUser(authedUser);
@@ -137,7 +148,7 @@ export function App() {
           console.warn('VK FloatingOneTap notice:', err);
         }
       );
-    }, 2500);
+    }, 3000);
 
     return () => {
       clearTimeout(timer);

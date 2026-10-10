@@ -38,6 +38,15 @@ interface OfmediaDetailModalProps {
   favorites?: string[];
 }
 
+const getReviewPlural = (count: number): string => {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod100 >= 11 && mod100 <= 19) return 'рецензий';
+  if (mod10 === 1) return 'рецензия';
+  if (mod10 >= 2 && mod10 <= 4) return 'рецензии';
+  return 'рецензий';
+};
+
 export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
   project,
   isOpen,
@@ -753,7 +762,7 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
                 Рецензии и мнения зрителей
               </h2>
               <span className="px-3 py-0.5 rounded-full bg-[#ff5c00]/20 border border-[#ff5c00]/30 text-[#ff5c00] text-xs font-semibold">
-                {reviewsData.total} {reviewsData.total === 1 ? 'рецензия' : reviewsData.total < 5 ? 'рецензии' : 'рецензий'}
+                {reviewsData.total} {getReviewPlural(reviewsData.total)}
               </span>
             </div>
             <p className="text-xs text-zinc-400 font-normal mt-0.5">
@@ -1021,9 +1030,9 @@ export const OfmediaDetailModal: React.FC<OfmediaDetailModalProps> = ({
           Смотрите также
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
-          {relatedProjects.map((rel) => (
+          {relatedProjects.map((rel, idx) => (
             <OfmediaMovieCard
-              key={rel.id}
+              key={`${rel.id}-${idx}`}
               project={rel}
               onPlay={onPlay}
               onOpenDetails={(p) => {

@@ -155,12 +155,12 @@ export const OfmediaCardRow: React.FC<OfmediaCardRowProps> = ({
         }`}
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        {projects.map((project) => {
+        {projects.map((project, idx) => {
           const isFav = favorites.includes(project.id);
 
           return (
             <div
-              key={project.id}
+              key={`${project.id}-${idx}`}
               className="flex-none w-[260px] sm:w-[300px] md:w-[320px] aspect-video relative hover:z-50 focus-within:z-50 transition-all"
             >
               <OfmediaMovieCard

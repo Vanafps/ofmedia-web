@@ -389,6 +389,34 @@ export const renderVkFloatingOneTap = (
         const user = await handleVkAuthPayload(authResult);
         onSuccess(user);
       });
+
+    // Record dismissal in sessionStorage if user dismisses or clicks close button
+    const recordDismissal = () => {
+      try {
+        sessionStorage.setItem('ofmedia_auth_prompt_dismissed', 'true');
+      } catch {}
+    };
+
+    try {
+      const internalEvents = VKID.FloatingOneTapInternalEvents as any;
+      const widgetEvents = VKID.WidgetEvents as any;
+      if (internalEvents?.DISMISS) {
+        floating.on(internalEvents.DISMISS, recordDismissal);
+      }
+      if (widgetEvents?.CLOSE) {
+        floating.on(widgetEvents.CLOSE, recordDismissal);
+      }
+    } catch {}
+
+    const onDocClick = (e: MouseEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.closest('[class*="vkid__floating-close"]') || el.closest('[aria-label="Закрыть"]') || el.closest('.vkid__close-button'))) {
+        recordDismissal();
+        document.removeEventListener('click', onDocClick, true);
+      }
+    };
+    document.addEventListener('click', onDocClick, true);
+
     return floating;
   } catch (err) {
     console.warn('FloatingOneTap render error:', err);
