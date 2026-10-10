@@ -244,18 +244,30 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
         const contentType = res.headers.get('content-type') || '';
         if (res.ok && contentType.includes('application/json')) {
           data = await res.json();
-        } else {
+        }
+      } catch {}
+
+      if (!data) {
+        try {
           const fallbackRes = await fetch('https://ofmedia.ru/api/telegram-news?channel=ofmedi');
           if (fallbackRes.ok) {
             data = await fallbackRes.json();
           }
-        }
-      } catch (netErr) {
-        console.warn('Primary telegram news fetch notice, attempting fallback:', netErr);
-        const fallbackRes = await fetch('https://ofmedia.ru/api/telegram-news?channel=ofmedi');
-        if (fallbackRes.ok) {
-          data = await fallbackRes.json();
-        }
+        } catch {}
+      }
+
+      if (!data) {
+        try {
+          const rtdbRes = await fetch(
+            'https://ofmedia-web-default-rtdb.europe-west1.firebasedatabase.app/telegram_news_v5.json'
+          );
+          if (rtdbRes.ok) {
+            const rtdbJson = await rtdbRes.json();
+            if (rtdbJson && Array.isArray(rtdbJson.posts)) {
+              data = { ok: true, posts: rtdbJson.posts, channel: rtdbJson.channel };
+            }
+          }
+        } catch {}
       }
 
       if (data && data.ok && Array.isArray(data.posts)) {
@@ -271,12 +283,8 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
             ? p.images.map((img: string) => (img.startsWith('/') ? `${imageHostBase}${img}` : img))
             : [];
 
-          const cleanTitle = (p.title || '')
-            .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{2388}-\u{2B55}\u{E0020}-\u{E007F}\u{FE0F}]/gu, '')
-            .trim();
-          const cleanContent = (p.content || '')
-            .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{2388}-\u{2B55}\u{E0020}-\u{E007F}\u{FE0F}]/gu, '')
-            .trim();
+          const cleanTitle = (p.title || '').trim();
+          const cleanContent = (p.content || '').trim();
 
           return {
             id: `tg_${p.id}`,

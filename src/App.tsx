@@ -712,12 +712,37 @@ export function App() {
     currentPath === '/app' ||
     currentPath === '/app/';
 
+  const isTelegramRoute =
+    isTelegramModalOpen ||
+    currentPath === '/telegram' ||
+    currentPath === '/telegram/' ||
+    currentPath.startsWith('/telegram/');
+
   if (isApkDownloadRoute) {
     return <DownloadApkPage />;
   }
 
   if (isAppLandingRoute) {
     return <AppLandingPage />;
+  }
+
+  if (isTelegramRoute) {
+    return (
+      <TelegramPortalModal
+        isOpen={true}
+        defaultUserName={user?.displayName || user?.username || null}
+        onClose={() => {
+          setIsTelegramModalOpen(false);
+          if (
+            window.location.pathname.toLowerCase().startsWith('/telegram') ||
+            window.location.hash.toLowerCase() === '#telegram'
+          ) {
+            window.history.pushState(null, '', '/');
+          }
+          syncRouteFromLocation();
+        }}
+      />
+    );
   }
 
   return (
@@ -1520,21 +1545,6 @@ export function App() {
           </footer>
         </div>
       )}
-
-      {/* Telegram Portal Modal */}
-      <TelegramPortalModal
-        isOpen={isTelegramModalOpen}
-        defaultUserName={user?.displayName || user?.username || null}
-        onClose={() => {
-          setIsTelegramModalOpen(false);
-          if (
-            window.location.pathname.toLowerCase().startsWith('/telegram') ||
-            window.location.hash.toLowerCase() === '#telegram'
-          ) {
-            window.history.pushState(null, '', '/');
-          }
-        }}
-      />
     </div>
   );
 }

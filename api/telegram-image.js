@@ -31,7 +31,13 @@ export default async function handler(req, res) {
           const fileUrl = `https://api.telegram.org/file/bot${token}/${metaJson.result.file_path}`;
           const fileRes = await fetch(fileUrl);
           if (fileRes.ok) {
-            const contentType = fileRes.headers.get('content-type') || 'image/jpeg';
+            let contentType = fileRes.headers.get('content-type') || 'image/jpeg';
+            const fp = metaJson.result.file_path.toLowerCase();
+            if (fp.endsWith('.webp')) contentType = 'image/webp';
+            else if (fp.endsWith('.png')) contentType = 'image/png';
+            else if (fp.endsWith('.gif')) contentType = 'image/gif';
+            else if (fp.endsWith('.webm')) contentType = 'video/webm';
+            else if (fp.endsWith('.mp4')) contentType = 'video/mp4';
             res.setHeader('Content-Type', contentType);
             res.setHeader('Cache-Control', 'public, max-age=604800, s-maxage=604800, immutable');
             const buffer = await fileRes.arrayBuffer();
@@ -91,7 +97,13 @@ export default async function handler(req, res) {
       return res.json({ error: 'Upstream fetch failed', status: upstream.status });
     }
 
-    const contentType = upstream.headers.get('content-type') || 'image/jpeg';
+    let contentType = upstream.headers.get('content-type') || 'image/jpeg';
+    const lowerPath = parsed.pathname.toLowerCase();
+    if (lowerPath.endsWith('.webp')) contentType = 'image/webp';
+    else if (lowerPath.endsWith('.png')) contentType = 'image/png';
+    else if (lowerPath.endsWith('.gif')) contentType = 'image/gif';
+    else if (lowerPath.endsWith('.webm')) contentType = 'video/webm';
+    else if (lowerPath.endsWith('.mp4')) contentType = 'video/mp4';
     res.setHeader('Content-Type', contentType);
     res.setHeader('Cache-Control', 'public, max-age=604800, s-maxage=604800, immutable');
 
