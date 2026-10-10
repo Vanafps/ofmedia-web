@@ -3,7 +3,7 @@ import Hls from 'hls.js';
 import type { Project, Episode } from '../data/projects';
 import { saveWatchProgress, getWatchProgress } from '../services/watchHistoryService';
 import { isMobileApp } from '../services/platform';
-import { getOfflineVideoBlobUrl } from '../services/offlineStorageService';
+import { getOfflineVideoBlobUrl, getOfflineHlsLoaderClass } from '../services/offlineStorageService';
 import { SpeakerVolumeIcon } from './SpeakerVolumeIcon';
 
 interface OfmediaPlayerProps {
@@ -27,6 +27,15 @@ const QUALITY_STEPS: { id: VideoQuality; label: string }[] = [
   { id: '1080p', label: 'FHD' },
   { id: 'auto', label: 'Авто' },
 ];
+
+export const checkIsMobileDevice = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  if (isMobileApp()) return true;
+  const hasCoarsePointer = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+  const hasTouch = 'ontouchstart' in window || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
+  const isMobileUA = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent || '');
+  return Boolean(isMobileUA || (hasCoarsePointer && hasTouch));
+};
 
 interface BufferedRange {
   startPct: number;
@@ -262,6 +271,19 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
   const [isPipSupported, setIsPipSupported] = useState(false);
   const [isPipActive, setIsPipActive] = useState(false);
   const [offlineBlobUrl, setOfflineBlobUrl] = useState<string | null>(null);
+  const [isMobileDevice, setIsMobileDevice] = useState<boolean>(checkIsMobileDevice);
+
+  useEffect(() => {
+    const handleDeviceCheck = () => {
+      setIsMobileDevice(checkIsMobileDevice());
+    };
+    window.addEventListener('resize', handleDeviceCheck);
+    window.addEventListener('orientationchange', handleDeviceCheck);
+    return () => {
+      window.removeEventListener('resize', handleDeviceCheck);
+      window.removeEventListener('orientationchange', handleDeviceCheck);
+    };
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -334,11 +356,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
 
   // Auto-landscape & Fullscreen on player mount (and restore on unmount)
   useEffect(() => {
-    const isMobile =
-      typeof window !== 'undefined' &&
-      (window.innerWidth < 768 || 'ontouchstart' in window || isMobileApp());
-
-    if (isMobile) {
+    if (isMobileDevice) {
       // 1. In native Android shell: invoke window.AndroidScreen.enterFullscreen()
       if ((window as any)?.AndroidScreen?.enterFullscreen) {
         try {
@@ -936,7 +954,9 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
     if (videoSrc) {
       if (videoSrc.includes('.m3u8')) {
         if (Hls.isSupported()) {
+          const OfflineLoader = getOfflineHlsLoaderClass(Hls.DefaultConfig.loader);
           const hls = new Hls({
+            loader: OfflineLoader as any,
             enableWorker: true,
             lowLatencyMode: false,
             backBufferLength: 30,
@@ -1171,7 +1191,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
       onClick={handleScreenClick}
       onDoubleClick={() => {
         // Prevent triggering on mobile touch double taps
-        if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+        if (!isMobileDevice) {
           toggleFullscreen();
         }
       }}
@@ -1296,10 +1316,10 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
         )}
       </div>
 
-      {/* MOBILE CENTER HUD CONTROLS (Only visible on mobile web, hidden on PC desktop) */}
+      {/* MOBILE CENTER HUD CONTROLS (Only visible on mobile devices regardless of screen orientation, hidden on PC desktop) */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`absolute inset-0 flex md:hidden items-center justify-center gap-6 pointer-events-none z-25 transition-all duration-300 ${
+        className={`absolute inset-0 ${isMobileDevice ? 'flex' : 'hidden'} items-center justify-center gap-6 pointer-events-none z-25 transition-all duration-300 ${
           showControls ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
         }`}
       >
@@ -1731,8 +1751,8 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
           />
         </div>
 
-        {/* Mobile Portrait Timecode Indicator */}
-        <div className="flex sm:hidden items-center justify-between px-1 text-[11px] font-mono text-zinc-300 font-medium select-none mb-1">
+        {/* Mobile Timecode Indicator (Always shown on mobile, hidden on PC) */}
+        <div className={`${isMobileDevice ? 'flex' : 'hidden'} items-center justify-between px-1 text-[11px] font-mono text-zinc-300 font-medium select-none mb-1`}>
           <span>{formatTime(currentTime)}</span>
           <button
             onClick={() => setShowRemainingTime((r) => !r)}
@@ -1802,10 +1822,10 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
               <span className="hidden sm:inline">Настройки</span>
             </button>
 
-            {/* Time Stamp (Desktop / Landscape view) */}
+            {/* Time Stamp (Desktop / Non-mobile view) */}
             <button
               onClick={() => setShowRemainingTime((r) => !r)}
-              className="hidden sm:inline-flex text-[11px] sm:text-xs font-medium text-zinc-300 hover:text-white px-1.5 py-1 rounded-md hover:bg-white/10 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
+              className={`${!isMobileDevice ? 'inline-flex' : 'hidden'} text-[11px] sm:text-xs font-medium text-zinc-300 hover:text-white px-1.5 py-1 rounded-md hover:bg-white/10 transition-colors cursor-pointer shrink-0 whitespace-nowrap`}
               title="Нажмите для переключения формата времени"
             >
               {showRemainingTime ? (
@@ -1836,7 +1856,7 @@ export const OfmediaPlayer: React.FC<OfmediaPlayerProps> = ({
               </button>
 
               {/* Volume Track inside Unified Capsule - hidden on mobile so PiP and Fullscreen buttons fit */}
-              <div className="hidden sm:flex relative w-12 sm:w-20 h-4 sm:h-5 items-center cursor-pointer">
+              <div className={`${!isMobileDevice ? 'flex' : 'hidden'} relative w-12 sm:w-20 h-4 sm:h-5 items-center cursor-pointer`}>
                 {/* Background Track */}
                 <div className="w-full h-1 sm:h-1.5 rounded-full bg-white/20 overflow-hidden relative pointer-events-none">
                   <div

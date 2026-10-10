@@ -57,7 +57,8 @@ export default async function handler(req, res) {
   const host = req.headers.host || 'localhost';
   const urlObj = new URL(req.url, 'http://' + host);
   const beforeParam = urlObj.searchParams.get('before');
-  const limitParam = parseInt(urlObj.searchParams.get('limit') || '30', 10);
+  const channelParam = (urlObj.searchParams.get('channel') || CHANNEL_USERNAME).replace(/^@/, '').trim();
+  const limitParam = Math.min(parseInt(urlObj.searchParams.get('limit') || '50', 10), 80);
 
   // 1. Fetch hidden posts from Firebase RTDB
   let hiddenPosts = {};
@@ -71,28 +72,14 @@ export default async function handler(req, res) {
     }
   } catch {}
 
-  let targetUrl = `https://t.me/s/${CHANNEL_USERNAME}`;
-  if (beforeParam) {
-    targetUrl += `?before=${encodeURIComponent(beforeParam)}`;
-  }
+  const headers = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7'
+  };
 
-  try {
-    const upstreamRes = await fetch(targetUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7'
-      }
-    });
-
-    if (!upstreamRes.ok) {
-      throw new Error(`Upstream returned HTTP ${upstreamRes.status}`);
-    }
-
-    const html = await upstreamRes.text();
-
-    // 2. Channel Info
-    let channelTitle = 'OFMEDIA';
+  const parseMessagesFromHtml = (html, channelName) => {
+    let channelTitle = channelName.toUpperCase();
     let channelDescription = '';
     let subscribers = '';
     let channelAvatar = '';
@@ -118,26 +105,22 @@ export default async function handler(req, res) {
       channelAvatar = `/api/telegram-image?url=${encodeURIComponent(rawAvatar)}`;
     }
 
-    // 3. Parse Posts
-    const posts = [];
+    const postsList = [];
     const messageBlocks = html.split('<div class="tgme_widget_message_wrap');
 
     for (let i = 1; i < messageBlocks.length; i++) {
       const block = messageBlocks[i];
 
-      // Extract Post ID
       const postMatch = block.match(/data-post="([^"]+)"/i);
       if (!postMatch) continue;
-      const fullPostId = postMatch[1]; // e.g. "ofmedi/1608"
+      const fullPostId = postMatch[1];
       const idParts = fullPostId.split('/');
       const postId = idParts[1] || fullPostId;
 
-      // Skip if post was hidden/deleted by admin in RTDB
       if (hiddenPosts[postId] || hiddenPosts[`tg_${postId}`]) {
         continue;
       }
 
-      // Extract Text
       let rawTextHtml = '';
       let plainText = '';
       const textMatch = block.match(/<div class="tgme_widget_message_text[^"]*"[^>]*dir="auto">([\s\S]*?)<\/div>/i);
@@ -146,11 +129,8 @@ export default async function handler(req, res) {
         plainText = cleanHtmlTags(rawTextHtml);
       }
 
-      // Extract Images - capture single photos and full albums from .tgme_widget_message_grouped
       const images = [];
       const originalImages = [];
-
-      // Regex matching any background-image URL inside the message block
       const photoRegex = /background-image:\s*url\((?:'|&quot;|"|)?([^'")&]+)(?:'|&quot;|"|)?\)/gi;
       let photoMatch;
       while ((photoMatch = photoRegex.exec(block)) !== null) {
@@ -164,7 +144,6 @@ export default async function handler(req, res) {
         }
       }
 
-      // Extract Date and Time
       let dateIso = '';
       let dateFormatted = '';
       const timeMatch = block.match(/<time[^>]*datetime="([^"]+)"[^>]*>([\s\S]*?)<\/time>/i);
@@ -174,25 +153,20 @@ export default async function handler(req, res) {
         dateFormatted = formatRussianDate(dateIso) || innerText;
       }
 
-      // Extract Views
       let views = '';
       const viewsMatch = block.match(/<span class="tgme_widget_message_views">([^<]+)<\/span>/i);
       if (viewsMatch) {
         views = viewsMatch[1].trim();
       }
 
-      // Pinned status
       const isPinned = block.includes('tgme_widget_message_pinned');
 
-      // Forwarded from
       let forwardedFrom = '';
       const fwdMatch = block.match(/<div class="tgme_widget_message_forwarded_from_name"[^>]*>([\s\S]*?)<\/div>/i);
       if (fwdMatch) {
         forwardedFrom = cleanHtmlTags(fwdMatch[1]);
       }
 
-      // CRITICAL: Filter out deleted/empty posts from Telegram!
-      // When a post is deleted in Telegram, t.me/s still emits an empty block without text, media or forwards.
       if (!plainText && images.length === 0 && !forwardedFrom) {
         continue;
       }
@@ -201,18 +175,17 @@ export default async function handler(req, res) {
         if (forwardedFrom) {
           plainText = `Переслано из: ${forwardedFrom}`;
         } else if (images.length > 0) {
-          plainText = images.length > 1 ? `Фотоальбом (${images.length} фото)` : 'Медиаматериал канала OFMEDIA';
+          plainText = images.length > 1 ? `Фотоальбом (${images.length} фото)` : `Медиаматериал канала @${channelName}`;
         }
       }
 
-      // Title extraction
       const lines = plainText.split('\n').map((l) => l.trim()).filter(Boolean);
-      let title = lines[0] || (images.length > 1 ? `Фотоальбом (${images.length} фото)` : images.length > 0 ? 'Медиаматериал OFMEDIA' : `Публикация #${postId}`);
+      let title = lines[0] || (images.length > 1 ? `Фотоальбом (${images.length} фото)` : images.length > 0 ? 'Медиаматериал' : `Публикация #${postId}`);
       if (title.length > 80) {
         title = title.substring(0, 77) + '...';
       }
 
-      posts.push({
+      postsList.push({
         id: postId,
         title,
         content: plainText,
@@ -226,57 +199,93 @@ export default async function handler(req, res) {
         pinned: isPinned,
         forwardedFrom: forwardedFrom || null,
         url: `https://t.me/${fullPostId}`,
-        channel: `@${CHANNEL_USERNAME}`
+        channel: `@${channelName}`
       });
     }
 
-    // Sort descending by numeric ID (newest first)
-    posts.sort((a, b) => {
+    return {
+      channelTitle,
+      channelDescription,
+      subscribers,
+      channelAvatar,
+      postsList
+    };
+  };
+
+  try {
+    let targetUrl = `https://t.me/s/${channelParam}`;
+    if (beforeParam) {
+      targetUrl += `?before=${encodeURIComponent(beforeParam)}`;
+    }
+
+    const firstRes = await fetch(targetUrl, { headers });
+    if (!firstRes.ok) {
+      throw new Error(`Upstream returned HTTP ${firstRes.status}`);
+    }
+    const firstHtml = await firstRes.text();
+    const parsedFirst = parseMessagesFromHtml(firstHtml, channelParam);
+
+    const postsMap = new Map();
+    for (const post of parsedFirst.postsList) {
+      postsMap.set(post.id, post);
+    }
+
+    // Pagination loop: if we have fewer posts than requested limit, fetch older pages
+    let loopCount = 0;
+    while (postsMap.size < limitParam && loopCount < 3) {
+      loopCount++;
+      const numericIds = Array.from(postsMap.keys())
+        .map((id) => parseInt(id, 10))
+        .filter((n) => !isNaN(n) && n > 0);
+      if (numericIds.length === 0) break;
+      const oldestId = Math.min(...numericIds);
+      if (oldestId <= 1) break;
+
+      try {
+        const nextUrl = `https://t.me/s/${channelParam}?before=${oldestId}`;
+        const nextRes = await fetch(nextUrl, { headers });
+        if (!nextRes.ok) break;
+        const nextHtml = await nextRes.text();
+        const parsedNext = parseMessagesFromHtml(nextHtml, channelParam);
+        let newItemsAdded = 0;
+        for (const post of parsedNext.postsList) {
+          if (!postsMap.has(post.id)) {
+            postsMap.set(post.id, post);
+            newItemsAdded++;
+          }
+        }
+        if (newItemsAdded === 0) break;
+      } catch (pageErr) {
+        console.warn('Pagination fetch error:', pageErr);
+        break;
+      }
+    }
+
+    const allPosts = Array.from(postsMap.values());
+    allPosts.sort((a, b) => {
       const numA = parseInt(a.id, 10) || 0;
       const numB = parseInt(b.id, 10) || 0;
       return numB - numA;
     });
 
-    const finalPosts = posts.slice(0, limitParam);
+    const finalPosts = allPosts.slice(0, limitParam);
 
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300');
     return res.json({
       ok: true,
       channel: {
-        title: channelTitle,
-        username: CHANNEL_USERNAME,
-        description: channelDescription,
-        subscribers,
-        avatar: channelAvatar,
-        url: `https://t.me/${CHANNEL_USERNAME}`
+        title: parsedFirst.channelTitle,
+        username: channelParam,
+        description: parsedFirst.channelDescription,
+        subscribers: parsedFirst.subscribers,
+        avatar: parsedFirst.channelAvatar,
+        url: `https://t.me/${channelParam}`
       },
       count: finalPosts.length,
       posts: finalPosts
     });
   } catch (err) {
     console.error('Error fetching Telegram channel:', err);
-
-    // Fallback using Bot API getChat
-    try {
-      const fallbackUrl = `https://api.telegram.org/bot${BOT_TOKEN}/getChat?chat_id=@${CHANNEL_USERNAME}`;
-      const botRes = await fetch(fallbackUrl);
-      const botData = await botRes.json();
-
-      if (botData.ok) {
-        return res.json({
-          ok: true,
-          channel: {
-            title: botData.result.title || 'OFMEDIA',
-            username: CHANNEL_USERNAME,
-            description: botData.result.description || '',
-            url: `https://t.me/${CHANNEL_USERNAME}`
-          },
-          count: 0,
-          posts: [],
-          notice: 'Channel info fetched via Bot API fallback'
-        });
-      }
-    } catch {}
 
     res.statusCode = 500;
     return res.json({

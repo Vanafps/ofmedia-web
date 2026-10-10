@@ -97,46 +97,58 @@ export const OfmediaHeader: React.FC<OfmediaHeaderProps> = ({
           <nav className="hidden md:flex items-center gap-1.5 p-1 rounded-full glass-pill text-sm font-medium">
             <button
               onClick={() => setActiveTab('main')}
-              className={`relative px-4 py-1.5 rounded-full transition-all duration-200 ${
+              className={`relative px-3.5 py-1.5 rounded-full transition-all duration-200 flex items-center gap-2 ${
                 activeTab === 'main'
                   ? 'bg-white/20 text-white font-medium shadow-sm border border-white/20'
                   : 'text-zinc-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              Главная
+              <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
+                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
+              </svg>
+              <span>Главная</span>
             </button>
 
             <button
               onClick={() => setActiveTab('search')}
-              className={`relative px-4 py-1.5 rounded-full transition-all duration-200 ${
+              className={`relative px-3.5 py-1.5 rounded-full transition-all duration-200 flex items-center gap-2 ${
                 activeTab === 'search'
                   ? 'bg-white/20 text-white font-medium shadow-sm border border-white/20'
                   : 'text-zinc-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              Поиск
+              <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
+                <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+              </svg>
+              <span>Поиск</span>
             </button>
 
             <button
               onClick={() => setActiveTab('news')}
-              className={`relative px-4 py-1.5 rounded-full transition-all duration-200 ${
+              className={`relative px-3.5 py-1.5 rounded-full transition-all duration-200 flex items-center gap-2 ${
                 activeTab === 'news'
                   ? 'bg-white/20 text-white font-medium shadow-sm border border-white/20'
                   : 'text-zinc-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              Новости
+              <svg className="w-4 h-4 fill-none stroke-current shrink-0" viewBox="0 0 24 24" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+              </svg>
+              <span>Новости</span>
             </button>
 
             <button
               onClick={() => setActiveTab('favorites')}
-              className={`relative px-4 py-1.5 rounded-full transition-all duration-200 flex items-center gap-1.5 ${
+              className={`relative px-3.5 py-1.5 rounded-full transition-all duration-200 flex items-center gap-2 ${
                 activeTab === 'favorites'
                   ? 'bg-white/20 text-white font-medium shadow-sm border border-white/20'
                   : 'text-zinc-400 hover:text-white hover:bg-white/5'
               }`}
             >
-              Моё
+              <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24">
+                <path d="M17 3H7c-1.1 0-1.99.9-1.99 2L5 21l7-3 7 3V5c0-1.1-.9-2-2-2z" />
+              </svg>
+              <span>Моё</span>
               {favoritesCount > 0 && (
                 <span className="px-2 py-0.5 text-[11px] bg-white/20 text-white rounded-full font-semibold shadow-sm border border-white/20">
                   {favoritesCount}

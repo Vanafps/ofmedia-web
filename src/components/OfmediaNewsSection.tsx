@@ -3,6 +3,7 @@ import type { UserProfile } from '../services/firebase';
 import {
   subscribeToNewsFromFirebase,
   syncNewsToFirebase,
+  fetchNewsFromFirebase,
   saveHiddenTelegramPostToFirebase,
   subscribeToHiddenTelegramPosts,
 } from '../services/firebase';
@@ -152,15 +153,23 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
 
   // Realtime Firebase DB Sync & Listener
   useEffect(() => {
+    // 1. Initial direct fetch from Firebase REST API for immediate hydration
+    fetchNewsFromFirebase().then((remoteNews) => {
+      if (remoteNews && Array.isArray(remoteNews) && remoteNews.length > 0) {
+        setManualNews(remoteNews);
+        try {
+          localStorage.setItem('ofmedia_news', JSON.stringify(remoteNews));
+        } catch {}
+      }
+    });
+
+    // 2. Realtime listener for cross-tab and cross-device updates
     const unsubNews = subscribeToNewsFromFirebase((remoteNews) => {
       if (remoteNews && Array.isArray(remoteNews) && remoteNews.length > 0) {
         setManualNews(remoteNews);
         try {
           localStorage.setItem('ofmedia_news', JSON.stringify(remoteNews));
         } catch {}
-      } else {
-        // Initialize default news on server
-        syncNewsToFirebase(INITIAL_NEWS);
       }
     });
 

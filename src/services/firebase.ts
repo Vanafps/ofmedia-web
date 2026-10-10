@@ -440,15 +440,42 @@ export const fetchRatingsFromFirebase = async () => {
 };
 
 export const syncNewsToFirebase = async (newsList: unknown[]) => {
-  if (!rtdb) return;
+  // 1. Direct REST PUT to Firebase RTDB for 100% reliability without WebSocket drops or timeouts
   try {
-    await set(ref(rtdb, 'news_store'), newsList);
+    await fetch('https://ofmedia-web-default-rtdb.europe-west1.firebasedatabase.app/news_store.json', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newsList)
+    });
   } catch (err) {
-    console.warn('Firebase RTDB news sync fallback:', err);
+    console.warn('Firebase REST news sync fallback notice:', err);
+  }
+
+  // 2. Also sync to local Firebase SDK RTDB instance if initialized
+  if (rtdb) {
+    try {
+      await set(ref(rtdb, 'news_store'), newsList);
+    } catch (err) {
+      console.warn('Firebase RTDB SDK news sync fallback:', err);
+    }
   }
 };
 
 export const fetchNewsFromFirebase = async (): Promise<any[] | null> => {
+  // 1. Fetch directly from Firebase RTDB REST API
+  try {
+    const res = await fetch('https://ofmedia-web-default-rtdb.europe-west1.firebasedatabase.app/news_store.json');
+    if (res.ok) {
+      const val = await res.json();
+      if (val !== null && val !== undefined) {
+        return Array.isArray(val) ? val : Object.values(val);
+      }
+    }
+  } catch (err) {
+    console.warn('Firebase REST news fetch notice, attempting SDK:', err);
+  }
+
+  // 2. Fallback to Firebase SDK
   if (!rtdb) return null;
   try {
     const snapshot = await get(ref(rtdb, 'news_store'));
@@ -483,12 +510,24 @@ export const subscribeToNewsFromFirebase = (callback: (newsList: any[] | null) =
 };
 
 export const saveHiddenTelegramPostToFirebase = async (postId: string) => {
-  if (!rtdb || !postId) return;
+  if (!postId) return;
+  const cleanId = postId.replace(/^tg_/, '');
   try {
-    const cleanId = postId.replace(/^tg_/, '');
-    await set(ref(rtdb, `hidden_telegram_posts/${cleanId}`), true);
+    await fetch(`https://ofmedia-web-default-rtdb.europe-west1.firebasedatabase.app/hidden_telegram_posts/${cleanId}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(true)
+    });
   } catch (err) {
-    console.warn('Firebase RTDB hidden telegram post sync error:', err);
+    console.warn('Firebase REST hidden telegram post error:', err);
+  }
+
+  if (rtdb) {
+    try {
+      await set(ref(rtdb, `hidden_telegram_posts/${cleanId}`), true);
+    } catch (err) {
+      console.warn('Firebase RTDB hidden telegram post sync error:', err);
+    }
   }
 };
 
@@ -511,12 +550,22 @@ export const subscribeToHiddenTelegramPosts = (callback: (hiddenMap: Record<stri
 };
 
 export const unhideTelegramPostFromFirebase = async (postId: string) => {
-  if (!rtdb || !postId) return;
+  if (!postId) return;
+  const cleanId = postId.replace(/^tg_/, '');
   try {
-    const cleanId = postId.replace(/^tg_/, '');
-    await remove(ref(rtdb, `hidden_telegram_posts/${cleanId}`));
+    await fetch(`https://ofmedia-web-default-rtdb.europe-west1.firebasedatabase.app/hidden_telegram_posts/${cleanId}.json`, {
+      method: 'DELETE'
+    });
   } catch (err) {
-    console.warn('Firebase RTDB unhide telegram post sync error:', err);
+    console.warn('Firebase REST unhide telegram post error:', err);
+  }
+
+  if (rtdb) {
+    try {
+      await remove(ref(rtdb, `hidden_telegram_posts/${cleanId}`));
+    } catch (err) {
+      console.warn('Firebase RTDB unhide telegram post sync error:', err);
+    }
   }
 };
 

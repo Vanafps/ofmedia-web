@@ -17,7 +17,7 @@ const STORAGE_KEY = 'ofmedia_offline_movies';
 const DB_NAME = 'ofmedia_offline_db';
 const DB_VERSION = 1;
 const STORE_NAME = 'offline_videos';
-const CACHE_NAME = 'ofmedia-offline-v1';
+export const OFFLINE_CACHE_NAME = 'ofmedia-offline-v1';
 
 // Open or initialize IndexedDB for binary video blob storage
 const openOfflineDb = (): Promise<IDBDatabase> => {
@@ -53,6 +53,56 @@ export const isMovieOffline = (id: string): boolean => {
 };
 
 /**
+ * Custom HLS.js Loader that checks the Cache Storage first,
+ * enabling seamless offline playback of HLS streams (.m3u8 + .ts segments) without internet.
+ */
+export function getOfflineHlsLoaderClass(BaseLoaderClass: any): any {
+  return class OfflineHlsLoader extends (BaseLoaderClass || class {}) {
+    load(context: any, config: any, callbacks: any) {
+      const url = context.url;
+      if (typeof window !== 'undefined' && 'caches' in window) {
+        caches.open(OFFLINE_CACHE_NAME).then((cache) => {
+          cache.match(url).then((matched) => {
+            if (matched) {
+              const isBinary = context.responseType === 'arraybuffer';
+              if (isBinary) {
+                matched.arrayBuffer().then((buf) => {
+                  callbacks.onSuccess(
+                    { url, data: buf },
+                    { trequest: performance.now(), tfirst: performance.now(), tload: performance.now() },
+                    context
+                  );
+                }).catch(() => {
+                  super.load(context, config, callbacks);
+                });
+              } else {
+                matched.text().then((txt) => {
+                  callbacks.onSuccess(
+                    { url, data: txt },
+                    { trequest: performance.now(), tfirst: performance.now(), tload: performance.now() },
+                    context
+                  );
+                }).catch(() => {
+                  super.load(context, config, callbacks);
+                });
+              }
+              return;
+            }
+            super.load(context, config, callbacks);
+          }).catch(() => {
+            super.load(context, config, callbacks);
+          });
+        }).catch(() => {
+          super.load(context, config, callbacks);
+        });
+      } else {
+        super.load(context, config, callbacks);
+      }
+    }
+  };
+}
+
+/**
  * Retrieve local offline Blob URL for playback without internet
  */
 export const getOfflineVideoBlobUrl = async (id: string): Promise<string | null> => {
@@ -68,24 +118,26 @@ export const getOfflineVideoBlobUrl = async (id: string): Promise<string | null>
       req.onerror = () => resolve(null);
     });
 
-    if (blob) {
+    if (blob && blob.size > 10000 && blob.type.startsWith('video/')) {
       return URL.createObjectURL(blob);
     }
   } catch (err) {
     console.warn('Error reading video from IndexedDB:', err);
   }
 
-  // Fallback to Cache API if available
+  // Fallback to Cache API if available for direct MP4
   try {
     if ('caches' in window) {
-      const cache = await caches.open(CACHE_NAME);
+      const cache = await caches.open(OFFLINE_CACHE_NAME);
       const movies = getOfflineMovies();
       const movie = movies.find((m) => m.id === id);
-      if (movie && movie.project.videoUrl) {
+      if (movie && movie.project.videoUrl && !movie.project.videoUrl.includes('.m3u8')) {
         const cachedRes = await cache.match(movie.project.videoUrl);
         if (cachedRes) {
           const cachedBlob = await cachedRes.blob();
-          return URL.createObjectURL(cachedBlob);
+          if (cachedBlob.size > 10000) {
+            return URL.createObjectURL(cachedBlob);
+          }
         }
       }
     }
@@ -97,7 +149,7 @@ export const getOfflineVideoBlobUrl = async (id: string): Promise<string | null>
 };
 
 /**
- * Real offline download with chunk streaming and IndexedDB binary storage
+ * Offline download for both HLS streams (.m3u8 with segments) and MP4 direct videos
  */
 export const downloadMovieForOffline = async (
   project: Project,
@@ -105,70 +157,140 @@ export const downloadMovieForOffline = async (
 ): Promise<OfflineMovie> => {
   if (onProgress) onProgress(5);
 
-  let videoBlob: Blob | null = null;
   let downloadedBytes = 0;
+  const isHls = project.videoUrl.includes('.m3u8');
 
-  try {
-    // 1. Fetch real video data with progress monitoring
-    const response = await fetch(project.videoUrl, { mode: 'cors' });
-    if (!response.ok) {
-      throw new Error(`HTTP error ${response.status} fetching video`);
-    }
+  if (isHls && typeof window !== 'undefined' && 'caches' in window) {
+    try {
+      const cache = await caches.open(OFFLINE_CACHE_NAME);
 
-    const contentLength = Number(response.headers.get('content-length')) || 0;
-    if (response.body && contentLength > 0) {
-      const reader = response.body.getReader();
-      const chunks: Uint8Array[] = [];
+      // 1. Fetch Master Playlist
+      const masterRes = await fetch(project.videoUrl);
+      if (!masterRes.ok) throw new Error(`HTTP ${masterRes.status} fetching master playlist`);
+      const masterText = await masterRes.text();
+      downloadedBytes += masterText.length;
+      await cache.put(
+        project.videoUrl,
+        new Response(masterText, {
+          headers: { 'Content-Type': 'application/vnd.apple.mpegurl' }
+        })
+      );
+      if (onProgress) onProgress(10);
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) {
-          chunks.push(value);
-          downloadedBytes += value.length;
-          const pct = Math.min(95, Math.round((downloadedBytes / contentLength) * 90) + 5);
-          if (onProgress) onProgress(pct);
+      // 2. Extract Sub-playlist (select 720p or 480p for high-quality, efficient offline size)
+      const lines = masterText.split('\n').map((l) => l.trim()).filter(Boolean);
+      let targetSubPath = '';
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.includes('720p') || line.includes('480p') || line.endsWith('.m3u8')) {
+          if (!line.startsWith('#')) {
+            targetSubPath = line;
+            break;
+          }
         }
       }
+      if (!targetSubPath) {
+        targetSubPath = lines.find((l) => !l.startsWith('#') && l.endsWith('.m3u8')) || '';
+      }
 
-      videoBlob = new Blob(chunks as BlobPart[], { type: 'video/mp4' });
-    } else {
-      // Fallback if content-length header is omitted or stream not readable
-      if (onProgress) onProgress(35);
-      videoBlob = await response.blob();
-      downloadedBytes = videoBlob.size;
-      if (onProgress) onProgress(80);
+      if (targetSubPath) {
+        const subPlaylistUrl = new URL(targetSubPath, project.videoUrl).href;
+        const subRes = await fetch(subPlaylistUrl);
+        if (subRes.ok) {
+          const subText = await subRes.text();
+          downloadedBytes += subText.length;
+          await cache.put(
+            subPlaylistUrl,
+            new Response(subText, {
+              headers: { 'Content-Type': 'application/vnd.apple.mpegurl' }
+            })
+          );
+          if (onProgress) onProgress(15);
+
+          // 3. Extract TS segments
+          const subLines = subText.split('\n').map((l) => l.trim()).filter(Boolean);
+          const segmentFiles = subLines.filter((l) => !l.startsWith('#') && l.endsWith('.ts'));
+
+          for (let sIdx = 0; sIdx < segmentFiles.length; sIdx++) {
+            const segFile = segmentFiles[sIdx];
+            const segUrl = new URL(segFile, subPlaylistUrl).href;
+            try {
+              const segRes = await fetch(segUrl);
+              if (segRes.ok) {
+                const segBuf = await segRes.arrayBuffer();
+                downloadedBytes += segBuf.byteLength;
+                await cache.put(
+                  segUrl,
+                  new Response(segBuf, {
+                    headers: { 'Content-Type': 'video/mp2t' }
+                  })
+                );
+              }
+            } catch (segErr) {
+              console.warn(`Segment download error ${segFile}:`, segErr);
+            }
+            const pct = Math.min(95, Math.round((sIdx / Math.max(1, segmentFiles.length)) * 80) + 15);
+            if (onProgress) onProgress(pct);
+          }
+        }
+      }
+    } catch (hlsErr) {
+      console.warn('HLS cache download notice:', hlsErr);
     }
-  } catch (fetchErr) {
-    console.warn('Direct stream fetch failed, storing offline manifest with cached poster:', fetchErr);
-    // Create an offline placeholder blob if CORS blocks direct video download
-    videoBlob = new Blob([JSON.stringify(project)], { type: 'application/json' });
-    downloadedBytes = 1024 * 1024 * 45; // ~45 MB estimated
+  } else {
+    // Direct MP4 video download with chunk streaming and IndexedDB binary storage
+    let videoBlob: Blob | null = null;
+    try {
+      const response = await fetch(project.videoUrl, { mode: 'cors' });
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status} fetching video`);
+      }
+
+      const contentLength = Number(response.headers.get('content-length')) || 0;
+      if (response.body && contentLength > 0) {
+        const reader = response.body.getReader();
+        const chunks: Uint8Array[] = [];
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value) {
+            chunks.push(value);
+            downloadedBytes += value.length;
+            const pct = Math.min(95, Math.round((downloadedBytes / contentLength) * 90) + 5);
+            if (onProgress) onProgress(pct);
+          }
+        }
+        videoBlob = new Blob(chunks as BlobPart[], { type: 'video/mp4' });
+      } else {
+        videoBlob = await response.blob();
+        downloadedBytes = videoBlob.size;
+      }
+
+      if (videoBlob) {
+        const db = await openOfflineDb();
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          const store = tx.objectStore(STORE_NAME);
+          const putReq = store.put({
+            id: project.id,
+            blob: videoBlob,
+            downloadedAt: Date.now(),
+            size: downloadedBytes,
+          });
+          putReq.onsuccess = () => resolve();
+          putReq.onerror = () => reject(putReq.error);
+        });
+      }
+    } catch (fetchErr) {
+      console.warn('Direct stream fetch failed:', fetchErr);
+    }
   }
 
-  // 2. Save video blob to IndexedDB
-  try {
-    const db = await openOfflineDb();
-    await new Promise<void>((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
-      const putReq = store.put({
-        id: project.id,
-        blob: videoBlob,
-        downloadedAt: Date.now(),
-        size: downloadedBytes,
-      });
-      putReq.onsuccess = () => resolve();
-      putReq.onerror = () => reject(putReq.error);
-    });
-  } catch (idbErr) {
-    console.warn('Failed to store video in IndexedDB:', idbErr);
-  }
-
-  // 3. Cache poster & backdrop in Cache Storage
+  // Cache poster & backdrop in Cache Storage
   try {
     if ('caches' in window) {
-      const cache = await caches.open(CACHE_NAME);
+      const cache = await caches.open(OFFLINE_CACHE_NAME);
       if (project.poster) cache.add(project.poster).catch(() => {});
       if (project.backdrop) cache.add(project.backdrop).catch(() => {});
     }

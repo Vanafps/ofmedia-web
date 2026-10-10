@@ -30,6 +30,7 @@ import { isMobileApp, isWeb, isTelegramMiniApp } from './services/platform';
 import { useBodyScrollLock } from './hooks/useBodyScrollLock';
 import { checkForAppUpdate, triggerApkDownload, type AppVersionInfo } from './services/updateService';
 import { OfmediaNewsSection } from './components/OfmediaNewsSection';
+import { TelegramPortalModal } from './components/TelegramPortalModal';
 import { CustomTooltipProvider } from './components/ui/CustomTooltipProvider';
 import { getOfflineMovies, removeOfflineMovie, type OfflineMovie } from './services/offlineStorageService';
 import {
@@ -108,6 +109,24 @@ export function App() {
 
   const [updateInfo, setUpdateInfo] = useState<AppVersionInfo | null>(null);
   const [showUpdateModal, setShowUpdateModal] = useState<boolean>(false);
+  const [isTelegramModalOpen, setIsTelegramModalOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.location.pathname.toLowerCase() === '/telegram' || window.location.hash.toLowerCase() === '#telegram';
+  });
+
+  useEffect(() => {
+    const handleHashOrPopstate = () => {
+      if (window.location.pathname.toLowerCase() === '/telegram' || window.location.hash.toLowerCase() === '#telegram') {
+        setIsTelegramModalOpen(true);
+      }
+    };
+    window.addEventListener('popstate', handleHashOrPopstate);
+    window.addEventListener('hashchange', handleHashOrPopstate);
+    return () => {
+      window.removeEventListener('popstate', handleHashOrPopstate);
+      window.removeEventListener('hashchange', handleHashOrPopstate);
+    };
+  }, []);
 
   const isAnyModalOpen =
     isDetailModalOpen ||
@@ -115,7 +134,8 @@ export function App() {
     isPlayerOpen ||
     isAuthModalOpen ||
     isProfileModalOpen ||
-    showUpdateModal;
+    showUpdateModal ||
+    isTelegramModalOpen;
 
   // Rock-solid background scroll lock across all mobile & desktop browsers
   useBodyScrollLock(isAnyModalOpen);
@@ -1459,11 +1479,34 @@ export function App() {
                     <span>Зеркало</span>
                   </a>
                 )}
+
+                {/* Telegram Portal (Channel & Chat Proxy without VPN) */}
+                <button
+                  onClick={() => setIsTelegramModalOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/10 text-[11px] group cursor-pointer"
+                  title="Telegram Канал и Чат без VPN"
+                >
+                  <svg className="w-3.5 h-3.5 fill-[#0088cc] group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
+                  </svg>
+                  <span>Telegram</span>
+                </button>
               </div>
             </div>
           </footer>
         </div>
       )}
+
+      {/* Telegram Portal Modal */}
+      <TelegramPortalModal
+        isOpen={isTelegramModalOpen}
+        onClose={() => {
+          setIsTelegramModalOpen(false);
+          if (window.location.pathname.toLowerCase() === '/telegram' || window.location.hash.toLowerCase() === '#telegram') {
+            window.history.pushState(null, '', '/');
+          }
+        }}
+      />
     </div>
   );
 }
