@@ -826,7 +826,10 @@ export default async function handler(req, res) {
       }
 
       const effectiveSender = senderName || 'Участник 9OF';
-      const formattedText = `${effectiveSender}: ${text}`;
+      const formattedText = body.isSticker
+        ? `${effectiveSender}: [Стикер ${body.stickerEmoji || ''}]`
+        : `${effectiveSender}: ${text}`;
+
       const sendParams = {
         chat_id: `@${CHAT_USERNAME}`,
         text: formattedText
@@ -841,8 +844,14 @@ export default async function handler(req, res) {
         if (newPost) {
           newPost.author = effectiveSender;
           newPost.title = effectiveSender;
-          newPost.content = text;
-          newPost.rawHtml = text;
+          newPost.content = body.isSticker ? 'Стикер' : text;
+          newPost.rawHtml = body.isSticker ? 'Стикер' : text;
+          if (body.isSticker && body.stickerUrl) {
+            newPost.isSticker = true;
+            newPost.stickerUrl = body.stickerUrl;
+            newPost.stickerEmoji = body.stickerEmoji || '';
+            newPost.images = [body.stickerUrl];
+          }
           await fetch(`${RTDB_URL}/telegram_chat_9of/messages/${newPost.id}.json`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -851,8 +860,31 @@ export default async function handler(req, res) {
         }
         return res.json({ ok: true, post: newPost });
       } else {
-        res.statusCode = 500;
-        return res.json({ ok: false, error: 'Не удалось отправить сообщение через бота' });
+        // Fallback: write directly to RTDB so messages/stickers are never lost if bot is temporarily busy
+        const fallbackId = String(Date.now());
+        const fallbackPost = {
+          id: fallbackId,
+          title: effectiveSender,
+          author: effectiveSender,
+          authorUsername: effectiveSender.startsWith('@') ? effectiveSender : `@${effectiveSender}`,
+          content: body.isSticker ? 'Стикер' : text,
+          rawHtml: body.isSticker ? 'Стикер' : text,
+          date: new Date().toISOString(),
+          dateFormatted: 'Только что',
+          url: `https://t.me/${CHAT_USERNAME}`,
+          channel: `@${CHAT_USERNAME}`,
+          isChat: true,
+          isSticker: Boolean(body.isSticker),
+          stickerUrl: body.stickerUrl || null,
+          stickerEmoji: body.stickerEmoji || '',
+          images: body.stickerUrl ? [body.stickerUrl] : []
+        };
+        await fetch(`${RTDB_URL}/telegram_chat_9of/messages/${fallbackId}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(fallbackPost)
+        }).catch(() => {});
+        return res.json({ ok: true, post: fallbackPost });
       }
     }
 

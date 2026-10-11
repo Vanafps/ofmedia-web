@@ -513,6 +513,7 @@ export function App() {
     // Route: /my or /favorites
     if (pathname === '/my' || pathname === '/favorites') {
       setActiveTab('favorites');
+      setIsTelegramModalOpen(false);
       setIsDetailModalOpen(false);
       setIsPlayerOpen(false);
       setIsActorModalOpen(false);
@@ -525,6 +526,7 @@ export function App() {
       const match = ACTORS_DATA.find((a) => a.slug === actorSlug || a.id === actorSlug);
       if (match) {
         setSelectedActor(match);
+        setIsTelegramModalOpen(false);
         setIsActorModalOpen(true);
         setIsDetailModalOpen(false);
         setIsPlayerOpen(false);
@@ -540,6 +542,7 @@ export function App() {
       if (match) {
         setSelectedProject(match);
         setSelectedEpisode(match.episodes?.[0]);
+        setIsTelegramModalOpen(false);
         setIsPlayerOpen(true);
         setIsDetailModalOpen(false);
         setIsActorModalOpen(false);
@@ -550,6 +553,7 @@ export function App() {
     // Route: /search
     if (pathname === '/search' || pathname === '/search/') {
       setActiveTab('search');
+      setIsTelegramModalOpen(false);
       setIsDetailModalOpen(false);
       setIsPlayerOpen(false);
       setIsActorModalOpen(false);
@@ -559,6 +563,7 @@ export function App() {
     // Route: /news
     if (pathname === '/news' || pathname === '/news/') {
       setActiveTab('news');
+      setIsTelegramModalOpen(false);
       setIsDetailModalOpen(false);
       setIsPlayerOpen(false);
       setIsActorModalOpen(false);
@@ -569,6 +574,7 @@ export function App() {
     if (pathname === '/downloads' || pathname === '/downloads/') {
       setActiveTab('favorites');
       setFavoritesSubTab('downloads');
+      setIsTelegramModalOpen(false);
       setIsDetailModalOpen(false);
       setIsPlayerOpen(false);
       setIsActorModalOpen(false);
@@ -603,6 +609,7 @@ export function App() {
       const match = PROJECTS_DATA.find((p) => p.slug === singleSlug || p.id === singleSlug);
       if (match) {
         setSelectedProject(match);
+        setIsTelegramModalOpen(false);
         setIsDetailModalOpen(true);
         setIsPlayerOpen(false);
         setIsActorModalOpen(false);
@@ -612,6 +619,7 @@ export function App() {
 
     // Default route: / (Catalog)
     setActiveTab('main');
+    setIsTelegramModalOpen(false);
     setIsDetailModalOpen(false);
     setIsPlayerOpen(false);
     setIsActorModalOpen(false);
@@ -968,8 +976,6 @@ export function App() {
               )}
             </div>
 
-            {/* Platform News Feed (OFNEWS) */}
-            <OfmediaNewsSection user={user} />
           </div>
         )}
 
@@ -1445,15 +1451,15 @@ export function App() {
                   href="https://www.rustore.ru/catalog/app/ru.ofmedia.app"
                   target="_blank"
                   rel="noreferrer"
-                  className="px-4 py-2.5 rounded-xl bg-[#0077FF]/15 hover:bg-[#0077FF]/25 border border-[#0077FF]/35 text-white text-xs font-semibold flex items-center gap-2 transition-all hover:scale-102 active:scale-98"
+                  className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-white text-xs font-semibold flex items-center gap-2 transition-all hover:scale-102 active:scale-98"
                 >
                   <svg className="w-4 h-4 shrink-0" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fillRule="evenodd" clipRule="evenodd" d="M17.28 36C9.13414 36 5.0612 36 2.5306 33.4694C0 30.9388 0 26.8658 0 18.7199V17.2799C0 9.134 0 5.06105 2.5306 2.53046C5.0612 0 9.13413 0 17.28 0H18.72C26.8659 0 30.9388 0 33.4694 2.53046C36 5.06105 36 9.134 36 17.2799V18.7199C36 26.8658 36 30.9388 33.4694 33.4694C30.9388 36 26.8659 36 18.72 36H17.28Z" fill="#0077FF" />
+                    <path fillRule="evenodd" clipRule="evenodd" d="M17.28 36C9.13414 36 5.0612 36 2.5306 33.4694C0 30.9388 0 26.8658 0 18.7199V17.2799C0 9.134 0 5.06105 2.5306 2.53046C5.0612 0 9.13413 0 17.28 0H18.72C26.8659 0 30.9388 0 33.4694 2.53046C36 5.06105 36 9.134 36 17.2799V18.7199C36 26.8658 36 30.9388 33.4694 33.4694C30.9388 36 26.8659 36 18.72 36H17.28Z" fill="#ff5c00" />
                     <path d="M20.818 22.1855C19.8481 21.9432 19.168 21.0756 19.168 20.0805V8.35681C19.168 7.22652 20.236 6.39756 21.3377 6.67277L28.3144 8.41557C29.2843 8.65786 29.9644 9.5255 29.9644 10.5206V22.2443C29.9644 23.3746 28.8963 24.2035 27.7947 23.9283L20.818 22.1855Z" fill="white" />
                     <path d="M7.68519 27.5844C6.71525 27.3421 6.03516 26.4745 6.03516 25.4794V13.7557C6.03516 12.6254 7.1032 11.7965 8.20488 12.0717L15.1815 13.8145C16.1515 14.0568 16.8316 14.9244 16.8316 15.9195V27.6432C16.8316 28.7735 15.7635 29.6024 14.6618 29.3272L7.68519 27.5844Z" fill="white" />
                     <path d="M14.2516 24.8852C13.2817 24.6429 12.6016 23.7753 12.6016 22.7802V11.0565C12.6016 9.92621 13.6696 9.09724 14.7713 9.37245L21.7479 11.1153C22.7179 11.3575 23.398 12.2252 23.398 13.2203V24.944C23.398 26.0743 22.3299 26.9032 21.2283 26.628L14.2516 24.8852Z" fill="white" />
-                    <path d="M18.8164 26.0288C18.5109 25.951 18.2934 25.6808 18.2827 25.3657L17.9792 16.4124C17.8914 15.2275 17.0118 14.285 16.0926 14.0075C16.041 13.9919 15.9859 14.0129 15.9554 14.0573C15.9243 14.1024 15.9363 14.1649 15.9796 14.1984C16.2066 14.3741 16.8313 14.9475 16.8313 15.9366L16.8295 25.5253L18.8164 26.0288Z" fill="#0077FF" />
-                    <path d="M25.3828 23.3271C25.0776 23.2507 24.8599 22.9813 24.8492 22.6669L24.5456 13.7142C24.4579 12.5292 23.5782 11.5868 22.659 11.3092C22.6074 11.2937 22.5523 11.3147 22.5218 11.3591C22.4907 11.4042 22.5027 11.4666 22.546 11.5002C22.773 11.6759 23.3978 12.2493 23.3978 13.2383L23.3959 22.8303L25.3828 23.3271Z" fill="#0077FF" />
+                    <path d="M18.8164 26.0288C18.5109 25.951 18.2934 25.6808 18.2827 25.3657L17.9792 16.4124C17.8914 15.2275 17.0118 14.285 16.0926 14.0075C16.041 13.9919 15.9859 14.0129 15.9554 14.0573C15.9243 14.1024 15.9363 14.1649 15.9796 14.1984C16.2066 14.3741 16.8313 14.9475 16.8313 15.9366L16.8295 25.5253L18.8164 26.0288Z" fill="#ff5c00" />
+                    <path d="M25.3828 23.3271C25.0776 23.2507 24.8599 22.9813 24.8492 22.6669L24.5456 13.7142C24.4579 12.5292 23.5782 11.5868 22.659 11.3092C22.6074 11.2937 22.5523 11.3147 22.5218 11.3591C22.4907 11.4042 22.5027 11.4666 22.546 11.5002C22.773 11.6759 23.3978 12.2493 23.3978 13.2383L23.3959 22.8303L25.3828 23.3271Z" fill="#ff5c00" />
                   </svg>
                   <span>RuStore</span>
                 </a>
@@ -1550,7 +1556,7 @@ export function App() {
                     className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white transition-colors border border-white/10 text-[11px] group cursor-pointer"
                     title="Telegram Канал OFMEDIA и Чат 9OF без VPN (/telegram)"
                   >
-                    <svg className="w-3.5 h-3.5 fill-[#0088cc] group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 fill-[#ff5c00] group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
                       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
                     </svg>
                     <span>Telegram</span>

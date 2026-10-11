@@ -312,7 +312,7 @@ export const renderVkOneTap = (
       .render({
         container,
         scheme: VKID.Scheme.DARK,
-        skin: VKID.OneTapSkin.Primary,
+        skin: VKID.OneTapSkin.Secondary,
         showAlternativeLogin: true,
         oauthList: [VKID.OAuthName.OK, VKID.OAuthName.MAIL],
         styles: {

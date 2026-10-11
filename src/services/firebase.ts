@@ -75,7 +75,7 @@ export const CINEMA_AVATARS = [
   { id: 'camera', label: 'Камера', src: '/avatars/avatar_camera.svg', bg: 'from-zinc-700 to-zinc-800' },
   { id: 'star', label: 'Звезда', src: '/avatars/avatar_star.svg', bg: 'from-amber-400 to-orange-500' },
   { id: 'ticket', label: 'Билеты', src: '/avatars/avatar_ticket.svg', bg: 'from-amber-500 to-yellow-600' },
-  { id: 'headphones', label: 'Звук', src: '/avatars/avatar_headphones.svg', bg: 'from-indigo-600 to-indigo-800' },
+  { id: 'headphones', label: 'Звук', src: '/avatars/avatar_headphones.svg', bg: 'from-emerald-600 to-emerald-800' },
 ];
 
 export const getStoredAccounts = (): StoredAccount[] => {

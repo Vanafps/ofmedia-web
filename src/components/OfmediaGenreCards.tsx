@@ -61,17 +61,17 @@ export const OfmediaGenreCards: React.FC<OfmediaGenreCardsProps> = ({
           onClick={() => handleToggle('new')}
           className={`relative group h-24 sm:h-28 rounded-2xl p-4 flex flex-col items-center justify-center overflow-hidden transition-all duration-300 border text-center ${
             selectedCategory === 'new'
-              ? 'bg-[#00d2ff]/15 backdrop-blur-3xl border-[#00d2ff] ring-2 ring-[#00d2ff]/40 shadow-xl shadow-[#00d2ff]/20 scale-[1.02]'
-              : 'bg-white/[0.05] backdrop-blur-3xl hover:bg-white/[0.09] border-white/15 hover:border-[#00d2ff]/50 hover:scale-[1.02] shadow-[0_8px_32px_rgba(0,0,0,0.4)]'
+              ? 'bg-[#ff5c00]/15 backdrop-blur-3xl border-[#ff5c00] ring-2 ring-[#ff5c00]/40 shadow-xl shadow-[#ff5c00]/20 scale-[1.02]'
+              : 'bg-white/[0.05] backdrop-blur-3xl hover:bg-white/[0.09] border-white/15 hover:border-[#ff5c00]/50 hover:scale-[1.02] shadow-[0_8px_32px_rgba(0,0,0,0.4)]'
           }`}
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-[#00d2ff]/15 via-transparent to-transparent opacity-40 group-hover:opacity-100 transition-opacity" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#ff5c00]/15 via-transparent to-transparent opacity-40 group-hover:opacity-100 transition-opacity" />
 
           <div className="relative z-10 flex flex-col items-center">
-            <span className="font-genre-new text-2xl sm:text-3xl text-white tracking-widest uppercase group-hover:text-[#00d2ff] transition-colors drop-shadow-[0_0_12px_rgba(0,210,255,0.4)] leading-none">
+            <span className="font-genre-new text-2xl sm:text-3xl text-white tracking-widest uppercase group-hover:text-[#ff5c00] transition-colors drop-shadow-[0_0_12px_rgba(255,92,0,0.4)] leading-none">
               Новое
             </span>
-            <div className="w-10 h-0.5 bg-gradient-to-r from-transparent via-[#00d2ff] to-transparent mt-1" />
+            <div className="w-10 h-0.5 bg-gradient-to-r from-transparent via-[#ff5c00] to-transparent mt-1" />
           </div>
 
           <span className="relative z-10 text-[10px] text-zinc-300 mt-1.5 font-normal">

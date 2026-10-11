@@ -7,6 +7,7 @@ import {
   saveHiddenTelegramPostToFirebase,
   subscribeToHiddenTelegramPosts,
 } from '../services/firebase';
+import { TelegramRichText, extractVideoUrls } from '../utils/telegramFormatter';
 
 export interface NewsPost {
   id: string;
@@ -21,6 +22,8 @@ export interface NewsPost {
   url?: string;
   source?: 'telegram' | 'manual';
   images?: string[];
+  videoUrl?: string;
+  videos?: string[];
 }
 
 interface TelegramChannelInfo {
@@ -169,6 +172,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
   const [formContent, setFormContent] = useState('');
   const [formTag, setFormTag] = useState('Обновление v1.3.0');
   const [formCover, setFormCover] = useState('');
+  const [formVideo, setFormVideo] = useState('');
   const [formPinned, setFormPinned] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
 
@@ -286,6 +290,12 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
           const cleanTitle = (p.title || '').trim();
           const cleanContent = (p.content || '').trim();
 
+          const extractedVideos = Array.isArray(p.videos) && p.videos.length > 0
+            ? p.videos
+            : p.videoUrl
+            ? [p.videoUrl]
+            : extractVideoUrls(cleanContent);
+
           return {
             id: `tg_${p.id}`,
             title: cleanTitle || `Публикация #${p.id}`,
@@ -295,6 +305,8 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
             tag: 'Telegram',
             coverImage: resolvedCover,
             images: mappedImages,
+            videoUrl: extractedVideos[0] || undefined,
+            videos: extractedVideos,
             pinned: !!p.pinned,
             views: p.views || '',
             url: p.url || `https://t.me/ofmedi/${p.id}`,
@@ -359,6 +371,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
     setFormContent('');
     setFormTag('Обновление v1.3.0');
     setFormCover('');
+    setFormVideo('');
     setFormPinned(false);
     setShowPreview(false);
     setIsEditorOpen(true);
@@ -370,6 +383,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
     setFormContent(post.content);
     setFormTag(post.tag);
     setFormCover(post.coverImage || '');
+    setFormVideo(post.videoUrl || '');
     setFormPinned(!!post.pinned);
     setShowPreview(false);
     setIsEditorOpen(true);
@@ -421,6 +435,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
     const now = new Date();
     const dateStr = `${now.getDate()} ${['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'][now.getMonth()]} ${now.getFullYear()}`;
     const cleanCover = formCover.trim();
+    const cleanVideo = formVideo.trim();
 
     let nextNews: NewsPost[];
     if (editingPostId) {
@@ -438,6 +453,13 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
         } else {
           delete updated.coverImage;
         }
+        if (cleanVideo) {
+          updated.videoUrl = cleanVideo;
+          updated.videos = [cleanVideo];
+        } else {
+          delete updated.videoUrl;
+          delete updated.videos;
+        }
         return updated;
       });
     } else {
@@ -451,6 +473,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
         pinned: formPinned,
         source: 'manual',
         ...(cleanCover ? { coverImage: cleanCover } : {}),
+        ...(cleanVideo ? { videoUrl: cleanVideo, videos: [cleanVideo] } : {}),
       };
       nextNews = [newPost, ...manualNews];
     }
@@ -465,6 +488,23 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
   };
 
   const renderPostMedia = (post: NewsPost) => {
+    // 1. Support Video playback inside news posts
+    const videoSource = post.videoUrl || (post.videos && post.videos[0]);
+    if (videoSource) {
+      return (
+        <div className="rounded-2xl overflow-hidden aspect-video w-full bg-black border border-white/10 my-2 relative group shadow-xl">
+          <video
+            src={videoSource}
+            controls
+            playsInline
+            preload="metadata"
+            poster={post.coverImage || undefined}
+            className="w-full h-full object-contain bg-black"
+          />
+        </div>
+      );
+    }
+
     const images =
       post.images && post.images.length > 0
         ? post.images
@@ -576,101 +616,13 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
 
   const renderFormattedText = (raw: string | undefined | null, isExpanded: boolean, id: string) => {
     if (!raw || typeof raw !== 'string') return null;
-    let textToRender = raw;
-    const hasCut = raw.includes('[cut]');
-    if (hasCut && !isExpanded) {
-      textToRender = raw.split('[cut]')[0].trim();
-    } else if (hasCut) {
-      textToRender = raw.replace('[cut]', '\n\n');
-    }
-
-    const lines = textToRender.split('\n');
     return (
-      <div className="space-y-2 text-xs sm:text-sm text-zinc-300 font-normal leading-relaxed">
-        {lines.map((line, idx) => {
-          const trimmed = line.trim();
-          if (!trimmed) return <div key={idx} className="h-1.5" />;
-
-          // Blockquote
-          if (trimmed.startsWith('>')) {
-            return (
-              <blockquote
-                key={idx}
-                className="border-l-2 border-[#ff5c00] pl-3 py-1 my-1 bg-white/[0.03] rounded-r-xl text-zinc-300 italic"
-              >
-                {trimmed.replace(/^>\s*/, '')}
-              </blockquote>
-            );
-          }
-
-          // Image: ![alt](url)
-          const imgMatch = trimmed.match(/^!\[(.*?)\]\((.*?)\)$/);
-          if (imgMatch) {
-            return (
-              <div key={idx} className="my-2 rounded-2xl overflow-hidden border border-white/10 max-h-80 aspect-video">
-                <img src={imgMatch[2]} alt={imgMatch[1]} className="w-full h-full object-cover" />
-              </div>
-            );
-          }
-
-          // Standard paragraph with inline formatting
-          const parts = trimmed.split(/(\*\*.*?\*\*|\*.*?\*|\[.*?\]\(.*?\))/g);
-          return (
-            <p key={idx}>
-              {parts.map((p, pIdx) => {
-                if (p.startsWith('**') && p.endsWith('**')) {
-                  return (
-                    <strong key={pIdx} className="font-bold text-white">
-                      {p.slice(2, -2)}
-                    </strong>
-                  );
-                }
-                if (p.startsWith('*') && p.endsWith('*')) {
-                  return (
-                    <em key={pIdx} className="italic text-zinc-200">
-                      {p.slice(1, -1)}
-                    </em>
-                  );
-                }
-                const linkMatch = p.match(/^\[(.*?)\]\((.*?)\)$/);
-                if (linkMatch) {
-                  return (
-                    <a
-                      key={pIdx}
-                      href={linkMatch[2]}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[#ff5c00] hover:underline underline-offset-2 font-medium"
-                    >
-                      {linkMatch[1]}
-                    </a>
-                  );
-                }
-                return p;
-              })}
-            </p>
-          );
-        })}
-
-        {hasCut && (
-          <button
-            type="button"
-            onClick={() => toggleExpand(id)}
-            className="inline-flex items-center gap-1 mt-2 text-xs font-semibold text-[#ff5c00] hover:text-[#ff7a1a] transition-colors cursor-pointer"
-          >
-            <span>{isExpanded ? 'Свернуть' : 'Читать полностью'}</span>
-            <svg
-              className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-        )}
-      </div>
+      <TelegramRichText
+        content={raw}
+        isExpanded={isExpanded}
+        onToggleExpand={() => toggleExpand(id)}
+        hasCut={raw.includes('[cut]')}
+      />
     );
   };
 
@@ -690,7 +642,23 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
           </h2>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Direct CTA button to /telegram bridge */}
+          <button
+            type="button"
+            onClick={() => {
+              window.history.pushState({ type: 'telegram' }, '', '/telegram');
+              window.dispatchEvent(new PopStateEvent('popstate'));
+            }}
+            className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#FF5C00] to-[#e05200] hover:brightness-110 text-white text-xs font-heading font-bold flex items-center gap-2 shadow-lg shadow-[#FF5C00]/25 transition-all hover:scale-102 active:scale-95 cursor-pointer"
+            title="Перейти в Telegram-мост: официальный канал и чат 9OF без VPN"
+          >
+            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
+            </svg>
+            <span>Telegram-мост</span>
+          </button>
+
           <button
             type="button"
             onClick={fetchTelegramNews}
@@ -726,10 +694,10 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
       </div>
 
       {/* Telegram Channel Feature Card */}
-      <div className="mb-6 p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-[#229ED9]/15 via-black/40 to-white/[0.02] border border-[#229ED9]/30 backdrop-blur-xl relative overflow-hidden">
+      <div className="mb-6 p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-[#FF5C00]/15 via-black/40 to-white/[0.02] border border-[#FF5C00]/30 backdrop-blur-xl relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-[#229ED9] flex items-center justify-center shrink-0 shadow-lg shadow-[#229ED9]/30">
+            <div className="w-12 h-12 rounded-2xl bg-[#FF5C00] flex items-center justify-center shrink-0 shadow-lg shadow-[#FF5C00]/30">
               {channelInfo?.avatar ? (
                 <img
                   src={channelInfo.avatar}
@@ -748,7 +716,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
                 <h3 className="font-heading font-bold text-lg text-white">
                   Официальный Telegram-канал @ofmedi
                 </h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#229ED9]/20 text-[#229ED9] border border-[#229ED9]/40">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-[#00E575]/20 text-[#00E575] border border-[#00E575]/40">
                   Без VPN
                 </span>
               </div>
@@ -764,11 +732,22 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
                 {channelInfo.subscribers} подписчиков
               </span>
             )}
+            <button
+              type="button"
+              onClick={() => {
+                window.history.pushState({ type: 'telegram' }, '', '/telegram');
+                window.dispatchEvent(new PopStateEvent('popstate'));
+              }}
+              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition-all border border-white/15 flex items-center gap-2 cursor-pointer"
+              title="Открыть веб-мост Telegram без VPN"
+            >
+              <span>Веб-мост /telegram</span>
+            </button>
             <a
               href="https://t.me/ofmedi"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 py-2.5 rounded-xl bg-[#229ED9] hover:bg-[#1e8ec3] text-white text-xs font-bold transition-all shadow-lg shadow-[#229ED9]/30 flex items-center gap-2"
+              className="px-4 py-2.5 rounded-xl bg-[#FF5C00] hover:bg-[#e05200] text-white text-xs font-bold transition-all shadow-lg shadow-[#FF5C00]/30 flex items-center gap-2"
             >
               <span>Подписаться на @ofmedi</span>
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -811,7 +790,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
           onClick={() => setActiveFilter('telegram')}
           className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
             activeFilter === 'telegram'
-              ? 'bg-[#229ED9] text-white font-bold'
+              ? 'bg-[#ff5c00] text-white font-bold shadow-lg shadow-[#ff5c00]/25'
               : 'bg-white/5 text-zinc-400 hover:text-white border border-white/10'
           }`}
         >
@@ -846,7 +825,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
                 post.pinned
                   ? 'border-[#ff5c00]/40 shadow-[0_8px_30px_rgba(255,92,0,0.08)]'
                   : isTelegram
-                  ? 'border-[#229ED9]/25 hover:border-[#229ED9]/50'
+                  ? 'border-white/10 hover:border-[#ff5c00]/40'
                   : 'border-white/10'
               }`}
             >
@@ -857,7 +836,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
                     <span
                       className={`px-2.5 py-0.5 rounded-lg text-[10px] font-semibold border ${
                         isTelegram
-                          ? 'bg-[#229ED9]/15 text-[#229ED9] border-[#229ED9]/30'
+                          ? 'bg-[#00E575]/15 text-[#00E575] border-[#00E575]/30'
                           : 'bg-white/10 text-zinc-300 border-white/10'
                       }`}
                     >
@@ -936,7 +915,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
                     href={post.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-[#229ED9] hover:underline font-semibold"
+                    className="inline-flex items-center gap-1.5 text-[#ff5c00] hover:text-[#00E575] hover:underline font-semibold transition-colors"
                   >
                     <span>В Telegram</span>
                     <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -1009,6 +988,16 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
                     className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs placeholder:text-zinc-500 focus:outline-none focus:border-[#ff5c00]"
                   />
                 </div>
+                <div className="space-y-1 md:col-span-2">
+                  <label className="text-xs text-zinc-400 font-medium">Видео (URL .mp4 файла или прямое видео, опционально):</label>
+                  <input
+                    type="url"
+                    value={formVideo}
+                    onChange={(e) => setFormVideo(e.target.value)}
+                    placeholder="https://.../video.mp4"
+                    className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-xs placeholder:text-zinc-500 focus:outline-none focus:border-[#ff5c00]"
+                  />
+                </div>
               </div>
 
               {/* Formatting Quick Buttons */}
@@ -1020,7 +1009,7 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
                       type="button"
                       onClick={() => insertFormatting('**', '**')}
                       className="px-2 py-1 rounded bg-white/5 hover:bg-white/15 text-xs text-zinc-300 font-bold"
-                      title="Жирный шрифт"
+                      title="Жирный шрифт (**текст**)"
                     >
                       B
                     </button>
@@ -1028,17 +1017,41 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
                       type="button"
                       onClick={() => insertFormatting('*', '*')}
                       className="px-2 py-1 rounded bg-white/5 hover:bg-white/15 text-xs text-zinc-300 italic"
-                      title="Курсив"
+                      title="Курсив (*текст*)"
                     >
                       I
                     </button>
                     <button
                       type="button"
-                      onClick={() => insertFormatting('> ')}
-                      className="px-2 py-1 rounded bg-white/5 hover:bg-white/15 text-xs text-zinc-300 font-serif"
-                      title="Цитата"
+                      onClick={() => insertFormatting('▌ ')}
+                      className="px-2 py-1 rounded bg-white/5 hover:bg-white/15 text-xs text-zinc-300 font-bold text-[#ff5c00]"
+                      title="Telegram Цитата (▌ текст)"
                     >
-                      Цитата
+                      ▌ Цитата
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertFormatting('||', '||')}
+                      className="px-2 py-1 rounded bg-white/5 hover:bg-white/15 text-xs text-zinc-300"
+                      title="Спойлер (||скрытый текст||)"
+                    >
+                      ||Спойлер||
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertFormatting('#тег@ofmedi')}
+                      className="px-2 py-1 rounded bg-white/5 hover:bg-white/15 text-xs text-[#ff5c00]"
+                      title="Хэштег"
+                    >
+                      #тег
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => insertFormatting('текст(', ')')}
+                      className="px-2 py-1 rounded bg-white/5 hover:bg-white/15 text-xs text-zinc-300"
+                      title="Telegram ссылка: текст(url)"
+                    >
+                      текст(url)
                     </button>
                     <button
                       type="button"
@@ -1052,9 +1065,9 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
                       type="button"
                       onClick={() => insertFormatting('[текст](', ')')}
                       className="px-2 py-1 rounded bg-white/5 hover:bg-white/15 text-xs text-zinc-300"
-                      title="Ссылка"
+                      title="Markdown ссылка"
                     >
-                      Ссылка
+                      [ссылка]
                     </button>
                     <button
                       type="button"
@@ -1138,29 +1151,42 @@ export const OfmediaNewsSection: React.FC<OfmediaNewsSectionProps> = ({ user }) 
           />
 
           <div className="relative z-10 max-w-5xl w-full flex flex-col items-center gap-3">
-            {/* Top Bar with counter & close button */}
+            {/* Top Bar with counter & actions */}
             <div className="w-full flex items-center justify-between text-white px-2">
               <span className="text-xs font-semibold text-zinc-300 bg-white/10 px-3.5 py-1.5 rounded-full border border-white/10">
                 Изображение {lightbox.index + 1} из {lightbox.images.length}
               </span>
-              <button
-                type="button"
-                onClick={() => setLightbox(null)}
-                className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
-                title="Закрыть (Esc)"
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-2">
+                <a
+                  href={lightbox.images[lightbox.index]}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer flex items-center justify-center"
+                  title="Открыть в полном разрешении"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setLightbox(null)}
+                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer flex items-center justify-center"
+                  title="Закрыть (Esc)"
+                >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
-            {/* Main Image Stage */}
-            <div className="relative w-full flex items-center justify-center max-h-[75vh] overflow-hidden rounded-3xl bg-black/60 border border-white/10 shadow-2xl">
+            {/* Main Image Stage with Responsive Bounds */}
+            <div className="relative w-full flex items-center justify-center max-h-[80vh] overflow-hidden rounded-3xl bg-black/60 border border-white/10 shadow-2xl p-1">
               <img
                 src={lightbox.images[lightbox.index]}
                 alt=""
-                className="max-h-[75vh] w-auto max-w-full object-contain"
+                className="max-h-[78vh] max-w-[88vw] w-auto h-auto object-contain rounded-2xl select-none"
               />
 
               {/* Prev Button */}

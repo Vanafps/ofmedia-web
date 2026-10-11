@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { TelegramRichText } from '../utils/telegramFormatter';
 
 export interface TelegramReplyPreview {
   id: string;
@@ -70,7 +71,7 @@ const STANDARD_QUICK_EMOJIS = [
 const USER_NAME_COLORS = [
   'text-[#FF5C00]',
   'text-[#00E575]',
-  'text-[#38BDF8]',
+  'text-emerald-400',
   'text-[#F59E0B]',
   'text-[#EC4899]',
   'text-[#A78BFA]',
@@ -81,10 +82,69 @@ const USER_NAME_COLORS = [
 const AVATAR_BG_COLORS = [
   'bg-[#FF5C00]/20 border-[#FF5C00]/40 text-[#FF5C00]',
   'bg-[#00E575]/20 border-[#00E575]/40 text-[#00E575]',
-  'bg-sky-500/20 border-sky-500/40 text-sky-400',
+  'bg-teal-500/20 border-teal-500/40 text-teal-400',
   'bg-amber-500/20 border-amber-500/40 text-amber-400',
   'bg-pink-500/20 border-pink-500/40 text-pink-400',
   'bg-violet-500/20 border-violet-500/40 text-violet-400',
+];
+
+const CURATED_STICKERS: Array<{ url: string; emoji: string; title: string; packName: string; packUrl: string }> = [
+  {
+    url: 'https://cdn.jsdelivr.net/gh/tgs-stickers/stickers/pepe/pepe_popcorn.png',
+    emoji: '\u{1F37F}',
+    title: 'Попкорн',
+    packName: 'Стикерпак 9OF & OFMEDIA',
+    packUrl: 'https://t.me/addstickers/pepecinema',
+  },
+  {
+    url: 'https://cdn.jsdelivr.net/gh/tgs-stickers/stickers/pepe/pepe_cool.png',
+    emoji: '\u{1F60E}',
+    title: 'Крутой',
+    packName: 'Стикерпак 9OF & OFMEDIA',
+    packUrl: 'https://t.me/addstickers/pepecinema',
+  },
+  {
+    url: 'https://cdn.jsdelivr.net/gh/tgs-stickers/stickers/pepe/pepe_fire.png',
+    emoji: '\u{1F525}',
+    title: 'Огонь',
+    packName: 'Стикерпак 9OF & OFMEDIA',
+    packUrl: 'https://t.me/addstickers/pepecinema',
+  },
+  {
+    url: 'https://cdn.jsdelivr.net/gh/tgs-stickers/stickers/pepe/pepe_clap.png',
+    emoji: '\u{1F44F}',
+    title: 'Аплодисменты',
+    packName: 'Стикерпак 9OF & OFMEDIA',
+    packUrl: 'https://t.me/addstickers/pepecinema',
+  },
+  {
+    url: 'https://cdn.jsdelivr.net/gh/tgs-stickers/stickers/pepe/pepe_love.png',
+    emoji: '\u{2764}\u{FE0F}',
+    title: 'Любовь',
+    packName: 'Стикерпак 9OF & OFMEDIA',
+    packUrl: 'https://t.me/addstickers/pepecinema',
+  },
+  {
+    url: 'https://cdn.jsdelivr.net/gh/tgs-stickers/stickers/pepe/pepe_think.png',
+    emoji: '\u{1F914}',
+    title: 'Думает',
+    packName: 'Стикерпак 9OF & OFMEDIA',
+    packUrl: 'https://t.me/addstickers/pepecinema',
+  },
+  {
+    url: 'https://cdn.jsdelivr.net/gh/tgs-stickers/stickers/pepe/pepe_party.png',
+    emoji: '\u{1F389}',
+    title: 'Праздник',
+    packName: 'Стикерпак 9OF & OFMEDIA',
+    packUrl: 'https://t.me/addstickers/pepecinema',
+  },
+  {
+    url: 'https://cdn.jsdelivr.net/gh/tgs-stickers/stickers/pepe/pepe_shock.png',
+    emoji: '\u{1F631}',
+    title: 'Шок',
+    packName: 'Стикерпак 9OF & OFMEDIA',
+    packUrl: 'https://t.me/addstickers/pepecinema',
+  },
 ];
 
 function getNameHashIndex(name: string, mod: number): number {
@@ -151,29 +211,6 @@ const SmartTelegramImage: React.FC<{
   );
 };
 
-function renderTextWithLinks(text: string): React.ReactNode {
-  if (!text) return null;
-  const urlRegex = /(https?:\/\/[^\s<>"']+)/gi;
-  const parts = text.split(urlRegex);
-  return parts.map((part, idx) => {
-    if (/^https?:\/\//i.test(part)) {
-      return (
-        <a
-          key={idx}
-          href={part}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[#FF5C00] hover:text-[#00E575] underline break-all transition-colors"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {part}
-        </a>
-      );
-    }
-    return <React.Fragment key={idx}>{part}</React.Fragment>;
-  });
-}
-
 export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
   isOpen,
   onClose,
@@ -188,7 +225,28 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingOlderChat, setIsLoadingOlderChat] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  // Sizing-fixed responsive media viewer with gallery pagination
+  const [selectedMedia, setSelectedMedia] = useState<{
+    images: string[];
+    index: number;
+    title?: string;
+  } | null>(null);
+
+  // Stickerpack viewer modal state (opened when clicking any sticker)
+  const [selectedSticker, setSelectedSticker] = useState<{
+    url: string;
+    emoji?: string;
+    packName?: string;
+    packUrl?: string;
+    title?: string;
+  } | null>(null);
+
+  // Custom Sticker Picker drawer state
+  const [isStickerPickerOpen, setIsStickerPickerOpen] = useState<boolean>(false);
+  const [stickerPickerTab, setStickerPickerTab] = useState<'curated' | 'custom'>('curated');
+  const [customStickerUrl, setCustomStickerUrl] = useState<string>('');
+  const customStickerEmoji = '\u{1F37F}';
 
   // Telegram Account Linking state
   const [linkedTelegramUsername, setLinkedTelegramUsername] = useState<string | null>(() => {
@@ -277,6 +335,62 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
 
     checkUserLink();
   }, [user, getClientTelegramId]);
+
+  // Realtime polling for bot link confirmation when unlinked
+  useEffect(() => {
+    if (!isOpen || linkedTelegramUsername) return;
+    const clientId = getClientTelegramId();
+    if (!clientId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const apiBase = getApiHost() || 'https://ofmedia.ru';
+        const res = await fetch(`${apiBase}/api/telegram-news?action=get_link&userId=${encodeURIComponent(clientId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.linked && data.data?.telegramUsername) {
+            setLinkedTelegramUsername(data.data.telegramUsername);
+            localStorage.setItem('ofmedia_tg_username', data.data.telegramUsername);
+            setLinkNotice(`Telegram успешно привязан: ${data.data.telegramUsername}`);
+          }
+        }
+      } catch {}
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isOpen, linkedTelegramUsername, getClientTelegramId]);
+
+  // Keyboard navigation for media viewer and modals
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (selectedMedia) setSelectedMedia(null);
+        if (selectedSticker) setSelectedSticker(null);
+        if (isStickerPickerOpen) setIsStickerPickerOpen(false);
+      } else if (e.key === 'ArrowLeft' && selectedMedia && selectedMedia.images.length > 1) {
+        setSelectedMedia((prev) =>
+          prev
+            ? {
+                ...prev,
+                index: (prev.index - 1 + prev.images.length) % prev.images.length,
+              }
+            : null
+        );
+      } else if (e.key === 'ArrowRight' && selectedMedia && selectedMedia.images.length > 1) {
+        setSelectedMedia((prev) =>
+          prev
+            ? {
+                ...prev,
+                index: (prev.index + 1) % prev.images.length,
+              }
+            : null
+        );
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedMedia, selectedSticker, isStickerPickerOpen]);
 
   const handleVerifyTelegramLink = async () => {
     const clientId = getClientTelegramId();
@@ -549,6 +663,74 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
       }
     } catch {
       setSendNotice('Не удалось отправить сообщение');
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleSendSticker = async (stickerUrl: string, emoji?: string) => {
+    if (!stickerUrl || isSending) return;
+    const clientId = getClientTelegramId();
+    const authorUsername = linkedTelegramUsername;
+    if (!authorUsername) {
+      setSendNotice('Сначала привяжите ваш Telegram-аккаунт через @ofmedia_apibot или укажите юзернейм');
+      return;
+    }
+
+    setIsSending(true);
+    setSendNotice(null);
+    try {
+      const apiBase = getApiHost() || 'https://ofmedia.ru';
+      const res = await fetch(`${apiBase}/api/telegram-news`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'sendMessage',
+          channel: 'chanel9of',
+          userId: clientId,
+          author: authorUsername,
+          text: emoji ? `${emoji} Стикер` : 'Стикер',
+          isSticker: true,
+          stickerUrl,
+          stickerEmoji: emoji || '',
+          replyToId: replyingTo?.id,
+        }),
+      });
+      const data = await res.json();
+      if (data && data.ok && data.post) {
+        const normalized = normalizePostUrls(data.post);
+        setReplyingTo(null);
+        setIsStickerPickerOpen(false);
+        if (selectedSticker) setSelectedSticker(null);
+        shouldScrollToBottomRef.current = true;
+        setPosts((prev) => [...prev, normalized]);
+        setSendNotice('Стикер отправлен в чат 9OF');
+        setTimeout(() => setSendNotice(null), 3000);
+      } else {
+        const fallbackPost: TelegramPortalPost = {
+          id: String(Date.now()),
+          title: authorUsername,
+          author: authorUsername,
+          authorUsername: authorUsername,
+          content: 'Стикер',
+          isSticker: true,
+          stickerUrl,
+          stickerEmoji: emoji || '',
+          images: [stickerUrl],
+          date: new Date().toISOString(),
+          dateFormatted: 'Только что',
+          url: 'https://t.me/chanel9of',
+          channel: '@chanel9of',
+          isChat: true,
+        };
+        setPosts((prev) => [...prev, fallbackPost]);
+        setIsStickerPickerOpen(false);
+        if (selectedSticker) setSelectedSticker(null);
+        setSendNotice('Стикер отправлен в чат 9OF');
+        setTimeout(() => setSendNotice(null), 3000);
+      }
+    } catch {
+      setSendNotice('Не удалось отправить стикер');
     } finally {
       setIsSending(false);
     }
@@ -1015,9 +1197,36 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
                               src={post.stickerUrl || post.images[0]}
                               originalSrc={post.originalImages?.[0]}
                               alt={post.stickerEmoji || 'Стикер Telegram'}
-                              onClick={() => setSelectedImage(post.stickerUrl || post.images[0])}
+                              onClick={() => {
+                                const sUrl = post.stickerUrl || post.images[0];
+                                setSelectedSticker({
+                                  url: sUrl,
+                                  emoji: post.stickerEmoji || '🍿',
+                                  packName: 'Стикерпак 9OF & OFMEDIA',
+                                  packUrl: 'https://t.me/addstickers/pepecinema',
+                                  title: post.title || 'Стикер Telegram',
+                                });
+                              }}
                               className="w-36 h-36 sm:w-44 sm:h-44 object-contain cursor-pointer drop-shadow-[0_8px_24px_rgba(0,0,0,0.6)] hover:scale-105 transition-transform"
                             />
+                            <div
+                              onClick={() => {
+                                const sUrl = post.stickerUrl || post.images[0];
+                                setSelectedSticker({
+                                  url: sUrl,
+                                  emoji: post.stickerEmoji || '🍿',
+                                  packName: 'Стикерпак 9OF & OFMEDIA',
+                                  packUrl: 'https://t.me/addstickers/pepecinema',
+                                  title: post.title || 'Стикер Telegram',
+                                });
+                              }}
+                              className="mt-1 flex items-center gap-1.5 text-[10px] text-zinc-400 cursor-pointer group/stk"
+                            >
+                              {post.stickerEmoji && <span className="text-xs">{post.stickerEmoji}</span>}
+                              <span className="opacity-70 group-hover/stk:opacity-100 group-hover/stk:text-[#00E575] transition-all">
+                                Посмотреть стикерпак →
+                              </span>
+                            </div>
                           </div>
                         )}
 
@@ -1031,7 +1240,13 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
                             {post.images.map((imgUrl, idx) => (
                               <div
                                 key={idx}
-                                onClick={() => setSelectedImage(imgUrl)}
+                                onClick={() =>
+                                  setSelectedMedia({
+                                    images: post.images,
+                                    index: idx,
+                                    title: `${senderName} • Фото ${idx + 1}/${post.images.length}`,
+                                  })
+                                }
                                 className="rounded-xl overflow-hidden bg-black/40 border border-white/10 cursor-pointer group/img relative"
                               >
                                 <SmartTelegramImage
@@ -1047,8 +1262,8 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
 
                         {/* Text Message Content */}
                         {showTextContent && (
-                          <div className="text-xs sm:text-sm text-zinc-200 leading-relaxed break-words whitespace-pre-wrap">
-                            {renderTextWithLinks(post.content)}
+                          <div className="text-xs sm:text-sm text-zinc-200 leading-relaxed break-words">
+                            <TelegramRichText content={post.content} />
                           </div>
                         )}
 
@@ -1118,9 +1333,33 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
                             src={post.stickerUrl}
                             originalSrc={post.originalImages?.[0]}
                             alt="Стикер"
-                            onClick={() => setSelectedImage(post.stickerUrl!)}
-                            className="w-32 h-32 object-contain cursor-pointer"
+                            onClick={() => {
+                              setSelectedSticker({
+                                url: post.stickerUrl!,
+                                emoji: post.stickerEmoji || '🍿',
+                                packName: 'Стикерпак 9OF & OFMEDIA',
+                                packUrl: 'https://t.me/addstickers/pepecinema',
+                                title: 'Стикер OFMEDIA',
+                              });
+                            }}
+                            className="w-32 h-32 object-contain cursor-pointer drop-shadow-md hover:scale-105 transition-transform"
                           />
+                          <div
+                            onClick={() => {
+                              setSelectedSticker({
+                                url: post.stickerUrl!,
+                                emoji: post.stickerEmoji || '🍿',
+                                packName: 'Стикерпак 9OF & OFMEDIA',
+                                packUrl: 'https://t.me/addstickers/pepecinema',
+                                title: 'Стикер OFMEDIA',
+                              });
+                            }}
+                            className="mt-1 flex items-center gap-1.5 text-[10px] text-zinc-400 cursor-pointer group/stk"
+                          >
+                            <span className="opacity-70 group-hover/stk:opacity-100 group-hover/stk:text-[#FF5C00] transition-colors">
+                              Посмотреть стикерпак →
+                            </span>
+                          </div>
                         </div>
                       ) : post.images && post.images.length > 0 ? (
                         <div
@@ -1131,14 +1370,20 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
                           {post.images.map((imgUrl, idx) => (
                             <div
                               key={idx}
-                              onClick={() => setSelectedImage(imgUrl)}
-                              className="rounded-xl overflow-hidden bg-black/40 border border-white/10 cursor-pointer relative"
+                              onClick={() =>
+                                setSelectedMedia({
+                                  images: post.images,
+                                  index: idx,
+                                  title: `OFMEDIA • Публикация #${post.id}`,
+                                })
+                              }
+                              className="rounded-xl overflow-hidden bg-black/40 border border-white/10 cursor-pointer relative group/img"
                             >
                               <SmartTelegramImage
                                 src={imgUrl}
                                 originalSrc={post.originalImages?.[idx]}
                                 alt={`Фото #${idx + 1}`}
-                                className="w-full max-h-96 object-cover hover:scale-[1.01] transition-transform"
+                                className="w-full max-h-96 object-cover group-hover/img:scale-[1.01] transition-transform"
                               />
                             </div>
                           ))}
@@ -1147,8 +1392,8 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
 
                       {/* Post Text */}
                       {post.content && !(post.isSticker && post.content === 'Стикер') && (
-                        <div className="text-xs sm:text-sm text-zinc-200 leading-relaxed break-words whitespace-pre-wrap">
-                          {renderTextWithLinks(post.content)}
+                        <div className="text-xs sm:text-sm text-zinc-200 leading-relaxed break-words">
+                          <TelegramRichText content={post.content} />
                         </div>
                       )}
 
@@ -1291,20 +1536,143 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
                         )}
                       </div>
 
-                      {/* Quick Emojis Bar */}
-                      <div className="hidden sm:flex items-center gap-1">
-                        {STANDARD_QUICK_EMOJIS.map((emoji) => (
-                          <button
-                            key={emoji}
-                            type="button"
-                            onClick={() => setChatText((prev) => prev + emoji)}
-                            className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/15 flex items-center justify-center text-sm transition-all cursor-pointer"
-                          >
-                            {emoji}
-                          </button>
-                        ))}
+                      {/* Stickers Toggle & Quick Emojis Bar */}
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setIsStickerPickerOpen((prev) => !prev)}
+                          className={`px-2.5 py-1 rounded-lg border text-xs font-heading font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0 ${
+                            isStickerPickerOpen
+                              ? 'bg-[#FF5C00] text-black border-[#FF5C00]'
+                              : 'bg-white/5 hover:bg-white/10 text-zinc-300 border-white/10'
+                          }`}
+                          title="Выбрать или отправить стикер"
+                        >
+                          <svg className="w-4 h-4 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>Стикеры</span>
+                        </button>
+
+                        <div className="hidden sm:flex items-center gap-1">
+                          {STANDARD_QUICK_EMOJIS.map((emoji) => (
+                            <button
+                              key={emoji}
+                              type="button"
+                              onClick={() => setChatText((prev) => prev + emoji)}
+                              className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/15 flex items-center justify-center text-sm transition-all cursor-pointer"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
+
+                    {/* Expandable Custom & Curated Sticker Drawer */}
+                    {isStickerPickerOpen && (
+                      <div className="p-3 rounded-2xl bg-[#121218] border border-[#FF5C00]/30 shadow-2xl space-y-3">
+                        <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setStickerPickerTab('curated')}
+                              className={`px-3 py-1 rounded-lg text-xs font-heading font-bold transition-all cursor-pointer ${
+                                stickerPickerTab === 'curated'
+                                  ? 'bg-[#FF5C00]/20 text-[#FF5C00] border border-[#FF5C00]/40'
+                                  : 'text-zinc-400 hover:text-white'
+                              }`}
+                            >
+                              Стикеры 9OF
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setStickerPickerTab('custom')}
+                              className={`px-3 py-1 rounded-lg text-xs font-heading font-bold transition-all cursor-pointer ${
+                                stickerPickerTab === 'custom'
+                                  ? 'bg-[#00E575]/20 text-[#00E575] border border-[#00E575]/40'
+                                  : 'text-zinc-400 hover:text-white'
+                              }`}
+                            >
+                              Свой стикер / URL
+                            </button>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setIsStickerPickerOpen(false)}
+                            className="w-6 h-6 rounded-md hover:bg-white/10 text-zinc-400 hover:text-white flex items-center justify-center text-xs"
+                          >
+                            ✕
+                          </button>
+                        </div>
+
+                        {stickerPickerTab === 'curated' ? (
+                          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 max-h-52 overflow-y-auto pr-1">
+                            {CURATED_STICKERS.map((stk, sIdx) => (
+                              <button
+                                key={sIdx}
+                                type="button"
+                                onClick={() => handleSendSticker(stk.url, stk.emoji)}
+                                className="group/item flex flex-col items-center p-2 rounded-xl bg-white/[0.03] hover:bg-white/10 border border-white/5 hover:border-[#FF5C00]/40 transition-all cursor-pointer relative"
+                                title={`${stk.title} (${stk.emoji})`}
+                              >
+                                <img
+                                  src={stk.url}
+                                  alt={stk.title}
+                                  className="w-12 h-12 sm:w-14 sm:h-14 object-contain group-hover/item:scale-110 transition-transform"
+                                  loading="lazy"
+                                />
+                                <span className="text-[10px] text-zinc-400 mt-1 truncate max-w-full">
+                                  {stk.title}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="space-y-2.5">
+                            <div className="text-xs text-zinc-400">
+                              Вставьте прямую ссылку на стикер или картинку (PNG, WebP):
+                            </div>
+                            <div className="flex gap-2">
+                              <input
+                                type="url"
+                                value={customStickerUrl}
+                                onChange={(e) => setCustomStickerUrl(e.target.value)}
+                                placeholder="https://example.com/sticker.png"
+                                className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#00E575]"
+                              />
+                              <button
+                                type="button"
+                                disabled={!customStickerUrl.trim() || isSending}
+                                onClick={() => {
+                                  if (customStickerUrl.trim()) {
+                                    handleSendSticker(customStickerUrl.trim(), customStickerEmoji);
+                                    setCustomStickerUrl('');
+                                  }
+                                }}
+                                className="px-4 py-1.5 rounded-xl bg-[#00E575] hover:bg-[#00C853] text-black font-heading font-bold text-xs disabled:opacity-40 transition-all cursor-pointer shrink-0"
+                              >
+                                Отправить
+                              </button>
+                            </div>
+                            {customStickerUrl.trim() && (
+                              <div className="flex items-center gap-3 pt-1">
+                                <span className="text-[11px] text-zinc-400">Предпросмотр:</span>
+                                <img
+                                  src={customStickerUrl.trim()}
+                                  alt="Свой стикер"
+                                  className="w-12 h-12 object-contain bg-black/30 rounded-lg p-1 border border-white/10"
+                                  onError={(e) => {
+                                    (e.currentTarget as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Composer Input & Send Button */}
                     <div className="flex items-center gap-2">
@@ -1332,17 +1700,207 @@ export const TelegramPortalModal: React.FC<TelegramPortalModalProps> = ({
         </main>
       </div>
 
-      {/* Lightbox Dialog for Telegram Images */}
-      {selectedImage && (
+      {/* =========================================================
+          SIZING-FIXED RESPONSIVE MEDIA VIEWER MODAL
+          ========================================================= */}
+      {selectedMedia && (
         <div
-          onClick={() => setSelectedImage(null)}
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setSelectedMedia(null)}
+          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex flex-col items-center justify-between p-3 sm:p-6 select-none"
         >
-          <img
-            src={selectedImage}
-            alt="Увеличенное изображение"
-            className="max-h-[90vh] max-w-[90vw] object-contain rounded-2xl shadow-2xl"
-          />
+          {/* Top Bar */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-4xl flex items-center justify-between gap-3 text-xs sm:text-sm text-zinc-300 pb-2 border-b border-white/10"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-heading font-bold text-white truncate">
+                {selectedMedia.title || 'Медиафайл'}
+              </span>
+              {selectedMedia.images.length > 1 && (
+                <span className="px-2 py-0.5 rounded bg-white/10 text-zinc-300 text-xs shrink-0">
+                  {selectedMedia.index + 1} / {selectedMedia.images.length}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <a
+                href={selectedMedia.images[selectedMedia.index]}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/15 text-zinc-200 hover:text-white text-xs font-heading font-medium transition-colors"
+              >
+                Открыть оригинал ↗
+              </a>
+              <button
+                type="button"
+                onClick={() => setSelectedMedia(null)}
+                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center font-bold transition-colors cursor-pointer"
+                title="Закрыть (Esc)"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          {/* Center Image Container — constrained to max-h-[75vh] max-w-[88vw] */}
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative flex-1 w-full flex items-center justify-center my-auto p-2"
+          >
+            {/* Gallery Prev Button */}
+            {selectedMedia.images.length > 1 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setSelectedMedia((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          index:
+                            (prev.index - 1 + prev.images.length) % prev.images.length,
+                        }
+                      : null
+                  )
+                }
+                className="absolute left-2 sm:left-4 z-10 w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 flex items-center justify-center text-lg transition-all cursor-pointer shadow-lg"
+                title="Предыдущее фото"
+              >
+                ‹
+              </button>
+            )}
+
+            <img
+              src={selectedMedia.images[selectedMedia.index]}
+              alt={`Изображение ${selectedMedia.index + 1}`}
+              className="max-h-[75vh] max-w-[88vw] object-contain rounded-2xl shadow-2xl border border-white/10"
+            />
+
+            {/* Gallery Next Button */}
+            {selectedMedia.images.length > 1 && (
+              <button
+                type="button"
+                onClick={() =>
+                  setSelectedMedia((prev) =>
+                    prev
+                      ? {
+                          ...prev,
+                          index: (prev.index + 1) % prev.images.length,
+                        }
+                      : null
+                  )
+                }
+                className="absolute right-2 sm:right-4 z-10 w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 flex items-center justify-center text-lg transition-all cursor-pointer shadow-lg"
+                title="Следующее фото"
+              >
+                ›
+              </button>
+            )}
+          </div>
+
+          {/* Bottom Thumbnails Strip (if multiple images) */}
+          {selectedMedia.images.length > 1 && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-2xl flex items-center justify-center gap-2 overflow-x-auto pt-2 pb-1"
+            >
+              {selectedMedia.images.map((img, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() =>
+                    setSelectedMedia((prev) => (prev ? { ...prev, index: i } : null))
+                  }
+                  className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${
+                    i === selectedMedia.index
+                      ? 'border-[#FF5C00] scale-105'
+                      : 'border-white/10 opacity-50 hover:opacity-100'
+                  }`}
+                >
+                  <img src={img} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* =========================================================
+          STICKERPACK VIEWER MODAL (OPENED ON STICKER CLICK)
+          ========================================================= */}
+      {selectedSticker && (
+        <div
+          onClick={() => setSelectedSticker(null)}
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xl flex items-center justify-center p-4 select-none"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-3xl bg-[#111116] border border-[#FF5C00]/30 p-6 shadow-2xl space-y-5 text-center relative"
+          >
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setSelectedSticker(null)}
+              className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-white/5 hover:bg-white/15 text-zinc-400 hover:text-white flex items-center justify-center text-xs transition-colors cursor-pointer"
+            >
+              ✕
+            </button>
+
+            {/* Sticker Image Preview */}
+            <div className="py-2">
+              <img
+                src={selectedSticker.url}
+                alt={selectedSticker.title || 'Стикер'}
+                className="w-44 h-44 mx-auto object-contain drop-shadow-[0_12px_28px_rgba(0,0,0,0.8)] hover:scale-105 transition-transform"
+              />
+            </div>
+
+            {/* Sticker Info */}
+            <div className="space-y-1.5">
+              {selectedSticker.emoji && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-zinc-200">
+                  <span className="text-base">{selectedSticker.emoji}</span>
+                  <span className="font-heading font-semibold">
+                    {selectedSticker.title || 'Стикер Telegram'}
+                  </span>
+                </div>
+              )}
+              <h3 className="font-heading font-bold text-base text-white">
+                {selectedSticker.packName || 'Стикерпак 9OF & OFMEDIA'}
+              </h3>
+              <p className="text-xs text-zinc-400">
+                Официальный стикер из сообщества OFMEDIA и чата 9OF
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="space-y-2 pt-2">
+              <a
+                href={selectedSticker.packUrl || 'https://t.me/addstickers/pepecinema'}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#FF5C00] to-[#ff7a1a] hover:brightness-110 text-white font-heading font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all"
+              >
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z" />
+                </svg>
+                <span>Добавить стикерпак в Telegram</span>
+              </a>
+
+              {isChatMode && linkedTelegramUsername && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSendSticker(selectedSticker.url, selectedSticker.emoji);
+                  }}
+                  className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-heading font-semibold text-xs border border-white/10 transition-all cursor-pointer"
+                >
+                  Отправить в чат 9OF
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
