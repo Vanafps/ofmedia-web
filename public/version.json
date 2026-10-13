@@ -1,6 +1,6 @@
 {
-  "versionCode": 14,
-  "versionName": "1.3.0",
+  "versionCode": 15,
+  "versionName": "1.3.1",
   "minVersionCode": 1,
   "minSupportedVersionCode": 1,
   "apkUrl": "https://ofmedia.ru/ofmedia-latest.apk",
@@ -8,6 +8,6 @@
   "mirrorApkUrl": "https://ofmedia.online/ofmedia-latest.apk",
   "releaseNotes": "• Истинный глазморфизм: полупрозрачные темные обсидиановые поверхности, блюр фона на API 31+, спекулярные грани и блики\n• Плавающая нижняя навигация: контент каталога плавно прокручивается под матовой панелью без обрезки\n• Обновлены бейджи и карточки HeroBanner, DetailScreen, плеера и модального окна авторизации\n• Полная ликвидация синих оттенков: брендовый оранжевый #FF5C00 и изумрудный #00E575\n• Оптимизация дистрибутива: размер APK снижен до 32.7 МБ",
   "releaseDate": "2026-10-13",
-  "sha256": "52C54D620009EBA14EFC6B54E0806A684FED47739DDD5E21CD6652E715E6272F",
+  "sha256": "C6F73C2FC54464EEA4327F71A9657331983776A0CDEAFF0F4F148AF11ED87F7D",
   "sizeBytes": 34283725
 }

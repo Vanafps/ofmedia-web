@@ -33,6 +33,18 @@ if (existsSync(publicApkHtml)) {
 }
 copyFileSync(join(distDir, 'index.html'), join(appDir, 'index.html'));
 
+// Exclude heavy APK file from mirror repository to prevent push timeout over git HTTP
+const distApk = join(distDir, 'ofmedia-latest.apk');
+if (existsSync(distApk)) {
+  import('node:fs').then(fs => {
+    try { fs.unlinkSync(distApk); } catch {}
+  });
+  try {
+    const { unlinkSync } = await import('node:fs');
+    unlinkSync(distApk);
+  } catch {}
+}
+
 console.log('[OFMEDIA] Pushing to ofmedia-web.github.io...');
 
 const runGit = (cmd) => {
